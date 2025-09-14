@@ -25,6 +25,7 @@ class Request(models.Model):
     FINAL_OPTION_CHOICES = (
         ('file', _('파일')),
         ('file_usb', _('파일+우편')),
+        ('file_usb_cd', _('파일+우편+CD')),
         ('file_usb_post', _('파일+우편+USB')),
     )
 
