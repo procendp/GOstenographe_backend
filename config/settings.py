@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.templatetags.static import static
+from django.urls import reverse_lazy
 
 load_dotenv()
 
@@ -35,13 +37,14 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
-    'jazzmin',
+    'unfold',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',  # 추가
     
     # Third party apps
     'rest_framework',
@@ -235,52 +238,99 @@ ADMIN_SITE_HEADER = "녹취 서비스 관리자"
 ADMIN_SITE_TITLE = "녹취 서비스 관리자"
 ADMIN_INDEX_TITLE = "녹취 서비스 관리"
 
-# Admin 사이트 스타일링
-JAZZMIN_SETTINGS = {
-    "site_title": "속기사무소 정",
-    "site_header": "속기사무소 정",
-    "site_brand": "속기사무소 정",
-    "login_logo": None,
-    "login_logo_dark": None,
-    "site_logo": None,
-    "welcome_sign": "관리자 페이지에 오신 것을 환영합니다",
-    "copyright": "속기사무소 정",
-    "search_model": ["requests.Request"],
-    "user_avatar": None,
-    "topmenu_links": [
-        {"name": "홈", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "사이트", "url": "http://localhost:3000", "new_window": True},
-        {"name": "대시보드", "url": "http://localhost:3000/manage/dashboard", "new_window": True},
-    ],
-    "show_sidebar": True,
-    "navigation_expanded": True,
-    "hide_apps": ["auth"],
-    "hide_models": [],
-    "order_with_respect_to": ["requests.Request", "requests.SendLog", "requests.Template"],
-    "custom_links": {
-        "home": [{
-            "name": "대시보드",
-            "url": "http://localhost:3000/manage/dashboard",
-            "icon": "fas fa-chart-line",
-            "new_window": True
-        }]
+# Django Unfold 설정
+UNFOLD = {
+    "SITE_TITLE": "속기사무소 정",
+    "SITE_HEADER": "속기사무소 정 관리자",
+    "SITE_URL": "http://localhost:3000",
+    "SITE_SYMBOL": "speed",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "ENVIRONMENT": "config.settings.environment_callback",
+    "DASHBOARD_CALLBACK": "config.settings.dashboard_callback",
+    "LOGIN": {
+        "redirect_after": "/admin/",
     },
-    "icons": {
-        "requests": "fas fa-inbox",
-        "requests.Request": "fas fa-file-alt",
-        "requests.SendLog": "fas fa-paper-plane",
-        "requests.Template": "fas fa-envelope-open-text",
-        "auth": "fas fa-users-cog",
-        "auth.user": "fas fa-user",
-        "users.User": "fas fa-user",
-        "auth.Group": "fas fa-users",
-        "admin.LogEntry": "fas fa-file",
+    "STYLES": [],
+    "SCRIPTS": [],
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255", 
+            "200": "233 213 255",
+            "300": "196 181 253",
+            "400": "167 139 250",
+            "500": "139 92 246",
+            "600": "124 58 237",
+            "700": "109 40 217",
+            "800": "91 33 182",
+            "900": "76 29 149",
+            "950": "46 16 101",
+        },
     },
-    "default_icon_parents": "fas fa-chevron-circle-right",
-    "default_icon_children": "fas fa-circle",
-    "related_modal_active": False,
-    "recent_actions_format": lambda obj: str(obj)
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "요청 관리",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "요청서",
+                        "icon": "task_alt",
+                        "link": "/admin/requests/request/",
+                    },
+                    {
+                        "title": "템플릿",
+                        "icon": "article",
+                        "link": "/admin/requests/template/",
+                    },
+                    {
+                        "title": "발송 로그",
+                        "icon": "send",
+                        "link": "/admin/requests/sendlog/",
+                    },
+                ],
+            },
+            {
+                "title": "Database",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "엑셀 뷰",
+                        "icon": "table_view",
+                        "link": "/admin/requests/exceldatabase/",
+                    },
+                ],
+            },
+            {
+                "title": "외부 링크",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "사이트",
+                        "icon": "launch",
+                        "link": "http://localhost:3000",
+                        "badge": "new_window",
+                    },
+                    {
+                        "title": "통계",
+                        "icon": "analytics",
+                        "link": "http://localhost:3000/manage/dashboard",
+                        "badge": "new_window",
+                    },
+                ],
+            },
+        ],
+    },
 }
+
+def environment_callback(request):
+    return ["개발 환경", "success"]
+
+def dashboard_callback(request, context):
+    return context
 
 print('=== S3 ENV CHECK (settings.py) ===')
 print('AWS_S3_REGION_NAME:', AWS_S3_REGION_NAME)

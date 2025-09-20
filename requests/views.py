@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
-from .models import Request, Template, SendLog, File
+from .models import Request, Template, SendLog, File, StatusChangeLog
 from .serializers import RequestSerializer, TemplateSerializer, SendLogSerializer, FileSerializer
 from .tasks import send_notification
 from .utils import generate_presigned_url, validate_file_size
@@ -15,6 +15,9 @@ import uuid
 from rest_framework.permissions import AllowAny
 from django.utils import timezone
 import logging
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,325 @@ class RequestViewSet(viewsets.ModelViewSet):
             send_notification.delay(request.id, template.id)
         except Template.DoesNotExist:
             print("신청접수알림 템플릿이 없습니다.")
+    
+    @action(detail=False, methods=['post'])
+    def create_order_with_files(self, request):
+        """
+        파일별로 Request를 생성하는 새로운 API
+        하나의 주문자가 여러 파일을 업로드할 때 사용
+        """
+        data = request.data
+        
+        # 프론트엔드에서 받은 견적 로깅
+        estimated_price = data.get('estimated_price')
+        logger.info(f'[create_order_with_files] 프론트엔드에서 받은 견적: {estimated_price}')
+        
+        # 기본 주문자 정보
+        orderer_info = {
+            'name': data.get('name'),
+            'phone': data.get('phone'), 
+            'email': data.get('email'),
+            'address': data.get('address'),
+            'draft_format': data.get('draft_format', 'hwp'),
+            'final_option': data.get('final_option', 'file'),
+            'agreement': data.get('agreement', True),
+            'is_temporary': data.get('is_temporary', False),
+            'recording_location': data.get('recording_location', '회의실'),  # 기본값
+        }
+        
+        # Order ID 생성 (한 주문자당 하나)
+        order_id = Request.get_next_order_id()
+        
+        # 파일별 정보
+        files_data = data.get('files', [])
+        logger.info(f'[create_order_with_files] 파일 데이터 개수: {len(files_data)}')
+        for i, file_data in enumerate(files_data):
+            logger.info(f'[create_order_with_files] 파일 {i+1} 데이터:')
+            logger.info(f'  - recordType: {file_data.get("recordType")}')
+            logger.info(f'  - timestamps: {file_data.get("timestamps")}')
+            logger.info(f'  - duration: {file_data.get("duration")}')
+            logger.info(f'  - speakerNames: {file_data.get("speakerNames")}')
+            logger.info(f'  - detail: {file_data.get("detail")}')
+        created_requests = []
+        
+        for file_data in files_data:
+            # 각 파일별로 Request 생성
+            request_data = orderer_info.copy()
+            request_data.update({
+                'order_id': order_id,
+                'recording_type': file_data.get('recordType', '전체'),
+                'partial_range': '\n'.join(file_data.get('timestamps', [])) if file_data.get('timestamps') else '',
+                'total_duration': file_data.get('duration', ''),
+                'speaker_count': file_data.get('speakerCount', 1),
+                'speaker_names': ','.join(file_data.get('speakerNames', [])),
+                'additional_info': file_data.get('detail', ''),
+                'recording_date': file_data.get('recordingDate') + ' ' + file_data.get('recordingTime', '00:00') if file_data.get('recordingDate') else None,
+                'estimated_price': data.get('estimated_price'),  # 전체 견적을 각 파일에 동일하게
+            })
+            
+            # Request 생성
+            serializer = self.get_serializer(data=request_data)
+            if serializer.is_valid():
+                request_instance = serializer.save()
+                
+                # 파일 정보 저장
+                file_info = file_data.get('file_info', {})
+                if file_info.get('file_key'):
+                    File.objects.create(
+                        request=request_instance,
+                        file=file_info['file_key'],
+                        original_name=file_info.get('original_name', ''),
+                        file_type=file_info.get('file_type', ''),
+                        file_size=file_info.get('file_size', 0)
+                    )
+                
+                created_requests.append({
+                    'id': request_instance.id,
+                    'request_id': request_instance.request_id,
+                    'order_id': request_instance.order_id
+                })
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'success': True,
+            'order_id': order_id,
+            'requests': created_requests,
+            'message': f'{len(created_requests)}개의 요청이 생성되었습니다.'
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def change_status(self, request, pk=None):
+        """상태 변경 API"""
+        try:
+            request_instance = self.get_object()
+            new_status = request.data.get('status')
+            reason = request.data.get('reason', '')
+            
+            if not new_status:
+                return Response({'error': '새로운 상태가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # 임시로 모든 상태 변경 허용 (상태 전환 규칙 비활성화)
+            # if not request_instance.can_change_to(new_status):
+            #     return Response({
+            #         'error': f'현재 상태({request_instance.get_status_display()})에서 {new_status}로 변경할 수 없습니다.'
+            #     }, status=status.HTTP_400_BAD_REQUEST)
+            
+            old_status = request_instance.status
+            request_instance.status = new_status
+            
+            # 특별한 상태별 처리
+            if new_status == 'impossible' and reason:
+                request_instance.impossible_reason = reason
+            elif new_status == 'cancelled' and reason:
+                request_instance.cancel_reason = reason
+            elif new_status == 'refunded' and reason:
+                # 환불 금액 파싱
+                if '환불금액:' in reason:
+                    try:
+                        amount_str = reason.split('환불금액:')[1].split('원')[0].strip().replace(',', '')
+                        request_instance.refund_amount = int(amount_str)
+                    except:
+                        pass
+            
+            request_instance.save()
+            
+            # 상태 변경 이력 저장
+            StatusChangeLog.objects.create(
+                request=request_instance,
+                from_status=old_status,
+                to_status=new_status,
+                reason=reason,
+                # changed_by는 나중에 인증 시스템 구축 후 추가
+            )
+            
+            # TODO: 이메일/SMS 알림 발송 (추후 구현)
+            notification_sent = False
+            
+            return Response({
+                'success': True,
+                'message': '상태가 변경되었습니다.',
+                'notification_sent': notification_sent
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def change_payment(self, request, pk=None):
+        """결제 상태 변경 API"""
+        try:
+            request_instance = self.get_object()
+            payment_status = request.data.get('payment_status')
+            
+            if payment_status is None:
+                return Response({'error': '결제 상태가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            old_payment_status = request_instance.payment_status
+            request_instance.payment_status = payment_status
+            request_instance.save()
+            
+            return Response({
+                'success': True,
+                'message': '결제 상태가 변경되었습니다.',
+                'old_payment_status': old_payment_status,
+                'new_payment_status': payment_status
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def update_field(self, request, pk=None):
+        """관리자 필드 업데이트 API"""
+        try:
+            request_instance = self.get_object()
+            
+            # 업데이트할 필드들 확인
+            allowed_fields = [
+                'payment_amount', 'refund_amount', 'price_change_reason', 
+                'cancel_reason', 'notes', 'transcript'
+            ]
+            
+            for field_name, value in request.data.items():
+                if field_name in allowed_fields:
+                    setattr(request_instance, field_name, value)
+            
+            request_instance.save()
+            
+            return Response({
+                'success': True,
+                'message': '필드가 업데이트되었습니다.'
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def upload_transcript(self, request, pk=None):
+        """속기록 파일 업로드 API"""
+        try:
+            request_instance = self.get_object()
+            file = request.FILES.get('file')
+            field_name = request.data.get('field_name', 'transcript')
+            
+            if not file:
+                return Response({'error': '파일이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # S3 클라이언트 생성
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            
+            # 기존 파일이 있다면 S3에서 삭제
+            old_file_data = getattr(request_instance, field_name)
+            logger.info(f'[upload_transcript] 기존 파일 데이터 확인: {old_file_data}')
+            
+            if old_file_data and old_file_data.strip():
+                old_s3_key = None
+                
+                try:
+                    # JSON 형태인지 확인하고 S3 키 추출
+                    if old_file_data.strip().startswith('{') and old_file_data.strip().endswith('}'):
+                        import json
+                        import re
+                        
+                        # 방법 1: 정식 JSON 파싱 시도
+                        try:
+                            file_info = json.loads(old_file_data)
+                            old_s3_key = file_info.get('s3_key')
+                            logger.info(f'[upload_transcript] JSON에서 S3 키 추출: {old_s3_key}')
+                        except json.JSONDecodeError:
+                            logger.info(f'[upload_transcript] 정식 JSON 파싱 실패, 대안 방법 시도')
+                            
+                            # 방법 2: 작은따옴표를 큰따옴표로 변환 후 재시도
+                            try:
+                                cleaned_data = old_file_data.replace("'", '"')
+                                file_info = json.loads(cleaned_data)
+                                old_s3_key = file_info.get('s3_key')
+                                logger.info(f'[upload_transcript] JSON(cleaned)에서 S3 키 추출: {old_s3_key}')
+                            except json.JSONDecodeError:
+                                logger.info(f'[upload_transcript] JSON(cleaned) 파싱도 실패, 정규식 사용')
+                                
+                                # 방법 3: 정규식으로 s3_key 값 직접 추출
+                                match = re.search(r"['\"]s3_key['\"]:\s*['\"]([^'\"]*)['\"]", old_file_data)
+                                if match:
+                                    old_s3_key = match.group(1)
+                                    logger.info(f'[upload_transcript] 정규식으로 S3 키 추출: {old_s3_key}')
+                                else:
+                                    # 방법 4: 더 유연한 정규식 패턴으로 재시도
+                                    match = re.search(r's3_key["\']?\s*:\s*["\']?([^"\'}\s,]+)', old_file_data)
+                                    if match:
+                                        old_s3_key = match.group(1)
+                                        logger.info(f'[upload_transcript] 유연한 정규식으로 S3 키 추출: {old_s3_key}')
+                    else:
+                        # 기존 형태 (S3 키 직접 저장)
+                        old_s3_key = old_file_data.strip()
+                        logger.info(f'[upload_transcript] 직접 S3 키 사용: {old_s3_key}')
+                    
+                except Exception as e:
+                    logger.error(f'[upload_transcript] S3 키 추출 중 오류: {str(e)}, Data: {old_file_data}')
+                
+                # S3에서 파일 삭제 시도
+                if old_s3_key and old_s3_key.strip():
+                    try:
+                        logger.info(f'[upload_transcript] S3 파일 삭제 시도: {old_s3_key}')
+                        delete_response = s3_client.delete_object(
+                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                            Key=old_s3_key.strip()
+                        )
+                        logger.info(f'[upload_transcript] 기존 파일 삭제 완료: {old_s3_key}, Response: {delete_response}')
+                    except Exception as delete_error:
+                        logger.error(f'[upload_transcript] S3 파일 삭제 실패: {str(delete_error)}, Key: {old_s3_key}')
+                        # 삭제 실패해도 새 파일 업로드는 계속 진행
+                else:
+                    logger.warning(f'[upload_transcript] S3 키를 추출할 수 없음: {old_file_data}')
+            
+            # 새 파일명 생성 (원본 파일명 유지)
+            file_extension = file.name.split('.')[-1]
+            timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+            s3_key = f"transcripts/{request_instance.id}_{field_name}_{timestamp}.{file_extension}"
+            
+            # S3에 새 파일 업로드
+            s3_client.upload_fileobj(
+                file,
+                settings.AWS_STORAGE_BUCKET_NAME,
+                s3_key,
+                ExtraArgs={'ContentType': file.content_type}
+            )
+            
+            # 데이터베이스에 파일 정보 저장 (원본 파일명과 S3 키 모두 저장)
+            import json
+            file_info = {
+                's3_key': s3_key,
+                'original_name': file.name,
+                'uploaded_at': timezone.now().isoformat()
+            }
+            # JSON 문자열로 저장 (큰따옴표 사용)
+            setattr(request_instance, field_name, json.dumps(file_info, ensure_ascii=False))
+            request_instance.save()
+            logger.info(f'[upload_transcript] 파일 정보 저장 완료: {json.dumps(file_info, ensure_ascii=False)}')
+            
+            return Response({
+                'success': True,
+                'message': '파일이 업로드되었습니다.',
+                'file_key': s3_key,
+                'original_name': file.name
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
     def get_upload_url(self, request, pk=None):
@@ -386,3 +708,101 @@ class S3DeleteView(APIView):
         except Exception as e:
             logger.error(f'[ERROR] S3 파일 삭제 중 예외 발생: {str(e)}')
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'])
+    def download_file(self, request):
+        """S3 파일 다운로드 API"""
+        file_key = request.query_params.get('file_key')
+        
+        logger.info(f'[download_file] 다운로드 요청 - file_key: {file_key}')
+        
+        if not file_key:
+            logger.error('[download_file] file_key 파라미터가 없음')
+            return Response({'error': 'file_key 파라미터가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # 파일 정보 확인
+            from .models import File
+            try:
+                file_obj = File.objects.get(file=file_key)
+                logger.info(f'[download_file] 파일 정보 - 원본명: {file_obj.original_name}, 타입: {file_obj.file_type}, 크기: {file_obj.file_size}')
+            except File.DoesNotExist:
+                logger.warning(f'[download_file] 데이터베이스에서 파일을 찾을 수 없음: {file_key}')
+            
+            # S3 파일 존재 여부 확인
+            s3_client = boto3.client('s3')
+            try:
+                s3_response = s3_client.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=file_key)
+                logger.info(f'[download_file] S3 파일 확인 - 크기: {s3_response.get("ContentLength")} bytes, 타입: {s3_response.get("ContentType")}')
+            except Exception as s3_error:
+                logger.error(f'[download_file] S3에서 파일을 찾을 수 없음: {str(s3_error)}')
+                return Response({'error': f'파일을 찾을 수 없습니다: {file_key}'}, status=status.HTTP_404_NOT_FOUND)
+            
+            # S3에서 파일 다운로드 URL 생성 (1시간 유효)
+            download_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': file_key},
+                ExpiresIn=3600  # 1시간
+            )
+            
+            logger.info(f'[download_file] Presigned URL 생성 완료: {download_url[:100]}...')
+            
+            # 리다이렉트로 다운로드
+            from django.http import HttpResponseRedirect
+            return HttpResponseRedirect(download_url)
+            
+        except Exception as e:
+            logger.error(f'[download_file] 파일 다운로드 실패: {str(e)}')
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+def download_file_view(request):
+    """간단한 파일 다운로드 뷰"""
+    file_key = request.GET.get('file_key')
+    
+    if not file_key:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'file_key 파라미터가 필요합니다.'}, status=400)
+    
+    try:
+        # S3에서 presigned URL 생성
+        s3_client = boto3.client('s3')
+        download_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': settings.AWS_STORAGE_BUCKET_NAME, 'Key': file_key},
+            ExpiresIn=3600  # 1시간
+        )
+        
+        # 리다이렉트로 다운로드
+        from django.http import HttpResponseRedirect
+        return HttpResponseRedirect(download_url)
+        
+    except Exception as e:
+        from django.http import JsonResponse
+        return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(staff_member_required, name='dispatch')
+class ExcelDatabaseView(TemplateView):
+    template_name = 'admin/excel_database.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # 실제 Request 모델 데이터 사용
+        from .models import Request
+        from django.contrib.admin.views.main import ChangeList
+        from django.contrib import admin
+        
+        # Django admin의 ChangeList를 활용하여 데이터 가져오기
+        request_queryset = Request.objects.all().order_by('-created_at')
+        
+        # ChangeList 객체 생성 (admin 페이지와 동일한 구조)
+        class RequestChangeList:
+            def __init__(self, queryset):
+                self.result_list = queryset
+                
+        cl = RequestChangeList(request_queryset)
+        
+        context['cl'] = cl
+        context['title'] = '엑셀 데이터베이스'
+        context['opts'] = {'app_label': 'requests', 'model_name': 'request'}
+        return context

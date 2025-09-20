@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.contrib.auth.views import LogoutView
 from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
-from requests.views import RequestViewSet, S3PresignedURLView
+from requests.views import RequestViewSet, S3PresignedURLView, download_file_view
 from core.views import UserViewSet, CustomLoginView
 from django.shortcuts import redirect
 from django.contrib.auth import logout
@@ -63,5 +63,6 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/check-admin/', check_admin, name='check-admin'),
     path('api/s3/presigned-url/', S3PresignedURLView.as_view(), name='s3-presigned-url'),
+    path('api/download-file/', download_file_view, name='download-file'),
     path('', RedirectView.as_view(url='/admin/', permanent=False)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

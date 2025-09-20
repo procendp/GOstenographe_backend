@@ -1,0 +1,1494 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list humanize %}
+
+{% block content %}
+<div class="p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-semibold text-gray-900">엑셀 데이터베이스</h1>
+        <div class="flex space-x-2">
+            <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+                새로고침
+            </button>
+            <button onclick="exportCSV()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
+                CSV 내보내기
+            </button>
+        </div>
+    </div>
+
+    <!-- 엑셀 스타일 테이블 -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <div class="table-container" style="overflow-x: auto; max-width: 100%; position: relative;">
+            <table id="excel-table" class="excel-table" style="width: max-content; border-collapse: collapse;">
+                <thead class="bg-gray-50" style="position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th class="resizable-th sortable-th" style="min-width: 80px; position: relative;" data-sort="status">
+                            <div class="th-content">
+                                상태
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="order_id">
+                            <div class="th-content">
+                                Order ID
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="request_id">
+                            <div class="th-content">
+                                Request ID
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 100px; position: relative;">
+                            <div class="th-content">첨부 파일</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 100px; position: relative;">
+                            <div class="th-content">녹취 타입</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 120px; position: relative;">
+                            <div class="th-content">부분 녹취 구간</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 80px; position: relative;">
+                            <div class="th-content">총 길이</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 80px; position: relative;">
+                            <div class="th-content">화자수</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 120px; position: relative;">
+                            <div class="th-content">화자 이름</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 120px; position: relative;">
+                            <div class="th-content">녹음 일시</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 150px; position: relative;">
+                            <div class="th-content">상세 정보</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 120px; position: relative;">
+                            <div class="th-content">열람파일 형식</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 120px; position: relative;">
+                            <div class="th-content">최종본 옵션</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="name">
+                            <div class="th-content">
+                                주문자
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 120px; position: relative;" data-sort="phone">
+                            <div class="th-content">
+                                연락처
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 150px; position: relative;" data-sort="email">
+                            <div class="th-content">
+                                이메일
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 200px; position: relative;" data-sort="address">
+                            <div class="th-content">
+                                주소
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="estimated_price">
+                            <div class="th-content">
+                                예상 견적
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th payment-section-start" style="min-width: 100px; position: relative;" data-sort="payment_status">
+                            <div class="th-content">
+                                결제 여부
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="payment_amount">
+                            <div class="th-content">
+                                결제 금액
+                                <span class="sort-icon">↕</span>
+                            </div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 150px; position: relative;">
+                            <div class="th-content">결제금액 변동 사유</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 100px; position: relative;">
+                            <div class="th-content">환불 금액</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 150px; position: relative;">
+                            <div class="th-content">취소 사유</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 200px; position: relative;">
+                            <div class="th-content">속기록</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                        <th class="resizable-th" style="min-width: 200px; position: relative;">
+                            <div class="th-content">기타 정보</div>
+                            <div class="resize-handle"></div>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white">
+                    {% regroup cl.result_list by order_id as order_groups %}
+                    {% for order_group in order_groups %}
+                        {% for result in order_group.list %}
+                        <tr class="hover:bg-gray-50 border-b border-gray-200 order-group-{{ forloop.parentloop.counter0|divisibleby:2|yesno:'even,odd' }}">
+                        <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status }}">
+                            <div class="status-container">
+                                <span class="status-badge status-{{ result.status }}" id="status-badge-{{ result.id }}">
+                                    {{ result.get_status_display|default:"접수됨" }}
+                                </span>
+                                <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.status }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell">{{ result.order_id|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.request_id|default:result.id }}</td>
+                        <td class="excel-cell">
+                            {% if result.files.exists %}
+                                <div class="file-list">
+                                    {% for file in result.files.all %}
+                                        <div class="file-item">
+                                            <a href="javascript:void(0)" onclick="downloadFile('{{ file.file }}', '{{ file.original_name }}')" class="file-download-link" title="{{ file.original_name }}">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                                </svg>
+                                                {{ file.original_name|truncatechars:20 }}
+                                            </a>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="excel-cell">{{ result.recording_type|default:"전체" }}</td>
+                        <td class="excel-cell">
+                            {% if result.recording_type == "전체" %}
+                                -
+                            {% else %}
+                                {% if result.partial_range %}
+                                    {{ result.partial_range|linebreaksbr }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="excel-cell">{{ result.total_duration|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.speaker_count|default:"1" }}</td>
+                        <td class="excel-cell">{{ result.speaker_names|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.recording_date|date:"Y-m-d H:i"|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.additional_info|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.get_draft_format_display|default:"HWP" }}</td>
+                        <td class="excel-cell">{{ result.get_final_option_display|default:"기본" }}</td>
+                        <td class="excel-cell">{{ result.name }}</td>
+                        <td class="excel-cell">{{ result.phone }}</td>
+                        <td class="excel-cell">{{ result.email }}</td>
+                        <td class="excel-cell">{{ result.address|default:"-" }}</td>
+                        <td class="excel-cell">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
+                        <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
+                            <div class="payment-container">
+                                <span class="payment-badge payment-{{ result.payment_status }}">
+                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
+                                </span>
+                                <button class="payment-edit-btn" onclick="editPayment({{ result.id }}, '{{ result.payment_status }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="payment_amount" data-type="number">
+                            <div class="editable-container">
+                                <span class="editable-value">{% if result.payment_amount %}{{ result.payment_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'payment_amount', 'number')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="price_change_reason" data-type="text">
+                            <div class="editable-container">
+                                <span class="editable-value">{{ result.price_change_reason|default:"-" }}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'price_change_reason', 'text')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="refund_amount" data-type="number">
+                            <div class="editable-container">
+                                <span class="editable-value">{% if result.refund_amount %}{{ result.refund_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'refund_amount', 'number')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="cancel_reason" data-type="text">
+                            <div class="editable-container">
+                                <span class="editable-value">{{ result.cancel_reason|default:"-" }}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'cancel_reason', 'text')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="transcript" data-type="file">
+                            <div class="editable-container">
+                                <span class="editable-value" data-original-transcript="{{ result.transcript|escapejs }}">
+                                    {% if result.transcript %}
+                                        {{ result.transcript|truncatechars:30|default:"-" }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'transcript', 'file')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14,2 14,8 20,8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10,9 9,9 8,9"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="notes" data-type="text">
+                            <div class="editable-container">
+                                <span class="editable-value">{{ result.notes|default:"-" }}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'notes', 'text')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="25" class="text-center py-8 text-gray-500">
+                            데이터가 없습니다.
+                        </td>
+                    </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <style>
+    /* 기본 테이블 스타일 */
+    .excel-table {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 13px;
+    }
+    
+    /* Order ID별 배경색 구분 */
+    .order-group-even {
+        background-color: #ffffff !important;
+    }
+    .order-group-odd {
+        background-color: #f8f9fa !important;
+    }
+    
+    /* 호버 효과는 기존 배경색에 약간의 어둠 추가 */
+    .order-group-even:hover {
+        background-color: #f8f9fa !important;
+    }
+    .order-group-odd:hover {
+        background-color: #e9ecef !important;
+    }
+
+    .table-container {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: white;
+    }
+
+    /* 헤더 스타일 */
+    .resizable-th {
+        padding: 0;
+        border-right: 1px solid #e5e7eb;
+        background: #f9fafb;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    .th-content {
+        padding: 12px 16px;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+    }
+
+    /* 리사이즈 핸들 */
+    .resize-handle {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 5px;
+        height: 100%;
+        cursor: col-resize;
+        background: transparent;
+    }
+
+    .resize-handle:hover {
+        background: #3b82f6;
+    }
+
+    .resize-handle.resizing {
+        background: #2563eb;
+    }
+
+    /* 셀 스타일 */
+    .excel-cell {
+        padding: 10px 16px;
+        border-right: 1px solid #e5e7eb;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #111827;
+        max-width: 0; /* 컬럼 폭에 맞춰 텍스트 오버플로우 처리 */
+    }
+
+    /* 상태 뱃지 */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .status-received { background: #f0f9ff !important; color: #0c4a6e !important; }
+    .status-payment_completed { background: #fef3c7 !important; color: #92400e !important; }
+    .status-in_progress { background: #dbeafe !important; color: #1e40af !important; }
+    .status-work_completed { background: #e0e7ff !important; color: #3730a3 !important; }
+    .status-sent { background: #dcfce7 !important; color: #166534 !important; }
+    .status-impossible { background: #fce7f3 !important; color: #9f1239 !important; }
+    .status-cancelled { background: #fee2e2 !important; color: #991b1b !important; }
+    .status-refunded { background: #f3f4f6 !important; color: #374151 !important; }
+
+    /* 상태 컨테이너 */
+    .status-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-edit-btn {
+        opacity: 0;
+        padding: 2px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .status-cell:hover .status-edit-btn {
+        opacity: 1;
+    }
+
+    .status-edit-btn:hover {
+        background: #e5e7eb;
+    }
+
+    /* 상태 선택 드롭다운 */
+    .status-dropdown {
+        position: fixed;
+        z-index: 9999;
+        min-width: 150px;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        margin-top: 4px;
+    }
+    
+    /* 테이블 컨테이너의 overflow를 visible로 변경 */
+    .status-cell {
+        position: relative;
+        overflow: visible !important;
+    }
+    
+    .status-container {
+        position: relative;
+        overflow: visible !important;
+    }
+
+    .status-dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .status-dropdown-item:hover {
+        background: #f9fafb;
+    }
+
+    .status-dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .status-dropdown-item.disabled:hover {
+        background: transparent;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* 결제 상태 */
+    .payment-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+    }
+
+    .payment-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .payment-badge.payment-True { background: #dcfce7 !important; color: #166534 !important; }
+    .payment-badge.payment-False { background: #fee2e2 !important; color: #991b1b !important; }
+
+    .payment-edit-btn {
+        opacity: 0;
+        padding: 2px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .payment-cell:hover .payment-edit-btn {
+        opacity: 1;
+    }
+
+    .payment-edit-btn:hover {
+        background: #e5e7eb;
+    }
+
+    /* 결제 드롭다운 */
+    .payment-dropdown {
+        position: fixed;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        min-width: 120px;
+    }
+
+    .payment-dropdown-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s;
+    }
+
+    .payment-dropdown-item:hover {
+        background: #f3f4f6;
+    }
+
+    .payment-dropdown-item.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* 파일 카운트 */
+    .file-count {
+        background: #f3f4f6;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        color: #4b5563;
+    }
+
+    /* 호버 효과 */
+    tbody tr:hover {
+        background: #f9fafb;
+    }
+
+    /* 스크롤바 스타일 */
+    .table-container::-webkit-scrollbar {
+        height: 8px;
+    }
+
+    .table-container::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        border-radius: 4px;
+    }
+
+    .table-container::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+    }
+
+    /* 결제 섹션 구분선 */
+    .payment-section-start {
+        border-left: 3px solid #d1d5db !important;
+    }
+
+    /* 편집 가능한 필드 */
+    .editable-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        width: 100%;
+    }
+
+    .editable-value {
+        flex: 1;
+        min-height: 20px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0; /* flex item이 줄어들 수 있도록 */
+    }
+
+    .edit-btn {
+        opacity: 0;
+        padding: 2px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+
+    .editable-cell:hover .edit-btn {
+        opacity: 1;
+    }
+
+    .edit-btn:hover {
+        background: #e5e7eb;
+    }
+
+    /* 인라인 에디터 */
+    .inline-editor {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .inline-input {
+        flex: 1;
+        padding: 4px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 11px;
+        min-width: 0;
+    }
+
+    .inline-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 1px #3b82f6;
+    }
+
+    .inline-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .inline-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .inline-btn.save {
+        background: #10b981;
+        color: white;
+    }
+
+    .inline-btn.save:hover {
+        background: #059669;
+    }
+
+    .inline-btn.cancel {
+        background: #ef4444;
+        color: white;
+    }
+
+    .inline-btn.cancel:hover {
+        background: #dc2626;
+    }
+
+    /* 파일 업로드 */
+    .file-upload-input {
+        display: none;
+    }
+
+    .file-upload-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .file-upload-btn:hover {
+        background: #e5e7eb;
+    }
+
+    /* 정렬 기능 */
+    .sortable-th {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .sortable-th:hover {
+        background: #f3f4f6 !important;
+    }
+
+    .sort-icon {
+        margin-left: 4px;
+        font-size: 10px;
+        color: #9ca3af;
+        opacity: 0.7;
+        transition: all 0.2s;
+    }
+
+    .sortable-th:hover .sort-icon {
+        opacity: 1;
+        color: #6b7280;
+    }
+
+    .sortable-th.sort-asc .sort-icon::before {
+        content: '↑';
+        color: #3b82f6;
+        font-weight: bold;
+    }
+
+    .sortable-th.sort-desc .sort-icon::before {
+        content: '↓';
+        color: #3b82f6;
+        font-weight: bold;
+    }
+
+    .sortable-th.sort-asc .sort-icon,
+    .sortable-th.sort-desc .sort-icon {
+        opacity: 1;
+    }
+
+    /* 파일 다운로드 스타일 */
+    .file-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .file-download-link {
+        display: flex;
+        align-items: center;
+        color: #3b82f6;
+        text-decoration: none;
+        font-size: 12px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .file-download-link:hover {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .file-download-link svg {
+        flex-shrink: 0;
+    }
+
+    </style>
+
+    <script>
+    // 파일 정보 맵핑
+    const transcriptDataMap = {
+        {% regroup cl.result_list by order_id as order_groups %}
+        {% for order_group in order_groups %}
+            {% for result in order_group.list %}
+                {% if result.transcript %}
+                {{ result.id }}: `{{ result.transcript|escapejs }}`{% if not forloop.last or not forloop.parentloop.last %},{% endif %}
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    };
+
+    // 상태 정보 정의
+    const statusInfo = {
+        'received': { name: '접수됨', color: '#f0f9ff', textColor: '#0c4a6e' },
+        'payment_completed': { name: '결제완료', color: '#fef3c7', textColor: '#92400e' },
+        'in_progress': { name: '작업중', color: '#dbeafe', textColor: '#1e40af' },
+        'work_completed': { name: '작업완료', color: '#e0e7ff', textColor: '#3730a3' },
+        'sent': { name: '발송완료', color: '#dcfce7', textColor: '#166534' },
+        'impossible': { name: '작업불가', color: '#fce7f3', textColor: '#9f1239' },
+        'cancelled': { name: '취소됨', color: '#fee2e2', textColor: '#991b1b' },
+        'refunded': { name: '환불완료', color: '#f3f4f6', textColor: '#374151' }
+    };
+
+    // 상태 전환 규칙
+    const allowedTransitions = {
+        'received': ['payment_completed', 'impossible', 'cancelled'],
+        'payment_completed': ['in_progress', 'cancelled'],
+        'in_progress': ['work_completed', 'impossible'],
+        'work_completed': ['sent'],
+        'sent': [],
+        'impossible': ['cancelled', 'refunded'],
+        'cancelled': ['refunded'],
+        'refunded': []
+    };
+
+    // 상태 변경 함수
+    function editStatus(requestId, initialStatus) {
+        const cell = document.querySelector(`[data-request-id="${requestId}"]`);
+        const container = cell.querySelector('.status-container');
+        
+        // 현재 상태를 셀의 data attribute에서 동적으로 가져오기
+        const currentStatus = cell.dataset.currentStatus || initialStatus;
+        
+        // 이미 드롭다운이 열려있으면 닫기
+        const existingDropdown = container.querySelector('.status-dropdown');
+        if (existingDropdown) {
+            existingDropdown.remove();
+            return;
+        }
+
+        // 다른 열린 드롭다운 닫기
+        document.querySelectorAll('.status-dropdown').forEach(d => d.remove());
+        
+        // 드롭다운 생성
+        const dropdown = document.createElement('div');
+        dropdown.className = 'status-dropdown';
+        
+        // 버튼의 위치 계산
+        const buttonRect = container.querySelector('.status-edit-btn').getBoundingClientRect();
+        dropdown.style.left = buttonRect.left + 'px';
+        dropdown.style.top = (buttonRect.bottom + 4) + 'px';
+        
+        // 모든 상태 표시
+        for (const [key, info] of Object.entries(statusInfo)) {
+            const item = document.createElement('div');
+            item.className = 'status-dropdown-item';
+            
+            // 임시로 모든 상태 선택 가능하도록 수정
+            const isAllowed = true; // 모든 상태 선택 가능
+            // if (!isAllowed) {
+            //     item.classList.add('disabled');
+            // }
+            
+            const dot = document.createElement('span');
+            dot.className = 'status-dot';
+            dot.style.background = info.color;
+            dot.style.border = `2px solid ${info.textColor}`;
+            
+            const text = document.createElement('span');
+            text.textContent = info.name;
+            if (key === currentStatus) {
+                text.innerHTML += ' (현재)';
+                text.style.fontWeight = '600';
+            }
+            
+            item.appendChild(dot);
+            item.appendChild(text);
+            
+            if (isAllowed) {
+                item.onclick = () => {
+                    // 팝업 입력 제거 - 바로 상태 변경
+                    changeStatus(requestId, key, '');
+                    dropdown.remove();
+                };
+            }
+            
+            dropdown.appendChild(item);
+        }
+        
+        // 드롭다운을 body에 추가 (셀 밖으로 나오도록)
+        document.body.appendChild(dropdown);
+        
+        // 외부 클릭시 닫기
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!container.contains(e.target)) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+    }
+
+    // 상태 변경 API 호출
+    function changeStatus(requestId, newStatus, reason = '') {
+        fetch(`/api/requests/${requestId}/change_status/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                status: newStatus,
+                reason: reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // UI 업데이트
+                const cell = document.querySelector(`[data-request-id="${requestId}"]`);
+                const badge = cell.querySelector('.status-badge');
+                badge.className = `status-badge status-${newStatus}`;
+                badge.textContent = statusInfo[newStatus].name;
+                // 배경색과 텍스트 색상 직접 설정
+                badge.style.background = statusInfo[newStatus].color;
+                badge.style.color = statusInfo[newStatus].textColor;
+                cell.dataset.currentStatus = newStatus;
+                
+                // 성공 메시지
+                showNotification('상태가 변경되었습니다.', 'success');
+                
+                // 알림 발송 여부 표시
+                if (data.notification_sent) {
+                    showNotification('알림이 발송되었습니다.', 'info');
+                }
+            } else {
+                showNotification(data.error || '상태 변경에 실패했습니다.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('상태 변경 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    // 결제 상태 변경 함수
+    function editPayment(requestId, currentPayment) {
+        const cell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
+        const container = cell.querySelector('.payment-container');
+        
+        // 현재 결제 상태를 셀의 data attribute에서 동적으로 가져오기
+        const currentPaymentStatus = cell.dataset.currentPayment === 'True';
+        
+        // 이미 드롭다운이 열려있으면 닫기
+        const existingDropdown = container.querySelector('.payment-dropdown');
+        if (existingDropdown) {
+            existingDropdown.remove();
+            return;
+        }
+
+        // 다른 열린 드롭다운 닫기
+        document.querySelectorAll('.payment-dropdown').forEach(d => d.remove());
+        document.querySelectorAll('.status-dropdown').forEach(d => d.remove());
+        
+        // 드롭다운 생성
+        const dropdown = document.createElement('div');
+        dropdown.className = 'payment-dropdown';
+        
+        // 버튼의 위치 계산
+        const buttonRect = container.querySelector('.payment-edit-btn').getBoundingClientRect();
+        dropdown.style.left = buttonRect.left + 'px';
+        dropdown.style.top = (buttonRect.bottom + 4) + 'px';
+        
+        // 결제 상태 옵션
+        const paymentOptions = [
+            { value: false, name: '미결제', color: '#fee2e2', textColor: '#991b1b' },
+            { value: true, name: '결제 완료', color: '#dcfce7', textColor: '#166534' }
+        ];
+        
+        // 모든 결제 상태 표시
+        for (const option of paymentOptions) {
+            const item = document.createElement('div');
+            item.className = 'payment-dropdown-item';
+            
+            const dot = document.createElement('span');
+            dot.className = 'status-dot';
+            dot.style.background = option.color;
+            dot.style.border = `2px solid ${option.textColor}`;
+            
+            const text = document.createElement('span');
+            text.textContent = option.name;
+            if (option.value === currentPaymentStatus) {
+                text.innerHTML += ' (현재)';
+                text.style.fontWeight = '600';
+            }
+            
+            item.appendChild(dot);
+            item.appendChild(text);
+            
+            item.onclick = () => {
+                changePayment(requestId, option.value);
+                dropdown.remove();
+            };
+            
+            dropdown.appendChild(item);
+        }
+        
+        // 드롭다운을 body에 추가 (셀 밖으로 나오도록)
+        document.body.appendChild(dropdown);
+        
+        // 외부 클릭시 닫기
+        setTimeout(() => {
+            document.addEventListener('click', function closeDropdown(e) {
+                if (!container.contains(e.target)) {
+                    dropdown.remove();
+                    document.removeEventListener('click', closeDropdown);
+                }
+            });
+        }, 100);
+    }
+
+    // 결제 상태 변경 API 호출
+    function changePayment(requestId, paymentStatus) {
+        fetch(`/api/requests/${requestId}/change_payment/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                payment_status: paymentStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // UI 업데이트
+                const cell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
+                const badge = cell.querySelector('.payment-badge');
+                badge.className = `payment-badge payment-${paymentStatus}`;
+                badge.textContent = paymentStatus ? '결제 완료' : '미결제';
+                // 배경색과 텍스트 색상 직접 설정
+                badge.style.background = paymentStatus ? '#dcfce7' : '#fee2e2';
+                badge.style.color = paymentStatus ? '#166534' : '#991b1b';
+                cell.dataset.currentPayment = paymentStatus;
+                
+                // 성공 메시지
+                showNotification('결제 상태가 변경되었습니다.', 'success');
+            } else {
+                showNotification(data.error || '결제 상태 변경에 실패했습니다.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('결제 상태 변경 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    // CSRF 토큰 가져오기
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // 알림 표시
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+            color: white;
+            border-radius: 6px;
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+        `;
+        
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 3000);
+    }
+
+    // 파일 다운로드 함수
+    function downloadFile(s3Key, originalName) {
+        console.log(`파일 다운로드 시도: ${s3Key} (${originalName})`);
+        
+        // 새로운 단순한 다운로드 엔드포인트 사용
+        const downloadUrl = `/api/download-file/?file_key=${encodeURIComponent(s3Key)}`;
+        
+        // 직접 새 창에서 다운로드 (브라우저가 자동으로 다운로드 처리)
+        window.open(downloadUrl, '_blank');
+    }
+
+    // 테이블 정렬 기능
+    let currentSort = { column: null, direction: null };
+
+    function sortTable(column) {
+        const table = document.getElementById('excel-table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.querySelectorAll('td').length > 1);
+        
+        // 정렬 방향 결정
+        let direction = 'asc';
+        if (currentSort.column === column) {
+            direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        }
+        
+        // 헤더 스타일 업데이트
+        document.querySelectorAll('.sortable-th').forEach(th => {
+            th.classList.remove('sort-asc', 'sort-desc');
+        });
+        
+        const currentTh = document.querySelector(`[data-sort="${column}"]`);
+        currentTh.classList.add(`sort-${direction}`);
+        
+        // 컬럼 인덱스 찾기
+        const headers = Array.from(table.querySelectorAll('th'));
+        const columnIndex = headers.findIndex(th => th.getAttribute('data-sort') === column);
+        
+        if (columnIndex === -1) return;
+        
+        // 행 정렬
+        rows.sort((a, b) => {
+            const cellA = a.cells[columnIndex];
+            const cellB = b.cells[columnIndex];
+            
+            let valueA = getCellValue(cellA, column);
+            let valueB = getCellValue(cellB, column);
+            
+            // 정렬 비교
+            let comparison = 0;
+            if (column === 'order_id' || column === 'estimated_price' || column === 'payment_amount') {
+                // 숫자 정렬
+                valueA = parseFloat(valueA) || 0;
+                valueB = parseFloat(valueB) || 0;
+                comparison = valueA - valueB;
+            } else if (column === 'payment_status') {
+                // 결제 여부 정렬 (결제완료 > 미결제)
+                const statusA = valueA === '결제 완료' ? 1 : 0;
+                const statusB = valueB === '결제 완료' ? 1 : 0;
+                comparison = statusA - statusB;
+            } else {
+                // 문자열 정렬
+                comparison = valueA.localeCompare(valueB, 'ko');
+            }
+            
+            return direction === 'asc' ? comparison : -comparison;
+        });
+        
+        // 정렬된 행을 다시 추가
+        rows.forEach(row => tbody.appendChild(row));
+        
+        // 현재 정렬 상태 저장
+        currentSort = { column, direction };
+    }
+
+    function getCellValue(cell, column) {
+        if (column === 'status') {
+            const badge = cell.querySelector('.status-badge');
+            return badge ? badge.textContent.trim() : '';
+        } else if (column === 'payment_status') {
+            const badge = cell.querySelector('.payment-badge');
+            return badge ? badge.textContent.trim() : '';
+        } else {
+            let text = cell.textContent.trim();
+            if (text === '-' || text === '') return '';
+            return text;
+        }
+    }
+
+    // 컬럼 리사이징 기능
+    document.addEventListener('DOMContentLoaded', function() {
+        const table = document.getElementById('excel-table');
+        let isResizing = false;
+        let currentTh = null;
+        let startX = 0;
+        let startWidth = 0;
+
+        // 모든 리사이즈 핸들에 이벤트 리스너 추가
+        const resizeHandles = table.querySelectorAll('.resize-handle');
+        
+        resizeHandles.forEach(handle => {
+            handle.addEventListener('mousedown', function(e) {
+                isResizing = true;
+                currentTh = this.parentElement;
+                startX = e.pageX;
+                startWidth = currentTh.offsetWidth;
+                this.classList.add('resizing');
+                document.body.style.cursor = 'col-resize';
+                e.preventDefault();
+            });
+        });
+
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing) return;
+            
+            const width = startWidth + (e.pageX - startX);
+            if (width > 50) { // 최소 너비 50px
+                currentTh.style.width = width + 'px';
+                currentTh.style.minWidth = width + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', function() {
+            if (isResizing) {
+                isResizing = false;
+                currentTh = null;
+                document.body.style.cursor = 'default';
+                document.querySelectorAll('.resize-handle.resizing').forEach(handle => {
+                    handle.classList.remove('resizing');
+                });
+            }
+        });
+
+        // 정렬 가능한 헤더에 클릭 이벤트 추가
+        const sortableHeaders = table.querySelectorAll('.sortable-th');
+        sortableHeaders.forEach(header => {
+            header.addEventListener('click', function(e) {
+                // 리사이즈 핸들 클릭이 아닌 경우에만 정렬
+                if (!e.target.classList.contains('resize-handle')) {
+                    const column = this.getAttribute('data-sort');
+                    if (column) {
+                        sortTable(column);
+                    }
+                }
+            });
+        });
+    });
+
+    // 파일명 표시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        // transcript 데이터를 원본 파일명으로 표시
+        document.querySelectorAll('[data-request-id][data-field="transcript"] .editable-value').forEach(span => {
+            const cell = span.closest('[data-request-id]');
+            const requestId = cell.dataset.requestId;
+            const transcriptData = transcriptDataMap[requestId];
+            
+            console.log('Request ID:', requestId, 'Transcript data:', transcriptData); // 디버깅용
+            
+            if (transcriptData && transcriptData !== '-' && transcriptData !== '') {
+                // JSON 형태인지 확인하고 original_name 추출
+                if (transcriptData.includes('original_name')) {
+                    try {
+                        // original_name 값 직접 추출
+                        const match = transcriptData.match(/'original_name':\s*'([^']*)'|"original_name":\s*"([^"]*)"/);
+                        if (match) {
+                            const originalName = match[1] || match[2];
+                            console.log('Extracted original name:', originalName); // 디버깅용
+                            span.textContent = originalName;
+                            return;
+                        }
+                        
+                        // 정식 JSON 파싱 시도
+                        const cleanedData = transcriptData.replace(/'/g, '"');
+                        const fileInfo = JSON.parse(cleanedData);
+                        if (fileInfo.original_name) {
+                            span.textContent = fileInfo.original_name;
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('JSON 파싱 실패:', e);
+                    }
+                }
+                
+                // 기존 S3 키 형태 처리 - 파일명만 추출
+                if (transcriptData.includes('/')) {
+                    const fileName = transcriptData.split('/').pop();
+                    span.textContent = fileName;
+                } else {
+                    // 그냥 문자열인 경우
+                    span.textContent = transcriptData;
+                }
+            }
+        });
+    });
+
+    // CSV 내보내기 함수
+    // 필드 편집 함수
+    function editField(requestId, fieldName, fieldType) {
+        const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+        const container = cell.querySelector('.editable-container');
+        const valueSpan = container.querySelector('.editable-value');
+        
+        // 이미 편집 중이면 취소
+        if (container.querySelector('.inline-editor')) {
+            return;
+        }
+        
+        const currentValue = valueSpan.textContent === '-' ? '' : valueSpan.textContent.trim();
+        
+        // 인라인 에디터 생성
+        const editor = document.createElement('div');
+        editor.className = 'inline-editor';
+        
+        if (fieldType === 'file') {
+            // 파일 업로드 필드
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.className = 'file-upload-input';
+            fileInput.accept = '.pdf,.doc,.docx,.txt';
+            
+            const fileBtn = document.createElement('label');
+            fileBtn.className = 'file-upload-btn';
+            fileBtn.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                </svg>
+                파일 선택
+            `;
+            
+            fileBtn.appendChild(fileInput);
+            editor.appendChild(fileBtn);
+            
+            fileInput.onchange = function() {
+                if (this.files.length > 0) {
+                    uploadFile(requestId, fieldName, this.files[0]);
+                    cancelEdit(container, editor, valueSpan);
+                }
+            };
+        } else {
+            // 텍스트/숫자 입력 필드
+            const input = document.createElement('input');
+            input.type = fieldType === 'number' ? 'number' : 'text';
+            input.className = 'inline-input';
+            input.value = currentValue;
+            
+            if (fieldType === 'number') {
+                input.min = '0';
+                input.step = '1';
+            }
+            
+            editor.appendChild(input);
+            
+            // 저장/취소 버튼
+            const actions = document.createElement('div');
+            actions.className = 'inline-actions';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'inline-btn save';
+            saveBtn.textContent = '저장';
+            saveBtn.onclick = () => saveField(requestId, fieldName, input.value, container, editor, valueSpan);
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'inline-btn cancel';
+            cancelBtn.textContent = '취소';
+            cancelBtn.onclick = () => cancelEdit(container, editor, valueSpan);
+            
+            actions.appendChild(saveBtn);
+            actions.appendChild(cancelBtn);
+            editor.appendChild(actions);
+            
+            // Enter 키로 저장
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveField(requestId, fieldName, input.value, container, editor, valueSpan);
+                } else if (e.key === 'Escape') {
+                    cancelEdit(container, editor, valueSpan);
+                }
+            });
+            
+            setTimeout(() => input.focus(), 100);
+        }
+        
+        // 기존 내용 숨기고 에디터 표시
+        valueSpan.style.display = 'none';
+        container.querySelector('.edit-btn').style.display = 'none';
+        container.appendChild(editor);
+    }
+    
+    function saveField(requestId, fieldName, value, container, editor, valueSpan) {
+        const data = {};
+        data[fieldName] = fieldName.includes('amount') ? (value ? parseInt(value) : null) : value;
+        
+        fetch(`/api/requests/${requestId}/update_field/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                valueSpan.textContent = value || '-';
+                showNotification('수정되었습니다.', 'success');
+                cancelEdit(container, editor, valueSpan);
+            } else {
+                showNotification(data.error || '수정에 실패했습니다.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('수정 중 오류가 발생했습니다.', 'error');
+        });
+    }
+    
+    function uploadFile(requestId, fieldName, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('field_name', fieldName);
+        
+        fetch(`/api/requests/${requestId}/upload_transcript/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+                const valueSpan = cell.querySelector('.editable-value');
+                valueSpan.textContent = data.original_name || file.name;
+                showNotification('파일이 업로드되었습니다.', 'success');
+            } else {
+                showNotification(data.error || '파일 업로드에 실패했습니다.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
+        });
+    }
+    
+    function cancelEdit(container, editor, valueSpan) {
+        editor.remove();
+        valueSpan.style.display = '';
+        container.querySelector('.edit-btn').style.display = '';
+    }
+
+    function exportCSV() {
+        const table = document.getElementById('excel-table');
+        const rows = table.querySelectorAll('tr');
+        let csv = [];
+        
+        // 헤더 처리
+        const headers = [];
+        rows[0].querySelectorAll('th').forEach(th => {
+            headers.push('"' + th.querySelector('.th-content').textContent.trim() + '"');
+        });
+        csv.push(headers.join(','));
+        
+        // 데이터 행 처리
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const cols = row.querySelectorAll('td');
+            if (cols.length === 1) continue; // "데이터가 없습니다" 행 스킵
+            
+            let csvRow = [];
+            cols.forEach(td => {
+                let text = td.textContent.trim();
+                // 특수 문자 처리
+                text = text.replace(/"/g, '""');
+                csvRow.push('"' + text + '"');
+            });
+            csv.push(csvRow.join(','));
+        }
+        
+        const csvContent = csv.join('\n');
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            const now = new Date();
+            const filename = `excel_database_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.csv`;
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }
+    </script>
+</div>
+{% endblock %}
