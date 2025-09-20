@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
 from .models import Request, Template, SendLog, File, StatusChangeLog
 from .serializers import RequestSerializer, TemplateSerializer, SendLogSerializer, FileSerializer
 from .tasks import send_notification
@@ -18,6 +19,10 @@ import logging
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
+from django.db.models import Q, Count, Sum, Avg
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
+from datetime import datetime, timedelta
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -806,3 +811,242 @@ class ExcelDatabaseView(TemplateView):
         context['title'] = '엑셀 데이터베이스'
         context['opts'] = {'app_label': 'requests', 'model_name': 'request'}
         return context
+
+@staff_member_required
+def statistics_dashboard_view(request):
+    """통계 대시보드 뷰"""
+    # 기본 통계 데이터
+    total_requests = Request.objects.count()
+    total_files = File.objects.count()
+    total_revenue = Request.objects.filter(
+        payment_status=True
+    ).aggregate(
+        total=Sum('payment_amount')
+    )['total'] or 0
+    
+    # 일별 접수량 (최근 30일) - 파일 JOIN 제거
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    daily_stats = Request.objects.filter(
+        created_at__gte=thirty_days_ago
+    ).extra(
+        select={'date': "DATE(requests_request.created_at)"}
+    ).values('date').annotate(
+        count=Count('id'),
+        revenue=Sum('payment_amount')
+    ).order_by('date')
+    
+    # 월별 통계 (최근 12개월)
+    twelve_months_ago = timezone.now() - timedelta(days=365)
+    monthly_stats = Request.objects.filter(
+        created_at__gte=twelve_months_ago
+    ).extra(
+        select={
+            'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
+        }
+    ).values('month').annotate(
+        count=Count('id'),
+        revenue=Sum('payment_amount')
+    ).order_by('month')
+    
+    # 연도별 통계
+    yearly_stats = Request.objects.extra(
+        select={
+            'year': "strftime('%%Y-01-01', requests_request.created_at)"
+        }
+    ).values('year').annotate(
+        count=Count('id'),
+        revenue=Sum('payment_amount')
+    ).order_by('year')
+    
+    # 상태별 통계
+    status_stats = Request.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # 최종본 옵션 선호도
+    final_option_stats = Request.objects.values('final_option').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # 취소 관련 통계
+    cancelled_stats = Request.objects.filter(
+        status__in=['cancelled', 'refunded', 'impossible']
+    ).values('status').annotate(
+        count=Count('id')
+    )
+    
+    # 평균 주문금액 계산
+    average_order_amount = 0
+    if total_requests > 0 and total_revenue:
+        average_order_amount = total_revenue / total_requests
+    
+    context = {
+        'total_requests': total_requests,
+        'total_files': total_files,
+        'total_revenue': total_revenue,
+        'average_order_amount': average_order_amount,
+        'daily_stats': list(daily_stats),
+        'monthly_stats': list(monthly_stats),
+        'yearly_stats': list(yearly_stats),
+        'status_stats': list(status_stats),
+        'final_option_stats': list(final_option_stats),
+        'cancelled_stats': list(cancelled_stats),
+    }
+    
+    return render(request, 'admin/statistics_dashboard.html', context)
+
+@staff_member_required  
+def statistics_api_view(request):
+    """AJAX용 통계 데이터 API"""
+    period = request.GET.get('period', 'total')
+    
+    # 기본 통계 데이터
+    total_requests = Request.objects.count()
+    total_files = File.objects.count()
+    total_revenue = Request.objects.filter(
+        payment_status=True
+    ).aggregate(
+        total=Sum('payment_amount')
+    )['total'] or 0
+    
+    # 평균 주문금액 계산
+    average_order_amount = 0
+    if total_requests > 0 and total_revenue:
+        average_order_amount = total_revenue / total_requests
+    
+    # 기간별 트렌드 데이터
+    trend_data = []
+    revenue_data = []
+    labels = []
+    
+    if period == '1일':
+        # 24시간별 데이터
+        now = timezone.now()
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        for hour in range(24):
+            hour_start = start_of_day + timedelta(hours=hour)
+            hour_end = hour_start + timedelta(hours=1)
+            
+            requests_count = Request.objects.filter(
+                created_at__gte=hour_start,
+                created_at__lt=hour_end
+            ).count()
+            
+            revenue_sum = Request.objects.filter(
+                created_at__gte=hour_start,
+                created_at__lt=hour_end,
+                payment_status=True
+            ).aggregate(total=Sum('payment_amount'))['total'] or 0
+            
+            trend_data.append(requests_count)
+            revenue_data.append(float(revenue_sum))
+            labels.append(f"{hour}시")
+            
+    elif period == '30일':
+        # 30일간 일별 데이터
+        now = timezone.now()
+        
+        for i in range(29, -1, -1):
+            date = now.date() - timedelta(days=i)
+            day_start = timezone.make_aware(datetime.combine(date, datetime.min.time()))
+            day_end = day_start + timedelta(days=1)
+            
+            requests_count = Request.objects.filter(
+                created_at__gte=day_start,
+                created_at__lt=day_end
+            ).count()
+            
+            revenue_sum = Request.objects.filter(
+                created_at__gte=day_start,
+                created_at__lt=day_end,
+                payment_status=True
+            ).aggregate(total=Sum('payment_amount'))['total'] or 0
+            
+            trend_data.append(requests_count)
+            revenue_data.append(float(revenue_sum))
+            labels.append(f"{date.month}/{date.day}")
+            
+    elif period == '12개월':
+        # 12개월간 월별 데이터
+        now = timezone.now()
+        
+        for i in range(11, -1, -1):
+            month_date = now.replace(day=1) - timedelta(days=32*i)
+            month_start = month_date.replace(day=1)
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
+            else:
+                month_end = month_start.replace(month=month_start.month + 1)
+            
+            requests_count = Request.objects.filter(
+                created_at__gte=month_start,
+                created_at__lt=month_end
+            ).count()
+            
+            revenue_sum = Request.objects.filter(
+                created_at__gte=month_start,
+                created_at__lt=month_end,
+                payment_status=True
+            ).aggregate(total=Sum('payment_amount'))['total'] or 0
+            
+            trend_data.append(requests_count)
+            revenue_data.append(float(revenue_sum))
+            labels.append(f"{month_start.month}월")
+            
+    elif period == '연도별':
+        # 최근 5년간 연도별 데이터
+        current_year = timezone.now().year
+        
+        for i in range(4, -1, -1):
+            year = current_year - i
+            year_start = timezone.make_aware(datetime(year, 1, 1))
+            year_end = timezone.make_aware(datetime(year + 1, 1, 1))
+            
+            requests_count = Request.objects.filter(
+                created_at__gte=year_start,
+                created_at__lt=year_end
+            ).count()
+            
+            revenue_sum = Request.objects.filter(
+                created_at__gte=year_start,
+                created_at__lt=year_end,
+                payment_status=True
+            ).aggregate(total=Sum('payment_amount'))['total'] or 0
+            
+            trend_data.append(requests_count)
+            revenue_data.append(float(revenue_sum))
+            labels.append(f"{year}년")
+    
+    # 상태별 통계
+    status_stats = Request.objects.values('status').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # 최종본 옵션 선호도
+    final_option_stats = Request.objects.values('final_option').annotate(
+        count=Count('id')
+    ).order_by('-count')
+    
+    # 취소 관련 통계
+    cancelled_stats = Request.objects.filter(
+        status__in=['cancelled', 'refunded', 'impossible']
+    ).values('status').annotate(
+        count=Count('id')
+    )
+    
+    data = {
+        'total_requests': total_requests,
+        'total_files': total_files,
+        'total_revenue': float(total_revenue) if total_revenue else 0,
+        'average_order_amount': float(average_order_amount),
+        'status_stats': list(status_stats),
+        'final_option_stats': list(final_option_stats),
+        'cancelled_stats': list(cancelled_stats),
+        'trend_data': trend_data,
+        'revenue_data': revenue_data,
+        'labels': labels,
+        'last_updated': timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    return JsonResponse(data)

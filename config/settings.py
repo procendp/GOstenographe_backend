@@ -317,8 +317,8 @@ UNFOLD = {
                     {
                         "title": "통계",
                         "icon": "analytics",
-                        "link": "http://localhost:3000/manage/dashboard",
-                        "badge": "new_window",
+                        "link": "/manage/dashboard/",
+                        "badge": "",
                     },
                 ],
             },

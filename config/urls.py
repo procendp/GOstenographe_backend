@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.contrib.auth.views import LogoutView
 from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
-from requests.views import RequestViewSet, S3PresignedURLView, download_file_view
+from requests.views import RequestViewSet, S3PresignedURLView, download_file_view, statistics_dashboard_view, statistics_api_view
 from core.views import UserViewSet, CustomLoginView
 from django.shortcuts import redirect
 from django.contrib.auth import logout
@@ -59,6 +59,8 @@ def check_admin(request):
 urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('admin/logout/', custom_logout, name='admin_logout'),
+    path('manage/dashboard/', statistics_dashboard_view, name='statistics-dashboard'),
+    path('api/statistics/', statistics_api_view, name='statistics-api'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/check-admin/', check_admin, name='check-admin'),
