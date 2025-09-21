@@ -231,6 +231,8 @@ SENDER_PHONE = os.getenv('SENDER_PHONE', '')
 
 # SendGrid 설정
 SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+SENDGRID_FROM_EMAIL = os.getenv('SENDGRID_FROM_EMAIL', 'procendp@gmail.com')
+SENDGRID_FROM_NAME = os.getenv('SENDGRID_FROM_NAME', '속기사무소 정')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
 
 # Admin 사이트 설정

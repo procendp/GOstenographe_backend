@@ -137,10 +137,10 @@ class Request(models.Model):
         date_str = today.strftime('%y%m%d')
         
         if order_id:
-            # Order ID가 있는 경우: YYMMDD_ORDERIDNN 형태
+            # Order ID가 있는 경우: YYMMDDORDERIDNN 형태 (언더바 제거)
             # 같은 Order ID를 가진 Request 중에서 가장 높은 순번 찾기
             order_id_str = str(order_id).zfill(2)  # Order ID를 최소 2자리로
-            pattern_start = f"{date_str}_{order_id_str}"
+            pattern_start = f"{date_str}{order_id_str}"
             
             today_requests = cls.objects.filter(
                 request_id__startswith=pattern_start
@@ -149,8 +149,8 @@ class Request(models.Model):
             if today_requests.exists():
                 # 기존 Request ID에서 순번 부분 추출
                 last_request_id = today_requests.first().request_id
-                # YYMMDD_ORDERIDNN에서 뒤의 NN 부분 추출
-                suffix = last_request_id[len(f"{date_str}_{order_id_str}"):]
+                # YYMMDDORDERIDNN에서 뒤의 NN 부분 추출
+                suffix = last_request_id[len(f"{date_str}{order_id_str}"):]
                 if suffix:
                     last_number = int(suffix)
                     next_number = last_number + 1
@@ -171,7 +171,7 @@ class Request(models.Model):
                 order_id_str = f"{order_id:02d}"
                 sequence_str = f"{next_number:02d}"
                 
-            return f"{date_str}_{order_id_str}{sequence_str}"
+            return f"{date_str}{order_id_str}{sequence_str}"
         else:
             # 기존 방식 (Order ID가 없는 경우)
             today_requests = cls.objects.filter(

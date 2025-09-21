@@ -226,8 +226,37 @@ class RequestViewSet(viewsets.ModelViewSet):
                 # changed_by는 나중에 인증 시스템 구축 후 추가
             )
             
-            # TODO: 이메일/SMS 알림 발송 (추후 구현)
-            notification_sent = False
+            # 알림 발송
+            try:
+                from notification_service.notification_service import notification_service
+                
+                # 상태별 알림 설정 가져오기
+                notification_settings = notification_service.get_notification_settings(new_status)
+                
+                # 알림 발송
+                notification_result = notification_service.send_status_notification(
+                    request_instance,
+                    new_status,
+                    old_status,
+                    send_sms=notification_settings['sms'],
+                    send_email=notification_settings['email']
+                )
+                
+                notification_sent = notification_result['success']
+                
+                # 상태 변경 로그에 알림 발송 여부 업데이트
+                status_log = StatusChangeLog.objects.filter(
+                    request=request_instance,
+                    to_status=new_status
+                ).order_by('-changed_at').first()
+                
+                if status_log:
+                    status_log.notification_sent = notification_sent
+                    status_log.save()
+                
+            except Exception as e:
+                logger.error(f"알림 발송 중 오류: {str(e)}")
+                notification_sent = False
             
             return Response({
                 'success': True,

@@ -21,12 +21,11 @@
             <table id="excel-table" class="excel-table" style="width: max-content; border-collapse: collapse;">
                 <thead class="bg-gray-50" style="position: sticky; top: 0; z-index: 10;">
                     <tr>
-                        <th class="resizable-th sortable-th" style="min-width: 80px; position: relative;" data-sort="status">
+                        <th class="sortable-th" style="min-width: 100px; width: 100px; position: relative; border-right: 1px solid #e5e7eb;" data-sort="status">
                             <div class="th-content">
                                 상태
                                 <span class="sort-icon">↕</span>
                             </div>
-                            <div class="resize-handle"></div>
                         </th>
                         <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="order_id">
                             <div class="th-content">
@@ -1190,10 +1189,90 @@
         let startX = 0;
         let startWidth = 0;
 
+        // 컬럼의 최대 콘텐츠 너비 계산 함수
+        function getMaxContentWidth(columnIndex) {
+            const table = document.getElementById('excel-table');
+            const rows = table.querySelectorAll('tr');
+            let maxWidth = 0;
+            
+            // 헤더 너비 계산
+            const headerTh = rows[0].cells[columnIndex];
+            if (headerTh) {
+                const headerContent = headerTh.querySelector('.th-content');
+                if (headerContent) {
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;';
+                    tempSpan.textContent = headerContent.textContent.trim();
+                    document.body.appendChild(tempSpan);
+                    maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 40); // 패딩과 정렬 아이콘 공간 추가
+                    document.body.removeChild(tempSpan);
+                }
+            }
+            
+            // 데이터 셀 너비 계산
+            for (let i = 1; i < rows.length; i++) {
+                const cell = rows[i].cells[columnIndex];
+                if (cell) {
+                    // 셀의 실제 콘텐츠 가져오기
+                    let content = '';
+                    const statusBadge = cell.querySelector('.status-badge');
+                    const paymentBadge = cell.querySelector('.payment-badge');
+                    const editableValue = cell.querySelector('.editable-value');
+                    
+                    if (statusBadge) {
+                        content = statusBadge.textContent.trim();
+                    } else if (paymentBadge) {
+                        content = paymentBadge.textContent.trim();
+                    } else if (editableValue) {
+                        content = editableValue.textContent.trim();
+                    } else {
+                        content = cell.textContent.trim();
+                    }
+                    
+                    // 임시 요소로 너비 측정
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                    tempSpan.textContent = content;
+                    document.body.appendChild(tempSpan);
+                    
+                    // 상태/결제 컬럼은 버튼 공간도 고려
+                    let additionalWidth = 32; // 기본 패딩
+                    if (statusBadge || paymentBadge) {
+                        additionalWidth = 60; // 뱃지 패딩 + 편집 버튼 공간
+                    }
+                    
+                    maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + additionalWidth);
+                    document.body.removeChild(tempSpan);
+                }
+            }
+            
+            return Math.min(maxWidth + 10, 500); // 최대 500px로 제한
+        }
+
         // 모든 리사이즈 핸들에 이벤트 리스너 추가
         const resizeHandles = table.querySelectorAll('.resize-handle');
         
         resizeHandles.forEach(handle => {
+            // 더블클릭 이벤트 추가
+            handle.addEventListener('dblclick', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const th = this.parentElement;
+                const columnIndex = Array.from(th.parentElement.children).indexOf(th);
+                const optimalWidth = getMaxContentWidth(columnIndex);
+                
+                // 애니메이션 효과로 리사이즈
+                th.style.transition = 'width 0.2s ease';
+                th.style.width = optimalWidth + 'px';
+                th.style.minWidth = optimalWidth + 'px';
+                
+                setTimeout(() => {
+                    th.style.transition = '';
+                }, 200);
+            });
+            
+            // 기존 드래그 리사이즈 기능
             handle.addEventListener('mousedown', function(e) {
                 isResizing = true;
                 currentTh = this.parentElement;
