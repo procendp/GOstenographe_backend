@@ -1,0 +1,237 @@
+<html>
+<head>
+<title>속기 웹 Proto (Preview)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex" />
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAIBSURBVHgB7ZpblcIwFEXTWSMACUhAAhJwAA7AAUUBOAAHSAAHSEACOLjD6az8lCQ3bZO0Te9eKz/QRzbJuaQPpQRBEARhMBSfVqoJAWFSE+JHTQwRzp1f2xfL5bJqY+R+v1fNBtlaWZY0Nk6nE7mcFPMl7XY7GgOv14s2mw0nywujzedzej6fNFTQt8Vi4SPrJ6ylH48HDQ30CX3z9VANNqwaMjIUPPLqJ3w8HmnoxQy1xda/2WxG5/PZXxggF66pgsz0kWuc8/N36RW9RsL64K5ikLqYcXmtD0JjYQ03fVLk+nK5VOey9WO73X7t01oY7Pf73nKNY7vOjZpjopMw4KbUarUKOsWxmODyervdrPt3FgZcMQuV6xBFM4gwwC/P5fp6vVJbsK8rr+v1uuoDRzBhTYxcc3nFOX0JLgwwGq6phwW9z2hwi3+MuCuvJqIIg665jlUXogkDjBCqtGpYUfGZK684ps8MMRFVWNMk19ziv0leTSQRBli4u0YNFd5n8d+VZMKAy6Vr6oe67k4qDLgrm3rDtm3zaiK5sIbLNZpp8d+V3oSB66aCbfHflV6FQf3iI/Z9st6Fgb6pkOKOicnN+PTwf9u4vN9v9fn7UTEpiuL7M9WTcApMwvL0MHdEOHdEOHfklQdwOBxUrsh7WrkjwrmDopVvhRIEQRCEYfMHNBLK4GKXyjoAAAAASUVORK5CYII=">
+<style>
+body {
+font-family: 'Helvetica', 'Arial', sans-serif;
+margin: 0;
+padding: 32px 16px;
+background: #fff;
+}
+h2 {
+color: #111;
+font-size: 24px;
+font-weight: bold;
+margin: 0;
+}
+h3 {
+color: #666;
+font-size: 14px;
+font-weight: normal;
+margin: 0;
+}
+.email__subheading {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin: 8px 0;
+height: 34px;
+}
+.btn {
+display: inline-block;
+vertical-align: middle;
+border: 0;
+padding: 12px 24px;
+color: #fff;
+border: 1px solid #000;
+background: #000;
+font-weight: bold;
+font-size: 16px;
+border-radius: 50px;
+cursor: pointer;
+}
+.btn--alt {
+color: #000;
+background: #fff;
+margin-left: 24px;
+border: 1px solid #000;
+}
+.btn:hover {
+background: #222;
+border: 1px solid #222;
+}
+.btn--alt:hover {
+color: #555;
+border: 1px solid #555;
+background: #fff;
+}
+.btn-icon,
+.btn-txt {
+display: inline-block;
+vertical-align: middle;
+}
+.btn-icon {
+margin-right: 4px;
+}
+.email {
+max-width: 1400px;
+margin: auto;
+}
+.email__creative {
+display: flex;
+justify-content: space-around;
+margin: 30px 0 100px;
+}
+@media screen and (max-width: 1300px) {
+.email__creative {
+flex-direction: column;
+align-items: center;
+}
+.email__col--small {
+margin-top: 32px;
+}
+}
+.email__resizer {
+display: block;
+width: 214px;
+padding: 8px;
+appearance: none;
+background-color: #fff;
+border: 1px solid #ccc;
+border-radius: 4px;
+font-size: 14px;
+cursor: pointer;
+padding-right: 20px;
+background-image: url("data:image/svg+xml,%3Csvg clip-rule='evenodd' fill-rule='evenodd' stroke-linejoin='round' stroke-miterlimit='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m16.843 10.211c.108-.141.157-.3.157-.456 0-.389-.306-.755-.749-.755h-8.501c-.445 0-.75.367-.75.755 0 .157.05.316.159.457 1.203 1.554 3.252 4.199 4.258 5.498.142.184.36.29.592.29.23 0 .449-.107.591-.291 1.002-1.299 3.044-3.945 4.243-5.498z'/%3E%3C/svg%3E"); background-position: right center;
+background-size: 20px 20px;
+background-repeat: no-repeat;
+background-position: right 6px center;
+}
+.email__resizer::ms-expand {
+display: none;
+}
+.email__frame {
+border: 0;
+background: #fff;
+display: block;
+}
+.email__frame--small {
+width: 393px;
+height: 852px;
+transition: width 220ms ease;
+border: 12px solid #111;
+border-radius: 24px;
+}
+.email__frame--large {
+border-radius: 4px;
+background: #b7b7b7;
+width: 700px;
+height: 700px;
+}
+.email__header {
+background: #fff;
+border-radius: 4px;
+padding: 16px;
+}
+.preview {
+margin-top: 8px;
+width: 100%;
+border-spacing: 0px 8px;
+}
+.preview__text {
+font-size: 14px;
+}
+.preview__text--subject {
+color: #202124;
+}
+.preview__text--preheader {
+color: #5f6368;
+opacity: 0.7;
+}
+.preview__text--warning {
+background: rgb(253, 246, 178);
+color: rgb(142, 75, 16);
+border-radius: 4px;
+padding: 12px;
+}
+.icon,
+.txt {
+display: inline-block;
+vertical-align: middle;
+}
+.icon {
+margin-right: 4px;
+fill: rgb(142, 75, 16);
+}</style>
+</head>
+<body>
+<div class="emails">
+<div class="email">
+<div class="email__header">
+<h2>이메일 템플릿 - 최종안 발송</h2><table class="preview">
+<tr class="preview__row">
+<td class="preview__text preview__text--subject">속기록 최종안 발송<span class="preview__text--preheader"> - 속기록 최종안 발송</span></td></tr></table>
+</div>
+<div class="email__creative">
+<div class="email__col email__col--large">
+<div class="email__subheading">
+<h3>Desktop Preview (679px)</h3>
+</div>
+<iframe class="email__frame email__frame--large" style="width: 799px; height: 1538px;" src="이메일 템플릿 - 최종안 발송/index.html"></iframe>
+</div>
+<div class="email__col email__col--small">
+<div class="email__subheading">
+<h3>Mobile Preview</h3>
+<select class="email__resizer" onchange="updateIframeSizes(this)">
+<option value="430">iPhone 16 Pro Max (430px)</option>
+<option value="393" selected>iPhone 16 (393px)</option>
+<option value="375">iPhone 13 Mini (375px)</option>
+<option value="360">iPhone 12 Mini (360px)</option>
+<option value="320">iPhone SE (320px)</option>
+</select>
+</div>
+<iframe class="email__frame email__frame--small" src="이메일 템플릿 - 최종안 발송/index.html"></iframe>
+</div>
+</div>
+</div>
+</div><script>
+      var userAgent = window.navigator.userAgent;
+      var isWindows = /'Win32|Win64|Windows|Windows NT|WinCE/gi.test(userAgent);
+      if(isWindows) {
+        var emails = document.getElementsByClassName('email__frame');
+        for (var i = 0; i < emails.length; ++i) {
+          var email = emails[i];
+          var w = parseInt(email.style.width.replace('px', ''));
+          email.style.width = w + 18 + 'px';
+        }
+      }
+
+      function updateIframeSizes(selectElement) {
+        const selectedValue = selectElement.value;
+        const iframes = document.querySelectorAll('.email__frame--small');
+        const selects = document.querySelectorAll('.size-toggle');
+
+        iframes.forEach(iframe => {
+          // Set the width based on the platform
+          const width = isWindows ? selectedValue + 18 : selectedValue;
+          iframe.style.width = width + 'px';
+
+          // Define viewport sizes for specific iPhone models (in pixels)
+          const iphoneViewports = {
+              "430": { width: 430, height: 932 }, // iPhone 16 Pro Max
+              "393": { width: 393, height: 852 }, // iPhone 16
+              "375": { width: 375, height: 812 }, // iPhone 13 Mini
+              "360": { width: 360, height: 780 }, // iPhone 12 Mini
+              "320": { width: 320, height: 568 }  // iPhone SE
+          };
+
+          // Ensure the selected value matches one of the defined options
+          if (iphoneViewports[width]) {
+              const viewport = iphoneViewports[width];
+              // Calculate and set the height based on the viewport aspect ratio
+              const aspectRatio = viewport.height / viewport.width;
+              const height = width * aspectRatio;
+              iframe.style.height = height + 'px';
+          }
+        });
+
+        selects.forEach(select => {
+          select.value = selectedValue;
+        });
+      }
+</script>
+</body>
+</html>
