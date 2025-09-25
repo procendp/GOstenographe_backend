@@ -1207,13 +1207,91 @@
         const currentTh = document.querySelector(`[data-sort="${column}"]`);
         currentTh.classList.add(`sort-${direction}`);
         
+        // Order ID List (셀 병합)인지 확인
+        const hasMergedCells = tbody.querySelector('.merged-cell');
+        
+        if (hasMergedCells) {
+            // Order ID List: 그룹 기준으로 정렬
+            sortOrderIDList(tbody, rows, column, direction);
+        } else {
+            // Request ID List: 일반 행 정렬
+            sortRegularTable(tbody, rows, column, direction);
+        }
+        
+        // 현재 정렬 상태 저장
+        currentSort = { column, direction };
+    }
+    
+    function sortOrderIDList(tbody, rows, column, direction) {
+        // Order ID별로 그룹화
+        const groups = new Map();
+        
+        rows.forEach(row => {
+            const orderId = row.getAttribute('data-order-id');
+            if (!groups.has(orderId)) {
+                groups.set(orderId, []);
+            }
+            groups.get(orderId).push(row);
+        });
+        
         // 컬럼 인덱스 찾기
-        const headers = Array.from(table.querySelectorAll('th'));
+        const headers = Array.from(tbody.closest('table').querySelectorAll('th'));
         const columnIndex = headers.findIndex(th => th.getAttribute('data-sort') === column);
         
         if (columnIndex === -1) return;
         
-        // 행 정렬
+        // 각 그룹의 첫 번째 행(대표값)으로 그룹들을 정렬
+        const sortedGroups = Array.from(groups.entries()).sort(([orderIdA, rowsA], [orderIdB, rowsB]) => {
+            const firstRowA = rowsA[0];
+            const firstRowB = rowsB[0];
+            
+            const cellA = firstRowA.cells[columnIndex];
+            const cellB = firstRowB.cells[columnIndex];
+            
+            let valueA = getCellValue(cellA, column);
+            let valueB = getCellValue(cellB, column);
+            
+            // 정렬 비교
+            let comparison = 0;
+            if (column === 'order_id' || column === 'estimated_price' || column === 'payment_amount') {
+                // 숫자 정렬
+                valueA = parseFloat(valueA) || 0;
+                valueB = parseFloat(valueB) || 0;
+                comparison = valueA - valueB;
+            } else if (column === 'payment_status') {
+                // 결제 여부 정렬
+                const statusA = valueA === '결제 완료' ? 1 : 0;
+                const statusB = valueB === '결제 완료' ? 1 : 0;
+                comparison = statusA - statusB;
+            } else {
+                // 문자열 정렬
+                comparison = valueA.localeCompare(valueB, 'ko');
+            }
+            
+            return direction === 'asc' ? comparison : -comparison;
+        });
+        
+        // 정렬된 그룹들을 tbody에 다시 추가
+        let groupIndex = 0;
+        sortedGroups.forEach(([orderId, groupRows]) => {
+            const evenOdd = groupIndex % 2 === 0 ? 'even' : 'odd';
+            groupRows.forEach(row => {
+                // 행 색상 클래스 업데이트
+                row.className = row.className.replace(/order-group-(even|odd)/, `order-group-${evenOdd}`);
+                tbody.appendChild(row);
+            });
+            groupIndex++;
+        });
+    }
+    
+    function sortRegularTable(tbody, rows, column, direction) {
+        // 컬럼 인덱스 찾기
+        const headers = Array.from(tbody.closest('table').querySelectorAll('th'));
+        const columnIndex = headers.findIndex(th => th.getAttribute('data-sort') === column);
+        
+        if (columnIndex === -1) return;
+        
+        // 일반적인 행 정렬
         rows.sort((a, b) => {
             const cellA = a.cells[columnIndex];
             const cellB = b.cells[columnIndex];
@@ -1229,7 +1307,7 @@
                 valueB = parseFloat(valueB) || 0;
                 comparison = valueA - valueB;
             } else if (column === 'payment_status') {
-                // 결제 여부 정렬 (결제완료 > 미결제)
+                // 결제 여부 정렬
                 const statusA = valueA === '결제 완료' ? 1 : 0;
                 const statusB = valueB === '결제 완료' ? 1 : 0;
                 comparison = statusA - statusB;
@@ -1243,9 +1321,6 @@
         
         // 정렬된 행을 다시 추가
         rows.forEach(row => tbody.appendChild(row));
-        
-        // 현재 정렬 상태 저장
-        currentSort = { column, direction };
     }
 
     function getCellValue(cell, column) {
