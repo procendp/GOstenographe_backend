@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     # Local apps
     'core',
     'requests',
+    'database',
 ]
 
 MIDDLEWARE = [
@@ -303,6 +304,16 @@ UNFOLD = {
                         "title": "엑셀 뷰",
                         "icon": "table_view",
                         "link": "/admin/requests/exceldatabase/",
+                    },
+                    {
+                        "title": "Order ID List",
+                        "icon": "table_view",
+                        "link": "/admin/database/optiona/",
+                    },
+                    {
+                        "title": "Request ID List",
+                        "icon": "table_view",
+                        "link": "/admin/database/optionb/",
                     },
                 ],
             },

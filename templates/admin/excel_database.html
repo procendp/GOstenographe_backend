@@ -4,13 +4,10 @@
 {% block content %}
 <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">엑셀 데이터베이스</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
         <div class="flex space-x-2">
             <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
                 새로고침
-            </button>
-            <button onclick="exportCSV()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
-                CSV 내보내기
             </button>
         </div>
     </div>
@@ -27,6 +24,7 @@
                                 <span class="sort-icon">↕</span>
                             </div>
                         </th>
+                        {% if not hide_order_id %}
                         <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="order_id">
                             <div class="th-content">
                                 Order ID
@@ -34,6 +32,8 @@
                             </div>
                             <div class="resize-handle"></div>
                         </th>
+                        {% endif %}
+                        {% if not hide_request_id %}
                         <th class="resizable-th sortable-th" style="min-width: 100px; position: relative;" data-sort="request_id">
                             <div class="th-content">
                                 Request ID
@@ -41,6 +41,7 @@
                             </div>
                             <div class="resize-handle"></div>
                         </th>
+                        {% endif %}
                         <th class="resizable-th" style="min-width: 100px; position: relative;">
                             <div class="th-content">첨부 파일</div>
                             <div class="resize-handle"></div>
@@ -156,7 +157,11 @@
                     {% regroup cl.result_list by order_id as order_groups %}
                     {% for order_group in order_groups %}
                         {% for result in order_group.list %}
-                        <tr class="hover:bg-gray-50 border-b border-gray-200 order-group-{{ forloop.parentloop.counter0|divisibleby:2|yesno:'even,odd' }}">
+                        <tr class="hover:bg-gray-50 border-b border-gray-200 order-group-{{ forloop.parentloop.counter0|divisibleby:2|yesno:'even,odd' }}"
+                            data-order-id="{{ order_group.grouper }}" 
+                            data-is-first-in-group="{% if forloop.first %}true{% else %}false{% endif %}" 
+                            data-group-size="{{ order_group.list|length }}"
+                            data-file-index="{{ forloop.counter0 }}">
                         <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status }}">
                             <div class="status-container">
                                 <span class="status-badge status-{{ result.status }}" id="status-badge-{{ result.id }}">
@@ -170,8 +175,15 @@
                                 </button>
                             </div>
                         </td>
+                        {% comment %} Order ID - 병합 대상 {% endcomment %}
+                        {% if hide_request_id and forloop.first %}
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.order_id|default:"-" }}</td>
+                        {% elif not hide_request_id and not hide_order_id %}
                         <td class="excel-cell">{{ result.order_id|default:"-" }}</td>
+                        {% endif %}
+                        {% if not hide_request_id %}
                         <td class="excel-cell">{{ result.request_id|default:result.id }}</td>
+                        {% endif %}
                         <td class="excel-cell">
                             {% if result.files.exists %}
                                 <div class="file-list">
@@ -209,6 +221,16 @@
                         <td class="excel-cell">{{ result.speaker_names|default:"-" }}</td>
                         <td class="excel-cell">{{ result.recording_date|date:"Y-m-d H:i"|default:"-" }}</td>
                         <td class="excel-cell">{{ result.additional_info|default:"-" }}</td>
+                        {% comment %} 주문 관련 정보 - 병합 대상 {% endcomment %}
+                        {% if hide_request_id and forloop.first %}
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.get_draft_format_display|default:"HWP" }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.get_final_option_display|default:"기본" }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.name }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.phone }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.email }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.address|default:"-" }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
+                        {% elif not hide_request_id %}
                         <td class="excel-cell">{{ result.get_draft_format_display|default:"HWP" }}</td>
                         <td class="excel-cell">{{ result.get_final_option_display|default:"기본" }}</td>
                         <td class="excel-cell">{{ result.name }}</td>
@@ -216,6 +238,7 @@
                         <td class="excel-cell">{{ result.email }}</td>
                         <td class="excel-cell">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
+                        {% endif %}
                         <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
@@ -333,12 +356,20 @@
         background-color: #f8f9fa !important;
     }
     
-    /* 호버 효과는 기존 배경색에 약간의 어둠 추가 */
-    .order-group-even:hover {
-        background-color: #f8f9fa !important;
-    }
-    .order-group-odd:hover {
+    /* 호버 효과는 통일된 색상으로 변경 */
+    .order-group-even:hover:not(.merged-row-hover) {
         background-color: #e9ecef !important;
+    }
+    .order-group-odd:hover:not(.merged-row-hover) {
+        background-color: #e9ecef !important;
+    }
+    
+    /* 첫 번째 행 호버시 병합된 셀은 호버 색상 제외 */
+    .order-group-even:hover:not(.merged-row-hover) .merged-cell {
+        background-color: #ffffff !important;
+    }
+    .order-group-odd:hover:not(.merged-row-hover) .merged-cell {
+        background-color: #f8f9fa !important;
     }
 
     .table-container {
@@ -568,9 +599,22 @@
         color: #4b5563;
     }
 
-    /* 호버 효과 */
-    tbody tr:hover {
-        background: #f9fafb;
+    /* 기본 행 호버 효과 - 병합된 셀이 없는 경우에만 적용 */
+    tbody tr:hover:not(.merged-row-hover) {
+        background: #e9ecef;
+    }
+
+    /* 병합된 셀 그룹 호버 효과 - 통일된 색상 */
+    tbody tr.merged-row-hover {
+        background: #e9ecef !important;
+    }
+    
+    tbody tr.merged-row-hover.order-group-even {
+        background: #e9ecef !important;
+    }
+    
+    tbody tr.merged-row-hover.order-group-odd {
+        background: #e9ecef !important;
     }
 
     /* 스크롤바 스타일 */
@@ -781,6 +825,43 @@
 
     .file-download-link svg {
         flex-shrink: 0;
+    }
+
+    /* 병합된 셀 스타일 */
+    .merged-cell {
+        background-color: #ffffff !important;
+        border-left: 2px solid #e5e7eb !important;
+        vertical-align: middle !important;
+        text-align: center !important;
+        font-weight: 500;
+        position: relative;
+    }
+
+
+    /* 병합된 셀이 있는 행의 호버 효과 조정 */
+    .order-group-even .merged-cell {
+        background-color: #ffffff !important;
+    }
+    
+    .order-group-odd .merged-cell {
+        background-color: #f8f9fa !important;
+    }
+
+    .order-group-even:hover .merged-cell {
+        background-color: #f8f9fa !important;
+    }
+    
+    .order-group-odd:hover .merged-cell {
+        background-color: #e9ecef !important;
+    }
+
+    /* 병합된 셀 그룹 호버 시 모든 셀 색상 통일 */
+    tbody tr.merged-row-hover.order-group-even .merged-cell {
+        background-color: #e9ecef !important;
+    }
+    
+    tbody tr.merged-row-hover.order-group-odd .merged-cell {
+        background-color: #e9ecef !important;
     }
 
     </style>
@@ -1320,6 +1401,39 @@
         });
     });
 
+    // 병합된 셀 호버 효과
+    document.addEventListener('DOMContentLoaded', function() {
+        const mergedCells = document.querySelectorAll('.merged-cell');
+        
+        mergedCells.forEach(cell => {
+            cell.addEventListener('mouseenter', function(e) {
+                const row = this.closest('tr');
+                if (row) {
+                    const orderId = row.getAttribute('data-order-id');
+                    if (orderId) {
+                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${orderId}"]`);
+                        relatedRows.forEach(relatedRow => {
+                            relatedRow.classList.add('merged-row-hover');
+                        });
+                    }
+                }
+            });
+            
+            cell.addEventListener('mouseleave', function(e) {
+                const row = this.closest('tr');
+                if (row) {
+                    const orderId = row.getAttribute('data-order-id');
+                    if (orderId) {
+                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${orderId}"]`);
+                        relatedRows.forEach(relatedRow => {
+                            relatedRow.classList.remove('merged-row-hover');
+                        });
+                    }
+                }
+            });
+        });
+    });
+
     // 파일명 표시 초기화
     document.addEventListener('DOMContentLoaded', function() {
         // transcript 데이터를 원본 파일명으로 표시
@@ -1367,7 +1481,6 @@
         });
     });
 
-    // CSV 내보내기 함수
     // 필드 편집 함수
     function editField(requestId, fieldName, fieldType) {
         const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
@@ -1524,50 +1637,6 @@
         container.querySelector('.edit-btn').style.display = '';
     }
 
-    function exportCSV() {
-        const table = document.getElementById('excel-table');
-        const rows = table.querySelectorAll('tr');
-        let csv = [];
-        
-        // 헤더 처리
-        const headers = [];
-        rows[0].querySelectorAll('th').forEach(th => {
-            headers.push('"' + th.querySelector('.th-content').textContent.trim() + '"');
-        });
-        csv.push(headers.join(','));
-        
-        // 데이터 행 처리
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            const cols = row.querySelectorAll('td');
-            if (cols.length === 1) continue; // "데이터가 없습니다" 행 스킵
-            
-            let csvRow = [];
-            cols.forEach(td => {
-                let text = td.textContent.trim();
-                // 특수 문자 처리
-                text = text.replace(/"/g, '""');
-                csvRow.push('"' + text + '"');
-            });
-            csv.push(csvRow.join(','));
-        }
-        
-        const csvContent = csv.join('\n');
-        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        
-        if (link.download !== undefined) {
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            const now = new Date();
-            const filename = `excel_database_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.csv`;
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    }
     </script>
 </div>
 {% endblock %}

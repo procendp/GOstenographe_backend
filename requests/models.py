@@ -70,8 +70,8 @@ class Request(models.Model):
     is_temporary = models.BooleanField('임시 신청서 여부', default=True)
     
     # 추가 필드들 (엑셀 데이터베이스용)
-    order_id = models.IntegerField(_('Order ID'), null=True, blank=True)
-    request_id = models.CharField(_('Request ID'), max_length=50, unique=True, blank=True)
+    order_id = models.CharField(_('Order ID'), max_length=10, null=True, blank=True)  # YYMMDD+00~99 형식
+    request_id = models.CharField(_('Request ID'), max_length=50, unique=True, blank=True)  # OrderID+00~99 형식
     recording_type = models.CharField(_('녹취 타입'), max_length=20, default='전체')
     partial_range = models.CharField(_('부분 녹취 구간'), max_length=100, blank=True)
     total_duration = models.CharField(_('총 길이'), max_length=50, blank=True)
@@ -123,97 +123,53 @@ class Request(models.Model):
         return new_status in allowed_transitions.get(self.status, [])
     
     @classmethod
-    def get_next_order_id(cls):
-        """다음 Order ID를 반환 (1부터 시작)"""
-        last_order = cls.objects.filter(order_id__isnull=False).order_by('-order_id').first()
-        if last_order and last_order.order_id is not None:
-            return last_order.order_id + 1
-        return 1
+    def get_next_order_counter(cls):
+        """전역 주문 카운터 반환 (00~99 순환)"""
+        # 모든 Order ID에서 마지막 2자리(카운터) 추출하여 최대값 찾기
+        last_order = cls.objects.filter(
+            order_id__isnull=False,
+            order_id__regex=r'^\d{6}\d{2}$'  # YYMMDDNN 형식 확인
+        ).order_by('-created_at').first()
+        
+        if last_order and last_order.order_id:
+            # Order ID의 마지막 2자리 추출
+            counter = int(last_order.order_id[-2:])
+            # 99 다음은 00으로 리셋
+            next_counter = (counter + 1) % 100
+            return next_counter
+        return 0  # 첫 번째 주문은 00
     
-    @classmethod 
-    def generate_request_id(cls, order_id=None):
-        """Request ID 생성 (YYMMDD_ORDERIDNN 형태)"""
+    @classmethod
+    def generate_order_id(cls):
+        """Order ID 생성 (YYMMDD + 00~99)"""
         today = datetime.now()
         date_str = today.strftime('%y%m%d')
-        
-        if order_id:
-            # Order ID가 있는 경우: YYMMDDORDERIDNN 형태 (언더바 제거)
-            # 같은 Order ID를 가진 Request 중에서 가장 높은 순번 찾기
-            order_id_str = str(order_id).zfill(2)  # Order ID를 최소 2자리로
-            pattern_start = f"{date_str}{order_id_str}"
-            
-            today_requests = cls.objects.filter(
-                request_id__startswith=pattern_start
-            ).order_by('-request_id')
-            
-            if today_requests.exists():
-                # 기존 Request ID에서 순번 부분 추출
-                last_request_id = today_requests.first().request_id
-                # YYMMDDORDERIDNN에서 뒤의 NN 부분 추출
-                suffix = last_request_id[len(f"{date_str}{order_id_str}"):]
-                if suffix:
-                    last_number = int(suffix)
-                    next_number = last_number + 1
-                else:
-                    next_number = 1
-            else:
-                next_number = 1
-                
-            # Order ID 자릿수 + 순번 2자리로 조합
-            order_id_digits = len(str(order_id))
-            sequence_digits = 2
-            
-            # Order ID가 커지면 전체 자릿수 조정
-            if order_id >= 100:
-                order_id_str = str(order_id)
-                sequence_str = f"{next_number:02d}"
-            else:
-                order_id_str = f"{order_id:02d}"
-                sequence_str = f"{next_number:02d}"
-                
-            return f"{date_str}{order_id_str}{sequence_str}"
-        else:
-            # 기존 방식 (Order ID가 없는 경우)
-            today_requests = cls.objects.filter(
-                request_id__startswith=date_str
-            ).order_by('-request_id')
-            
-            if today_requests.exists():
-                last_request_id = today_requests.first().request_id
-                last_number = int(last_request_id.split('_')[1])
-                next_number = last_number + 1
-            else:
-                next_number = 1
-                
-            return f"{date_str}_{next_number:02d}"
+        counter = cls.get_next_order_counter()
+        return f"{date_str}{counter:02d}"
     
-    def _is_new_format_request_id(self):
-        """현재 Request ID가 새로운 YYMMDD_ORDERIDNN 형식인지 확인"""
-        if not self.request_id or not self.order_id:
-            return False
+    @classmethod 
+    def generate_request_id(cls, order_id):
+        """Request ID 생성 (OrderID + 파일순번 00~99)"""
+        if not order_id:
+            raise ValueError("Order ID is required for Request ID generation")
         
-        # YYMMDD_부분 확인
-        parts = self.request_id.split('_')
-        if len(parts) != 2:
-            return False
+        # 같은 Order ID를 가진 Request들의 개수 확인
+        existing_count = cls.objects.filter(order_id=order_id).count()
         
-        date_part, id_part = parts
-        if len(date_part) != 6:  # YYMMDD
-            return False
-        
-        # ORDERIDNN 형식인지 확인 (Order ID가 포함되어 있는지)
-        order_id_str = str(self.order_id)
-        return id_part.startswith(order_id_str)
+        # Request ID = Order ID + 파일 순번 (00부터 시작)
+        return f"{order_id}{existing_count:02d}"
     
     def save(self, *args, **kwargs):
         """저장 시 Order ID와 Request ID 자동 생성"""
-        # Order ID가 없으면 생성
-        if self.order_id is None:
-            self.order_id = self.get_next_order_id()
-        
-        # Request ID가 없거나 새로운 ORDERIDNN 형식이 아니면 새로 생성
-        if not self.request_id or (self.order_id and not self._is_new_format_request_id()):
-            self.request_id = self.generate_request_id(self.order_id)
+        # 새로운 레코드인 경우에만 ID 생성
+        if not self.pk:  # 새로운 레코드
+            # Order ID가 없으면 생성
+            if not self.order_id:
+                self.order_id = self.generate_order_id()
+            
+            # Request ID가 없으면 생성
+            if not self.request_id:
+                self.request_id = self.generate_request_id(self.order_id)
             
         super().save(*args, **kwargs)
 
@@ -315,7 +271,8 @@ class ExcelDatabase(Request):
     class Meta:
         proxy = True
         verbose_name = _('엑셀 데이터베이스')
-        verbose_name_plural = _('엑셀 데이터베이스')
+        verbose_name_plural = _('엑셀 뷰')
         
     def __str__(self):
         return f"{self.name} - {self.get_status_display()}"
+
