@@ -12,4 +12,9 @@ urlpatterns = [
     path('', include(router.urls)),
     path('s3/presigned-url/', S3PresignedURLView.as_view(), name='s3-presigned-url'),
     path('s3/delete/', S3DeleteView.as_view(), name='s3-delete'),
+    path('send/quotation-guide/', views.send_quotation_guide, name='send-quotation-guide'),
+    path('send/payment-completion-guide/', views.send_payment_completion_guide, name='send-payment-completion-guide'),
+    path('send/draft-guide/', views.send_draft_guide, name='send-draft-guide'),
+    path('send/final-draft-guide/', views.send_final_draft_guide, name='send-final-draft-guide'),
+    path('send/application-completion-guide/', views.send_application_completion_guide, name='send-application-completion-guide'),
 ] 

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Status Dropdown Test</title>
+    <style>
+        .status-cell { padding: 10px; border: 1px solid #ddd; }
+        .status-container { display: flex; align-items: center; gap: 8px; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+        .status-edit-btn { background: none; border: none; cursor: pointer; }
+        .status-dropdown {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .status-dropdown-item {
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dropdown-item:hover { background: #f3f4f6; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+    <h2>Request ID List Status Test</h2>
+    <table>
+        <tr>
+            <td class="excel-cell status-cell" data-request-id="1" data-current-status="received" data-status-type="request">
+                <div class="status-container">
+                    <span class="status-badge status-received" id="status-badge-1">접수됨</span>
+                    <button class="status-edit-btn" onclick="editStatus(1, 'received', 'request')">Edit</button>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <script>
+        // Request 상태 정보
+        const requestStatusInfo = {
+            'received': { name: '접수됨', color: '#f0f9ff', textColor: '#0c4a6e' },
+            'in_progress': { name: '작업중', color: '#dbeafe', textColor: '#1e40af' },
+            'work_completed': { name: '작업완료', color: '#e0e7ff', textColor: '#3730a3' },
+            'sent': { name: '발송완료', color: '#dcfce7', textColor: '#166534' },
+            'impossible': { name: '작업불가', color: '#fce7f3', textColor: '#9f1239' },
+            'cancelled': { name: '취소됨', color: '#fee2e2', textColor: '#991b1b' }
+        };
+
+        // Order 상태 정보 (테스트용)
+        const orderStatusInfo = {};
+
+        function editStatus(requestId, initialStatus, statusType = 'request') {
+            console.log('editStatus called:', requestId, initialStatus, statusType);
+            const cell = document.querySelector(`[data-request-id="${requestId}"]`);
+            const container = cell.querySelector('.status-container');
+            
+            const currentStatus = cell.dataset.currentStatus || initialStatus;
+            console.log('Current status:', currentStatus);
+            
+            // 기존 드롭다운 확인
+            const existingDropdown = container.querySelector('.status-dropdown');
+            if (existingDropdown) {
+                existingDropdown.remove();
+                return;
+            }
+
+            // 드롭다운 생성
+            const dropdown = document.createElement('div');
+            dropdown.className = 'status-dropdown';
+            
+            // 버튼 위치
+            const buttonRect = container.querySelector('.status-edit-btn').getBoundingClientRect();
+            dropdown.style.left = buttonRect.left + 'px';
+            dropdown.style.top = (buttonRect.bottom + 4) + 'px';
+            
+            // 상태 정보 선택
+            const statusInfo = statusType === 'order' ? orderStatusInfo : requestStatusInfo;
+            console.log('Using statusInfo:', statusInfo);
+            
+            // 상태 옵션 추가
+            for (const [key, info] of Object.entries(statusInfo)) {
+                const item = document.createElement('div');
+                item.className = 'status-dropdown-item';
+                
+                const dot = document.createElement('span');
+                dot.className = 'status-dot';
+                dot.style.background = info.color;
+                dot.style.border = `2px solid ${info.textColor}`;
+                
+                const text = document.createElement('span');
+                text.textContent = info.name;
+                if (key === currentStatus) {
+                    text.innerHTML += ' (현재)';
+                    text.style.fontWeight = '600';
+                }
+                
+                item.appendChild(dot);
+                item.appendChild(text);
+                
+                item.onclick = () => {
+                    console.log('Status selected:', key);
+                    dropdown.remove();
+                };
+                
+                dropdown.appendChild(item);
+            }
+            
+            // body에 추가
+            document.body.appendChild(dropdown);
+            console.log('Dropdown added to body');
+            
+            // 외부 클릭시 닫기
+            setTimeout(() => {
+                document.addEventListener('click', function closeDropdown(e) {
+                    if (!container.contains(e.target)) {
+                        dropdown.remove();
+                        document.removeEventListener('click', closeDropdown);
+                    }
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>

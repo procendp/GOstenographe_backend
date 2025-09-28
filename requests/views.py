@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
@@ -23,6 +23,7 @@ from django.db.models import Q, Count, Sum, Avg
 from django.db.models.functions import TruncDate, TruncMonth, TruncYear
 from datetime import datetime, timedelta
 from decimal import Decimal
+from notification_service.bulk_email_service import BulkEmailService
 
 logger = logging.getLogger(__name__)
 
@@ -227,29 +228,8 @@ class RequestViewSet(viewsets.ModelViewSet):
                 # changed_by는 나중에 인증 시스템 구축 후 추가
             )
             
-            # 알림 발송 - skip_notification 플래그 확인
+            # 알림 발송 기능 제거 (상태 변경 시 자동 발송 안함)
             notification_sent = False
-            if not skip_notification:
-                try:
-                    from notification_service.notification_service import notification_service
-                    
-                    # 상태별 알림 설정 가져오기
-                    notification_settings = notification_service.get_notification_settings(new_status)
-                    
-                    # 알림 발송
-                    notification_result = notification_service.send_status_notification(
-                        request_instance,
-                        new_status,
-                        old_status,
-                        send_sms=notification_settings['sms'],
-                        send_email=notification_settings['email']
-                    )
-                    
-                    notification_sent = notification_result['success']
-                    
-                except Exception as e:
-                    logger.error(f"알림 발송 중 오류: {str(e)}")
-                    notification_sent = False
             
             # 상태 변경 로그에 알림 발송 여부 업데이트
             status_log = StatusChangeLog.objects.filter(
@@ -312,29 +292,8 @@ class RequestViewSet(viewsets.ModelViewSet):
                 # changed_by는 나중에 인증 시스템 구축 후 추가
             )
             
-            # 알림 발송 - skip_notification 플래그 확인  
+            # 알림 발송 기능 제거 (Order 상태 변경 시 자동 발송 안함)
             notification_sent = False
-            if not skip_notification:
-                try:
-                    from notification_service.notification_service import notification_service
-                    
-                    # 상태별 알림 설정 가져오기
-                    notification_settings = notification_service.get_notification_settings(new_status)
-                    
-                    # 알림 발송
-                    notification_result = notification_service.send_status_notification(
-                        request_instance,
-                        new_status,
-                        old_status,
-                        send_sms=notification_settings['sms'],
-                        send_email=notification_settings['email']
-                    )
-                    
-                    notification_sent = notification_result['success']
-                    
-                except Exception as e:
-                    logger.error(f"알림 발송 중 오류: {str(e)}")
-                    notification_sent = False
             
             # 상태 변경 로그에 알림 발송 여부 업데이트
             status_log = StatusChangeLog.objects.filter(
@@ -393,7 +352,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             # 업데이트할 필드들 확인
             allowed_fields = [
                 'payment_amount', 'refund_amount', 'price_change_reason', 
-                'cancel_reason', 'notes', 'transcript'
+                'cancel_reason', 'notes'
             ]
             
             for field_name, value in request.data.items():
@@ -418,7 +377,6 @@ class RequestViewSet(viewsets.ModelViewSet):
         try:
             request_instance = self.get_object()
             file = request.FILES.get('file')
-            field_name = request.data.get('field_name', 'transcript')
             
             if not file:
                 return Response({'error': '파일이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -431,74 +389,24 @@ class RequestViewSet(viewsets.ModelViewSet):
                 region_name=settings.AWS_S3_REGION_NAME
             )
             
-            # 기존 파일이 있다면 S3에서 삭제
-            old_file_data = getattr(request_instance, field_name)
-            logger.info(f'[upload_transcript] 기존 파일 데이터 확인: {old_file_data}')
-            
-            if old_file_data and old_file_data.strip():
-                old_s3_key = None
-                
+            # 기존 파일이 있다면 삭제
+            if request_instance.transcript_file:
                 try:
-                    # JSON 형태인지 확인하고 S3 키 추출
-                    if old_file_data.strip().startswith('{') and old_file_data.strip().endswith('}'):
-                        import json
-                        import re
-                        
-                        # 방법 1: 정식 JSON 파싱 시도
-                        try:
-                            file_info = json.loads(old_file_data)
-                            old_s3_key = file_info.get('s3_key')
-                            logger.info(f'[upload_transcript] JSON에서 S3 키 추출: {old_s3_key}')
-                        except json.JSONDecodeError:
-                            logger.info(f'[upload_transcript] 정식 JSON 파싱 실패, 대안 방법 시도')
-                            
-                            # 방법 2: 작은따옴표를 큰따옴표로 변환 후 재시도
-                            try:
-                                cleaned_data = old_file_data.replace("'", '"')
-                                file_info = json.loads(cleaned_data)
-                                old_s3_key = file_info.get('s3_key')
-                                logger.info(f'[upload_transcript] JSON(cleaned)에서 S3 키 추출: {old_s3_key}')
-                            except json.JSONDecodeError:
-                                logger.info(f'[upload_transcript] JSON(cleaned) 파싱도 실패, 정규식 사용')
-                                
-                                # 방법 3: 정규식으로 s3_key 값 직접 추출
-                                match = re.search(r"['\"]s3_key['\"]:\s*['\"]([^'\"]*)['\"]", old_file_data)
-                                if match:
-                                    old_s3_key = match.group(1)
-                                    logger.info(f'[upload_transcript] 정규식으로 S3 키 추출: {old_s3_key}')
-                                else:
-                                    # 방법 4: 더 유연한 정규식 패턴으로 재시도
-                                    match = re.search(r's3_key["\']?\s*:\s*["\']?([^"\'}\s,]+)', old_file_data)
-                                    if match:
-                                        old_s3_key = match.group(1)
-                                        logger.info(f'[upload_transcript] 유연한 정규식으로 S3 키 추출: {old_s3_key}')
-                    else:
-                        # 기존 형태 (S3 키 직접 저장)
-                        old_s3_key = old_file_data.strip()
-                        logger.info(f'[upload_transcript] 직접 S3 키 사용: {old_s3_key}')
-                    
-                except Exception as e:
-                    logger.error(f'[upload_transcript] S3 키 추출 중 오류: {str(e)}, Data: {old_file_data}')
-                
-                # S3에서 파일 삭제 시도
-                if old_s3_key and old_s3_key.strip():
-                    try:
-                        logger.info(f'[upload_transcript] S3 파일 삭제 시도: {old_s3_key}')
-                        delete_response = s3_client.delete_object(
-                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                            Key=old_s3_key.strip()
-                        )
-                        logger.info(f'[upload_transcript] 기존 파일 삭제 완료: {old_s3_key}, Response: {delete_response}')
-                    except Exception as delete_error:
-                        logger.error(f'[upload_transcript] S3 파일 삭제 실패: {str(delete_error)}, Key: {old_s3_key}')
-                        # 삭제 실패해도 새 파일 업로드는 계속 진행
-                else:
-                    logger.warning(f'[upload_transcript] S3 키를 추출할 수 없음: {old_file_data}')
+                    logger.info(f'[upload_transcript] 기존 파일 삭제 시도: {request_instance.transcript_file.file}')
+                    s3_client.delete_object(
+                        Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                        Key=request_instance.transcript_file.file
+                    )
+                    request_instance.transcript_file.delete()  # DB에서도 삭제
+                    logger.info(f'[upload_transcript] 기존 파일 삭제 완료')
+                except Exception as delete_error:
+                    logger.error(f'[upload_transcript] 기존 파일 삭제 실패: {str(delete_error)}')
+                    pass
             
-            # 새 파일명 생성 (원본 파일명 유지)
-            file_extension = file.name.split('.')[-1]
+            # 새 파일명 생성
+            file_extension = file.name.split('.')[-1] if '.' in file.name else ''
             timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
-            s3_key = f"transcripts/{request_instance.id}_{field_name}_{timestamp}.{file_extension}"
+            s3_key = f"transcripts/{request_instance.id}_transcript_{timestamp}.{file_extension}"
             
             # S3에 새 파일 업로드
             s3_client.upload_fileobj(
@@ -508,17 +416,21 @@ class RequestViewSet(viewsets.ModelViewSet):
                 ExtraArgs={'ContentType': file.content_type}
             )
             
-            # 데이터베이스에 파일 정보 저장 (원본 파일명과 S3 키 모두 저장)
-            import json
-            file_info = {
-                's3_key': s3_key,
-                'original_name': file.name,
-                'uploaded_at': timezone.now().isoformat()
-            }
-            # JSON 문자열로 저장 (큰따옴표 사용)
-            setattr(request_instance, field_name, json.dumps(file_info, ensure_ascii=False))
+            # File 모델 인스턴스 생성
+            from .models import File
+            new_file = File.objects.create(
+                request=request_instance,
+                file=s3_key,
+                original_name=file.name,
+                file_type=file.content_type,
+                file_size=file.size
+            )
+            
+            # Request의 transcript_file 연결
+            request_instance.transcript_file = new_file
             request_instance.save()
-            logger.info(f'[upload_transcript] 파일 정보 저장 완료: {json.dumps(file_info, ensure_ascii=False)}')
+            
+            logger.info(f'[upload_transcript] 파일 업로드 완료: {file.name} -> {s3_key}')
             
             return Response({
                 'success': True,
@@ -528,6 +440,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             })
             
         except Exception as e:
+            logger.error(f'[upload_transcript] 오류: {str(e)}')
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1168,3 +1081,265 @@ def statistics_api_view(request):
     }
     
     return JsonResponse(data)
+
+@api_view(['POST'])
+def send_quotation_guide(request):
+    """견적 및 입금 안내 발송"""
+    try:
+        order_ids = request.data.get('order_ids', [])
+        
+        if not order_ids:
+            return Response({'error': '선택된 주문이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        success_count = 0
+        error_messages = []
+        
+        for order_id in order_ids:
+            # Order ID에 해당하는 첫 번째 Request 찾기 (주문 대표)
+            request_obj = Request.objects.filter(order_id=order_id, is_temporary=False).first()
+            
+            if not request_obj:
+                error_messages.append(f'Order ID {order_id}: 주문을 찾을 수 없습니다.')
+                continue
+                
+            # 발송 조건 검증
+            if request_obj.order_status != 'received':
+                error_messages.append(f'Order ID {order_id}: 상태가 접수됨이 아닙니다. (현재: {request_obj.get_order_status_display()})')
+                continue
+                
+            if not request_obj.payment_amount:
+                error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
+                continue
+            
+            # 이메일 발송 (실제 구현 시 이메일 서비스 사용)
+            try:
+                # TODO: 실제 이메일 발송 로직 구현
+                print(f'[SEND EMAIL] 견적 및 입금 안내 발송 - Order ID: {order_id}, Email: {request_obj.email}, Amount: {request_obj.payment_amount}')
+                success_count += 1
+            except Exception as e:
+                error_messages.append(f'Order ID {order_id}: 이메일 발송 실패 - {str(e)}')
+        
+        return Response({
+            'success': True,
+            'message': f'{success_count}건의 견적 및 입금 안내를 발송했습니다.',
+            'success_count': success_count,
+            'errors': error_messages
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def send_payment_completion_guide(request):
+    """결제 완료 안내 발송"""
+    try:
+        order_ids = request.data.get('order_ids', [])
+        
+        if not order_ids:
+            return Response({'error': '선택된 주문이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        success_count = 0
+        error_messages = []
+        
+        for order_id in order_ids:
+            request_obj = Request.objects.filter(order_id=order_id, is_temporary=False).first()
+            
+            if not request_obj:
+                error_messages.append(f'Order ID {order_id}: 주문을 찾을 수 없습니다.')
+                continue
+                
+            # 발송 조건 검증
+            if request_obj.order_status != 'received':
+                error_messages.append(f'Order ID {order_id}: 상태가 접수됨이 아닙니다. (현재: {request_obj.get_order_status_display()})')
+                continue
+                
+            if not request_obj.payment_amount:
+                error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
+                continue
+            
+            try:
+                # TODO: 실제 이메일 발송 로직 구현
+                print(f'[SEND EMAIL] 결제 완료 안내 발송 - Order ID: {order_id}, Email: {request_obj.email}')
+                success_count += 1
+            except Exception as e:
+                error_messages.append(f'Order ID {order_id}: 이메일 발송 실패 - {str(e)}')
+        
+        return Response({
+            'success': True,
+            'message': f'{success_count}건의 결제 완료 안내를 발송했습니다.',
+            'success_count': success_count,
+            'errors': error_messages
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def send_draft_guide(request):
+    """속기록 초안/수정안 요청 안내 발송"""
+    try:
+        request_ids = request.data.get('request_ids', [])
+        
+        if not request_ids:
+            return Response({'error': '선택된 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 유효한 요청들 필터링
+        valid_requests = []
+        error_messages = []
+        
+        for request_id in request_ids:
+            request_obj = Request.objects.filter(request_id=request_id, is_temporary=False).first()
+            
+            if not request_obj:
+                error_messages.append(f'Request ID {request_id}: 요청을 찾을 수 없습니다.')
+                continue
+                
+            # 발송 조건 검증
+            if request_obj.status != 'in_progress':
+                error_messages.append(f'Request ID {request_id}: 상태가 작업중이 아닙니다. (현재: {request_obj.get_status_display()})')
+                continue
+                
+            if not request_obj.transcript_file:
+                error_messages.append(f'Request ID {request_id}: 속기록 파일이 업로드되지 않았습니다.')
+                continue
+            
+            valid_requests.append(request_obj)
+        
+        if not valid_requests:
+            return Response({'error': '발송 가능한 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
+        try:
+            bulk_service = BulkEmailService()
+            email_subject = "속기록 초안/수정안 발송"
+            email_content = """
+            <h2>속기록 초안/수정안 발송</h2>
+            <p>안녕하세요, 속기사무소 정입니다.</p>
+            <p>요청하신 속기록 초안/수정안을 첨부파일로 발송드립니다.</p>
+            <p>검토 후 수정사항이 있으시면 회신해주시기 바랍니다.</p>
+            <p>감사합니다.</p>
+            """
+            
+            result = bulk_service.send_bulk_emails_with_attachments(
+                requests=valid_requests,
+                email_subject=email_subject,
+                email_content=email_content,
+                content_type='text/html'
+            )
+            
+            success_count = result['success_count']
+            if result['failed_emails']:
+                for failed in result['failed_emails']:
+                    error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
+            
+        except Exception as e:
+            return Response({'error': f'이메일 발송 중 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({
+            'success': True,
+            'message': f'{success_count}건의 속기록 초안/수정안을 발송했습니다.',
+            'success_count': success_count,
+            'errors': error_messages
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def send_final_draft_guide(request):
+    """속기록 최종안 안내 발송"""
+    try:
+        request_ids = request.data.get('request_ids', [])
+        
+        if not request_ids:
+            return Response({'error': '선택된 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 유효한 요청들 필터링
+        valid_requests = []
+        error_messages = []
+        
+        for request_id in request_ids:
+            request_obj = Request.objects.filter(request_id=request_id, is_temporary=False).first()
+            
+            if not request_obj:
+                error_messages.append(f'Request ID {request_id}: 요청을 찾을 수 없습니다.')
+                continue
+                
+            # 발송 조건 검증
+            if request_obj.status != 'work_completed':
+                error_messages.append(f'Request ID {request_id}: 상태가 작업완료가 아닙니다. (현재: {request_obj.get_status_display()})')
+                continue
+                
+            if not request_obj.transcript_file:
+                error_messages.append(f'Request ID {request_id}: 속기록 파일이 업로드되지 않았습니다.')
+                continue
+            
+            valid_requests.append(request_obj)
+        
+        if not valid_requests:
+            return Response({'error': '발송 가능한 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
+        try:
+            bulk_service = BulkEmailService()
+            email_subject = "속기록 최종안 발송"
+            email_content = """
+            <h2>속기록 최종안 발송</h2>
+            <p>안녕하세요, 속기사무소 정입니다.</p>
+            <p>요청하신 속기록 최종안을 첨부파일로 발송드립니다.</p>
+            <p>작업이 완료되었습니다. 검토 후 문의사항이 있으시면 연락주시기 바랍니다.</p>
+            <p>감사합니다.</p>
+            """
+            
+            result = bulk_service.send_bulk_emails_with_attachments(
+                requests=valid_requests,
+                email_subject=email_subject,
+                email_content=email_content,
+                content_type='text/html'
+            )
+            
+            success_count = result['success_count']
+            if result['failed_emails']:
+                for failed in result['failed_emails']:
+                    error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
+            
+        except Exception as e:
+            return Response({'error': f'이메일 발송 중 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response({
+            'success': True,
+            'message': f'{success_count}건의 속기록 최종안을 발송했습니다.',
+            'success_count': success_count,
+            'errors': error_messages
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST']) 
+def send_application_completion_guide(request):
+    """서비스 신청 완료 안내 자동 발송"""
+    try:
+        request_id = request.data.get('request_id')
+        
+        if not request_id:
+            return Response({'error': 'Request ID가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        request_obj = Request.objects.filter(request_id=request_id).first()
+        
+        if not request_obj:
+            return Response({'error': '요청을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            # TODO: 실제 이메일 발송 로직 구현
+            print(f'[SEND EMAIL] 서비스 신청 완료 안내 발송 - Request ID: {request_id}, Email: {request_obj.email}')
+            
+            return Response({
+                'success': True,
+                'message': '서비스 신청 완료 안내를 발송했습니다.'
+            })
+        except Exception as e:
+            return Response({'error': f'이메일 발송 실패 - {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

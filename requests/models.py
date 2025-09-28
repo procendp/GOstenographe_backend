@@ -101,7 +101,7 @@ class Request(models.Model):
     refund_amount = models.DecimalField(_('환불 금액'), max_digits=10, decimal_places=0, null=True, blank=True)
     cancel_reason = models.TextField(_('취소 사유'), blank=True)
     impossible_reason = models.TextField(_('작업불가 사유'), blank=True)
-    transcript = models.TextField(_('속기록'), blank=True)
+    transcript_file = models.ForeignKey('File', on_delete=models.SET_NULL, null=True, blank=True, related_name='transcript_requests', verbose_name=_('속기록 파일'))
     notes = models.TextField(_('기타 정보'), blank=True)
 
     class Meta:
@@ -189,8 +189,10 @@ class Request(models.Model):
     
     def save(self, *args, **kwargs):
         """저장 시 Order ID와 Request ID 자동 생성"""
+        is_new_record = not self.pk
+        
         # 새로운 레코드인 경우에만 ID 생성
-        if not self.pk:  # 새로운 레코드
+        if is_new_record:  # 새로운 레코드
             # Order ID가 없으면 생성
             if not self.order_id:
                 self.order_id = self.generate_order_id()
@@ -200,6 +202,19 @@ class Request(models.Model):
                 self.request_id = self.generate_request_id(self.order_id)
             
         super().save(*args, **kwargs)
+        
+        # 새로운 레코드이고 임시가 아닌 경우 서비스 신청 완료 안내 발송
+        if is_new_record and not self.is_temporary:
+            self.send_application_completion_guide()
+    
+    def send_application_completion_guide(self):
+        """서비스 신청 완료 안내 자동 발송"""
+        try:
+            # TODO: 실제 이메일 발송 로직 구현
+            print(f'[AUTO SEND EMAIL] 서비스 신청 완료 안내 발송 - Request ID: {self.request_id}, Email: {self.email}')
+            logger.info(f'서비스 신청 완료 안내 발송 - Request ID: {self.request_id}, Email: {self.email}')
+        except Exception as e:
+            logger.error(f'서비스 신청 완료 안내 발송 실패 - Request ID: {self.request_id}, Error: {str(e)}')
 
 class Template(models.Model):
     name = models.CharField(_('템플릿명'), max_length=100)

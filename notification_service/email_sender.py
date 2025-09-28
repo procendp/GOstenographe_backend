@@ -4,8 +4,10 @@ SendGrid Email 발송 서비스
 import os
 import logging
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, Email, To, Content
+from sendgrid.helpers.mail import Mail, Email, To, Content, Attachment
 from django.conf import settings
+import base64
+import mimetypes
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +23,7 @@ class SendGridEmail:
         if not self.api_key:
             logger.warning("SendGrid API 키가 설정되지 않았습니다. .env 파일을 확인하세요.")
     
-    def send_email(self, to_email, subject, content, content_type='text/plain'):
+    def send_email(self, to_email, subject, content, content_type='text/plain', attachments=None):
         """
         이메일 발송
         
@@ -30,6 +32,7 @@ class SendGridEmail:
             subject: 제목
             content: 내용
             content_type: 'text/plain' 또는 'text/html'
+            attachments: 첨부파일 리스트 [{'file_content': bytes, 'filename': str, 'file_type': str}]
         
         Returns:
             dict: 발송 결과
@@ -49,6 +52,25 @@ class SendGridEmail:
                 plain_text_content=Content("text/plain", content) if content_type == 'text/plain' else None,
                 html_content=Content("text/html", content) if content_type == 'text/html' else None
             )
+            
+            # 첨부파일 추가
+            if attachments:
+                for attachment_data in attachments:
+                    file_content = attachment_data.get('file_content')
+                    filename = attachment_data.get('filename')
+                    file_type = attachment_data.get('file_type') or 'application/octet-stream'
+                    
+                    if file_content and filename:
+                        # Base64 인코딩
+                        encoded_content = base64.b64encode(file_content).decode()
+                        
+                        attachment = Attachment(
+                            file_content=encoded_content,
+                            file_name=filename,
+                            file_type=file_type,
+                            disposition="attachment"
+                        )
+                        message.add_attachment(attachment)
             
             # SendGrid API 클라이언트
             sg = SendGridAPIClient(self.api_key)
@@ -78,7 +100,7 @@ class SendGridEmail:
                 'error': str(e)
             }
     
-    def send_html_email(self, to_email, subject, html_content, text_content=None):
+    def send_html_email(self, to_email, subject, html_content, text_content=None, attachments=None):
         """
         HTML 이메일 발송
         
@@ -87,6 +109,7 @@ class SendGridEmail:
             subject: 제목
             html_content: HTML 내용
             text_content: 텍스트 대체 내용 (선택)
+            attachments: 첨부파일 리스트 [{'file_content': bytes, 'filename': str, 'file_type': str}]
         """
         try:
             if not self.api_key:
@@ -107,6 +130,25 @@ class SendGridEmail:
                 plain_text_content=Content("text/plain", text_content),
                 html_content=Content("text/html", html_content)
             )
+            
+            # 첨부파일 추가
+            if attachments:
+                for attachment_data in attachments:
+                    file_content = attachment_data.get('file_content')
+                    filename = attachment_data.get('filename')
+                    file_type = attachment_data.get('file_type') or 'application/octet-stream'
+                    
+                    if file_content and filename:
+                        # Base64 인코딩
+                        encoded_content = base64.b64encode(file_content).decode()
+                        
+                        attachment = Attachment(
+                            file_content=encoded_content,
+                            file_name=filename,
+                            file_type=file_type,
+                            disposition="attachment"
+                        )
+                        message.add_attachment(attachment)
             
             sg = SendGridAPIClient(self.api_key)
             response = sg.send(message)

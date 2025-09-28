@@ -6,9 +6,45 @@
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
         <div class="flex space-x-2">
-            <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-                새로고침
+            <!-- 새로고침 버튼 -->
+            <button onclick="window.location.reload()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border border-gray-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span>새로고침</span>
             </button>
+            
+            <!-- Order ID List 전용 버튼들 -->
+            {% if hide_request_id %}
+            <button onclick="sendQuotationGuide()" class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 border border-emerald-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m-3-1h6M9 21h6"></path>
+                </svg>
+                <span>견적 및 입금 안내</span>
+            </button>
+            <button onclick="sendPaymentCompletionGuide()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 border border-blue-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>결제 완료 안내</span>
+            </button>
+            {% endif %}
+            
+            <!-- Request ID List 전용 버튼들 -->
+            {% if hide_order_id %}
+            <button onclick="sendDraftGuide()" class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 border border-amber-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                </svg>
+                <span>속기록 초안/수정안 요청 안내</span>
+            </button>
+            <button onclick="sendFinalDraftGuide()" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 border border-purple-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                </svg>
+                <span>속기록 최종안 안내</span>
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -188,7 +224,7 @@
                                     <span class="status-badge status-{{ result.order_status }}" id="status-badge-{{ result.id }}">
                                         {{ result.get_order_status_display|default:"접수됨" }}
                                     </span>
-                                    <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.order_status }}', 'order')">
+                                    <button class="status-edit-btn" onclick="editStatus('{{ result.id }}', '{{ result.order_status }}', 'order')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -198,12 +234,12 @@
                             </td>
                         {% elif not hide_request_id %}
                             {% comment %} Request ID List - status 사용, 셀 병합 없음 {% endcomment %}
-                            <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status }}" data-status-type="request">
+                            <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status|default:"received" }}" data-status-type="request">
                                 <div class="status-container">
-                                    <span class="status-badge status-{{ result.status }}" id="status-badge-{{ result.id }}">
+                                    <span class="status-badge status-{{ result.status|default:"received" }}" id="status-badge-{{ result.id }}">
                                         {{ result.get_status_display|default:"접수됨" }}
                                     </span>
-                                    <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.status }}', 'request')">
+                                    <button class="status-edit-btn" onclick="editStatus('{{ result.id }}', '{{ result.status|default:"received" }}', 'request')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -390,16 +426,16 @@
                             </div>
                         </td>
                         {% endif %}
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="transcript" data-type="file">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="transcript_file" data-type="file">
                             <div class="editable-container">
-                                <span class="editable-value" data-original-transcript="{{ result.transcript|escapejs }}">
-                                    {% if result.transcript %}
-                                        {{ result.transcript|truncatechars:30|default:"-" }}
+                                <span class="editable-value" data-original-transcript="{{ result.transcript_file.original_name|default:'-'|escapejs }}">
+                                    {% if result.transcript_file %}
+                                        {{ result.transcript_file.original_name|truncatechars:30|default:"-" }}
                                     {% else %}
                                         -
                                     {% endif %}
                                 </span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'transcript', 'file')">
+                                <button class="edit-btn" onclick="openFileDialog({{ result.id }}, 'transcript_file')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                         <polyline points="14,2 14,8 20,8"></polyline>
@@ -961,13 +997,13 @@
     </style>
 
     <script>
-    // 파일 정보 맵핑
+    // 파일 정보 맵핑 (transcript_file로 변경)
     const transcriptDataMap = {
         {% regroup cl.result_list by order_id as order_groups %}
         {% for order_group in order_groups %}
             {% for result in order_group.list %}
-                {% if result.transcript %}
-                {{ result.id }}: `{{ result.transcript|escapejs }}`{% if not forloop.last or not forloop.parentloop.last %},{% endif %}
+                {% if result.transcript_file %}
+                {{ result.id }}: `{{ result.transcript_file.original_name|escapejs }}`{% if not forloop.last or not forloop.parentloop.last %},{% endif %}
                 {% endif %}
             {% endfor %}
         {% endfor %}
@@ -1008,11 +1044,30 @@
 
     // 상태 변경 함수
     function editStatus(requestId, initialStatus, statusType = 'request') {
-        const cell = document.querySelector(`[data-request-id="${requestId}"]`);
-        const container = cell.querySelector('.status-container');
+        console.log('[DEBUG] editStatus called:', requestId, initialStatus, statusType);
+        
+        // 모든 상태 셀 확인 (디버깅)
+        const allStatusCells = document.querySelectorAll('.status-cell');
+        console.log('[DEBUG] Total status cells found:', allStatusCells.length);
+        allStatusCells.forEach(c => {
+            console.log('[DEBUG] Cell data-request-id:', c.getAttribute('data-request-id'));
+        });
+        
+        // 상태 셀 찾기
+        const cell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
+        console.log('[DEBUG] Looking for requestId:', requestId);
+        console.log('[DEBUG] Found cell:', cell);
+        const container = cell ? cell.querySelector('.status-container') : null;
+        console.log('[DEBUG] Found container:', container);
+        
+        if (!cell || !container) {
+            console.error('[ERROR] Cell or container not found for request ID:', requestId);
+            return;
+        }
         
         // 현재 상태를 셀의 data attribute에서 동적으로 가져오기
         const currentStatus = cell.dataset.currentStatus || initialStatus;
+        console.log('[DEBUG] Current status:', currentStatus);
         
         // 이미 드롭다운이 열려있으면 닫기
         const existingDropdown = container.querySelector('.status-dropdown');
@@ -1035,6 +1090,7 @@
         
         // 상태 타입에 따라 적절한 상태 정보 선택
         const statusInfo = statusType === 'order' ? orderStatusInfo : requestStatusInfo;
+        console.log('[DEBUG] Status type:', statusType, 'StatusInfo:', statusInfo);
         
         // 허용된 상태만 표시
         for (const [key, info] of Object.entries(statusInfo)) {
@@ -1105,12 +1161,30 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // UI 업데이트
-                const cell = document.querySelector(`[data-request-id="${requestId}"]`);
+                // UI 업데이트 - status-cell 클래스로 찾기
+                const cell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
+                if (!cell) {
+                    console.error('Cell not found for UI update:', requestId);
+                    showNotification('상태가 변경되었지만 UI 업데이트에 실패했습니다. 페이지를 새로고침하세요.', 'warning');
+                    return;
+                }
+                
                 const badge = cell.querySelector('.status-badge');
+                if (!badge) {
+                    console.error('Badge not found in cell');
+                    showNotification('상태가 변경되었지만 UI 업데이트에 실패했습니다. 페이지를 새로고침하세요.', 'warning');
+                    return;
+                }
                 
                 // 상태 타입에 따라 적절한 상태 정보 선택
                 const statusInfo = statusType === 'order' ? orderStatusInfo : requestStatusInfo;
+                
+                // 상태 정보가 있는지 확인
+                if (!statusInfo[newStatus]) {
+                    console.error('Status info not found for:', newStatus);
+                    showNotification('상태가 변경되었지만 상태 정보를 찾을 수 없습니다.', 'warning');
+                    return;
+                }
                 
                 badge.className = `status-badge status-${newStatus}`;
                 badge.textContent = statusInfo[newStatus].name;
@@ -1616,52 +1690,29 @@
         });
     });
 
-    // 파일명 표시 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-        // transcript 데이터를 원본 파일명으로 표시
-        document.querySelectorAll('[data-request-id][data-field="transcript"] .editable-value').forEach(span => {
-            const cell = span.closest('[data-request-id]');
-            const requestId = cell.dataset.requestId;
-            const transcriptData = transcriptDataMap[requestId];
-            
-            console.log('Request ID:', requestId, 'Transcript data:', transcriptData); // 디버깅용
-            
-            if (transcriptData && transcriptData !== '-' && transcriptData !== '') {
-                // JSON 형태인지 확인하고 original_name 추출
-                if (transcriptData.includes('original_name')) {
-                    try {
-                        // original_name 값 직접 추출
-                        const match = transcriptData.match(/'original_name':\s*'([^']*)'|"original_name":\s*"([^"]*)"/);
-                        if (match) {
-                            const originalName = match[1] || match[2];
-                            console.log('Extracted original name:', originalName); // 디버깅용
-                            span.textContent = originalName;
-                            return;
-                        }
-                        
-                        // 정식 JSON 파싱 시도
-                        const cleanedData = transcriptData.replace(/'/g, '"');
-                        const fileInfo = JSON.parse(cleanedData);
-                        if (fileInfo.original_name) {
-                            span.textContent = fileInfo.original_name;
-                            return;
-                        }
-                    } catch (e) {
-                        console.error('JSON 파싱 실패:', e);
-                    }
-                }
-                
-                // 기존 S3 키 형태 처리 - 파일명만 추출
-                if (transcriptData.includes('/')) {
-                    const fileName = transcriptData.split('/').pop();
-                    span.textContent = fileName;
-                } else {
-                    // 그냥 문자열인 경우
-                    span.textContent = transcriptData;
-                }
+    // 파일명 표시는 이제 템플릿에서 직접 처리 (transcript_file.original_name)
+
+    // 파일 선택 창 직접 열기
+    function openFileDialog(requestId, fieldName) {
+        // 숨겨진 파일 입력 요소 생성
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.style.display = 'none';
+        fileInput.accept = '.pdf,.doc,.docx,.txt';
+        
+        // 파일 선택 이벤트
+        fileInput.onchange = function() {
+            if (this.files.length > 0) {
+                uploadFile(requestId, fieldName, this.files[0]);
             }
-        });
-    });
+            // 사용 후 요소 제거
+            document.body.removeChild(fileInput);
+        };
+        
+        // body에 추가 후 클릭
+        document.body.appendChild(fileInput);
+        fileInput.click();
+    }
 
     // 필드 편집 함수
     function editField(requestId, fieldName, fieldType) {
@@ -1868,6 +1919,178 @@
         // 초기 상태 설정
         updateSelectAllState();
     });
+
+    // 견적 및 입금 안내 발송
+    function sendQuotationGuide() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 주문이 없습니다.', 'error');
+            return;
+        }
+
+        const orderIds = Array.from(checkedBoxes).map(checkbox => 
+            checkbox.getAttribute('data-order-id')
+        );
+
+        if (confirm(`${orderIds.length}건의 견적 및 입금 안내를 발송하시겠습니까?`)) {
+            fetch('/api/send/quotation-guide/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    order_ids: orderIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    if (data.errors && data.errors.length > 0) {
+                        data.errors.forEach(error => {
+                            showNotification(error, 'error');
+                        });
+                    }
+                } else {
+                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            });
+        }
+    }
+
+    // 결제 완료 안내 발송
+    function sendPaymentCompletionGuide() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 주문이 없습니다.', 'error');
+            return;
+        }
+
+        const orderIds = Array.from(checkedBoxes).map(checkbox => 
+            checkbox.getAttribute('data-order-id')
+        );
+
+        if (confirm(`${orderIds.length}건의 결제 완료 안내를 발송하시겠습니까?`)) {
+            fetch('/api/send/payment-completion-guide/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    order_ids: orderIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    if (data.errors && data.errors.length > 0) {
+                        data.errors.forEach(error => {
+                            showNotification(error, 'error');
+                        });
+                    }
+                } else {
+                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            });
+        }
+    }
+
+    // 속기록 초안/수정안 요청 안내 발송
+    function sendDraftGuide() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 요청이 없습니다.', 'error');
+            return;
+        }
+
+        const requestIds = Array.from(checkedBoxes).map(checkbox => 
+            checkbox.getAttribute('data-request-id')
+        );
+
+        if (confirm(`${requestIds.length}건의 속기록 초안/수정안을 발송하시겠습니까?`)) {
+            fetch('/api/send/draft-guide/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    request_ids: requestIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    if (data.errors && data.errors.length > 0) {
+                        data.errors.forEach(error => {
+                            showNotification(error, 'error');
+                        });
+                    }
+                } else {
+                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            });
+        }
+    }
+
+    // 속기록 최종안 안내 발송
+    function sendFinalDraftGuide() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 요청이 없습니다.', 'error');
+            return;
+        }
+
+        const requestIds = Array.from(checkedBoxes).map(checkbox => 
+            checkbox.getAttribute('data-request-id')
+        );
+
+        if (confirm(`${requestIds.length}건의 속기록 최종안을 발송하시겠습니까?`)) {
+            fetch('/api/send/final-draft-guide/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    request_ids: requestIds
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    if (data.errors && data.errors.length > 0) {
+                        data.errors.forEach(error => {
+                            showNotification(error, 'error');
+                        });
+                    }
+                } else {
+                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            });
+        }
+    }
 
     </script>
 </div>
