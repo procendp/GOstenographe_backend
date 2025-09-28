@@ -122,7 +122,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         }
         
         # Order ID 생성 (한 주문자당 하나)
-        order_id = Request.get_next_order_id()
+        order_id = Request.generate_order_id()
         
         # 파일별 정보
         files_data = data.get('files', [])

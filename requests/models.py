@@ -210,9 +210,36 @@ class Request(models.Model):
     def send_application_completion_guide(self):
         """서비스 신청 완료 안내 자동 발송"""
         try:
-            # TODO: 실제 이메일 발송 로직 구현
+            from notification_service.bulk_email_service import BulkEmailService
+            
             print(f'[AUTO SEND EMAIL] 서비스 신청 완료 안내 발송 - Request ID: {self.request_id}, Email: {self.email}')
             logger.info(f'서비스 신청 완료 안내 발송 - Request ID: {self.request_id}, Email: {self.email}')
+            
+            # 같은 이메일 주소의 모든 요청 가져오기 (같은 주문 건)
+            same_email_requests = Request.objects.filter(
+                email=self.email,
+                order_id=self.order_id,
+                is_temporary=False
+            ).order_by('created_at')
+            
+            # 첫 번째 요청에서만 이메일 발송 (중복 발송 방지)
+            first_request = same_email_requests.first()
+            if first_request.id != self.id:
+                logger.info(f'중복 발송 방지 - 첫 번째 요청이 아님: {self.request_id}')
+                return
+            
+            # 대량 이메일 서비스 사용
+            bulk_service = BulkEmailService()
+            result = bulk_service.send_emails_with_template(
+                requests=list(same_email_requests),
+                email_subject='서비스 신청 완료 안내'
+            )
+            
+            if result['success_count'] > 0:
+                logger.info(f'서비스 신청 완료 안내 발송 성공 - Order ID: {self.order_id}, Email: {self.email}')
+            else:
+                logger.error(f'서비스 신청 완료 안내 발송 실패 - Order ID: {self.order_id}, Errors: {result["failed_emails"]}')
+                
         except Exception as e:
             logger.error(f'서비스 신청 완료 안내 발송 실패 - Request ID: {self.request_id}, Error: {str(e)}')
 
