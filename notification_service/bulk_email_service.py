@@ -96,37 +96,58 @@ class BulkEmailService:
         # 첫 번째 요청의 정보 사용 (같은 이메일이므로 고객 정보는 동일)
         first_request = requests[0]
         
-        # 업로드된 파일 정보 수집
+        # 업로드된 파일 정보 수집 - 각 Request의 모든 파일들을 수집
         uploaded_files = []
         total_duration = 0
         
         for request in requests:
-            # Request 자체가 하나의 파일을 나타냄
-            # Request에서 직접 파일 정보 가져오기
-            file_duration = request.total_duration or '00:00:00'
-            
-            # 파일명은 첨부된 파일에서 가져오거나 기본값 사용
-            file_name = "파일명 없음"
+            # 각 Request의 모든 파일들을 개별적으로 처리
             if request.files.exists():
-                first_file = request.files.first()
-                file_name = first_file.original_name or os.path.basename(first_file.file)
-            else:
-                # Request ID를 기반으로 파일명 생성
-                file_name = f"속기록_{request.request_id}"
-            
-            # 지속시간을 초로 변환하여 합계 계산
-            if file_duration and file_duration != '00:00:00':
-                try:
-                    parts = file_duration.split(':')
-                    if len(parts) == 3:
-                        total_duration += int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
-                except (ValueError, IndexError):
-                    pass
+                file_count = request.files.count()
+                request_duration = request.total_duration or '00:00:00'
                 
-            uploaded_files.append({
-                'name': file_name,
-                'duration': file_duration
-            })
+                # Request의 총 duration을 초로 변환
+                request_duration_seconds = 0
+                if request_duration and request_duration != '00:00:00':
+                    try:
+                        parts = request_duration.split(':')
+                        if len(parts) == 3:
+                            request_duration_seconds = int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                    except (ValueError, IndexError):
+                        pass
+                
+                # 각 파일별로 duration을 균등 분배
+                file_duration_seconds = request_duration_seconds // file_count if file_count > 0 else 0
+                file_duration_str = f"{file_duration_seconds // 3600:02d}:{(file_duration_seconds % 3600) // 60:02d}:{file_duration_seconds % 60:02d}"
+                
+                for file_obj in request.files.all():
+                    # 각 파일의 원본 이름 사용
+                    file_name = file_obj.original_name or os.path.basename(file_obj.file)
+                    
+                    uploaded_files.append({
+                        'name': file_name,
+                        'duration': file_duration_str
+                    })
+                    
+                    total_duration += file_duration_seconds
+            else:
+                # 파일이 없는 경우 Request 정보만으로 생성
+                file_name = f"속기록_{getattr(request, 'request_id', request.id)}"
+                file_duration = request.total_duration or '00:00:00'
+                
+                # 지속시간을 초로 변환하여 합계 계산
+                if file_duration and file_duration != '00:00:00':
+                    try:
+                        parts = file_duration.split(':')
+                        if len(parts) == 3:
+                            total_duration += int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
+                    except (ValueError, IndexError):
+                        pass
+                    
+                uploaded_files.append({
+                    'name': file_name,
+                    'duration': file_duration
+                })
         
         # 총 지속시간을 HH:MM:SS 형식으로 변환
         hours = total_duration // 3600
@@ -227,9 +248,17 @@ class BulkEmailService:
                         filename = os.path.basename(file_key)
                         file_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
                         
+                        # Request의 파일에서 원본 파일명 찾기
+                        original_filename = filename
+                        for request in email_requests:
+                            for file_obj in request.files.all():
+                                if file_obj.file == file_key:
+                                    original_filename = file_obj.original_name or filename
+                                    break
+                        
                         attachments.append({
                             'file_content': file_content,
-                            'filename': filename,
+                            'filename': original_filename,
                             'file_type': file_type
                         })
                         
@@ -336,9 +365,17 @@ class BulkEmailService:
                         filename = os.path.basename(file_key)
                         file_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
                         
+                        # Request의 파일에서 원본 파일명 찾기
+                        original_filename = filename
+                        for request in email_requests:
+                            for file_obj in request.files.all():
+                                if file_obj.file == file_key:
+                                    original_filename = file_obj.original_name or filename
+                                    break
+                        
                         attachments.append({
                             'file_content': file_content,
-                            'filename': filename,
+                            'filename': original_filename,
                             'file_type': file_type
                         })
                         
