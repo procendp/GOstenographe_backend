@@ -10,11 +10,20 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class Request(models.Model):
+    # 기존 상태 (Request 레벨 - 개별 파일 작업 상태)
     STATUS_CHOICES = (
         ('received', _('접수됨')),
-        ('payment_completed', _('결제완료')),
         ('in_progress', _('작업중')),
         ('work_completed', _('작업완료')),
+        ('sent', _('발송완료')),
+        ('impossible', _('작업불가')),
+        ('cancelled', _('취소됨')),
+    )
+    
+    # Order 레벨 상태 (주문 전체 상태)
+    ORDER_STATUS_CHOICES = (
+        ('received', _('접수됨')),
+        ('payment_completed', _('결제완료')),
         ('sent', _('발송완료')),
         ('impossible', _('작업불가')),
         ('cancelled', _('취소됨')),
@@ -57,10 +66,18 @@ class Request(models.Model):
     
     # 기타 정보
     status = models.CharField(
-        _('상태'),
+        _('Request 상태'),
         max_length=20,
         choices=STATUS_CHOICES,
-        default='received'
+        default='received',
+        help_text='개별 파일 작업 상태'
+    )
+    order_status = models.CharField(
+        _('Order 상태'),
+        max_length=20,
+        choices=ORDER_STATUS_CHOICES,
+        default='received',
+        help_text='주문 전체 상태'
     )
     draft_format = models.CharField(_('원고 형식'), max_length=20, choices=DRAFT_FORMAT_CHOICES, default='hwp')
     final_option = models.CharField(_('최종 옵션'), max_length=20, choices=FINAL_OPTION_CHOICES, default='file')
@@ -96,17 +113,28 @@ class Request(models.Model):
         return f"{self.name} - {self.get_status_display()}"
 
     def get_status_display(self):
+        """Request 상태 표시"""
         status_map = {
             'received': '접수됨',
-            'payment_completed': '결제완료',
             'in_progress': '작업중',
             'work_completed': '작업완료',
+            'sent': '발송완료',
+            'impossible': '작업불가',
+            'cancelled': '취소됨'
+        }
+        return status_map.get(self.status, self.status)
+    
+    def get_order_status_display(self):
+        """Order 상태 표시"""
+        order_status_map = {
+            'received': '접수됨',
+            'payment_completed': '결제완료',
             'sent': '발송완료',
             'impossible': '작업불가',
             'cancelled': '취소됨',
             'refunded': '환불완료'
         }
-        return status_map.get(self.status, self.status)
+        return order_status_map.get(self.order_status, self.order_status)
     
     def can_change_to(self, new_status):
         """현재 상태에서 변경 가능한 상태인지 확인"""

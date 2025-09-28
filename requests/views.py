@@ -188,6 +188,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             request_instance = self.get_object()
             new_status = request.data.get('status')
             reason = request.data.get('reason', '')
+            skip_notification = request.data.get('skip_notification', False)  # 알림 스킵 플래그
             
             if not new_status:
                 return Response({'error': '새로운 상태가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -226,37 +227,39 @@ class RequestViewSet(viewsets.ModelViewSet):
                 # changed_by는 나중에 인증 시스템 구축 후 추가
             )
             
-            # 알림 발송
-            try:
-                from notification_service.notification_service import notification_service
-                
-                # 상태별 알림 설정 가져오기
-                notification_settings = notification_service.get_notification_settings(new_status)
-                
-                # 알림 발송
-                notification_result = notification_service.send_status_notification(
-                    request_instance,
-                    new_status,
-                    old_status,
-                    send_sms=notification_settings['sms'],
-                    send_email=notification_settings['email']
-                )
-                
-                notification_sent = notification_result['success']
-                
-                # 상태 변경 로그에 알림 발송 여부 업데이트
-                status_log = StatusChangeLog.objects.filter(
-                    request=request_instance,
-                    to_status=new_status
-                ).order_by('-changed_at').first()
-                
-                if status_log:
-                    status_log.notification_sent = notification_sent
-                    status_log.save()
-                
-            except Exception as e:
-                logger.error(f"알림 발송 중 오류: {str(e)}")
-                notification_sent = False
+            # 알림 발송 - skip_notification 플래그 확인
+            notification_sent = False
+            if not skip_notification:
+                try:
+                    from notification_service.notification_service import notification_service
+                    
+                    # 상태별 알림 설정 가져오기
+                    notification_settings = notification_service.get_notification_settings(new_status)
+                    
+                    # 알림 발송
+                    notification_result = notification_service.send_status_notification(
+                        request_instance,
+                        new_status,
+                        old_status,
+                        send_sms=notification_settings['sms'],
+                        send_email=notification_settings['email']
+                    )
+                    
+                    notification_sent = notification_result['success']
+                    
+                except Exception as e:
+                    logger.error(f"알림 발송 중 오류: {str(e)}")
+                    notification_sent = False
+            
+            # 상태 변경 로그에 알림 발송 여부 업데이트
+            status_log = StatusChangeLog.objects.filter(
+                request=request_instance,
+                to_status=new_status
+            ).order_by('-changed_at').first()
+            
+            if status_log:
+                status_log.notification_sent = notification_sent
+                status_log.save()
             
             return Response({
                 'success': True,
@@ -268,6 +271,92 @@ class RequestViewSet(viewsets.ModelViewSet):
             return Response({
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'])
+    def change_order_status(self, request, pk=None):
+        """Order 상태 변경 API"""
+        try:
+            request_instance = self.get_object()
+            new_status = request.data.get('status')
+            reason = request.data.get('reason', '')
+            skip_notification = request.data.get('skip_notification', False)
+            
+            if not new_status:
+                return Response({'error': '새로운 상태가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            old_status = request_instance.order_status
+            request_instance.order_status = new_status
+            
+            # 특별한 상태별 처리
+            if new_status == 'impossible' and reason:
+                request_instance.impossible_reason = reason
+            elif new_status == 'cancelled' and reason:
+                request_instance.cancel_reason = reason
+            elif new_status == 'refunded' and reason:
+                # 환불 금액 파싱
+                if '환불금액:' in reason:
+                    try:
+                        amount_str = reason.split('환불금액:')[1].split('원')[0].strip().replace(',', '')
+                        request_instance.refund_amount = int(amount_str)
+                    except:
+                        pass
+            
+            request_instance.save()
+            
+            # Order 상태 변경 이력 저장
+            StatusChangeLog.objects.create(
+                request=request_instance,
+                from_status=old_status,
+                to_status=new_status,
+                reason=reason,
+                # changed_by는 나중에 인증 시스템 구축 후 추가
+            )
+            
+            # 알림 발송 - skip_notification 플래그 확인  
+            notification_sent = False
+            if not skip_notification:
+                try:
+                    from notification_service.notification_service import notification_service
+                    
+                    # 상태별 알림 설정 가져오기
+                    notification_settings = notification_service.get_notification_settings(new_status)
+                    
+                    # 알림 발송
+                    notification_result = notification_service.send_status_notification(
+                        request_instance,
+                        new_status,
+                        old_status,
+                        send_sms=notification_settings['sms'],
+                        send_email=notification_settings['email']
+                    )
+                    
+                    notification_sent = notification_result['success']
+                    
+                except Exception as e:
+                    logger.error(f"알림 발송 중 오류: {str(e)}")
+                    notification_sent = False
+            
+            # 상태 변경 로그에 알림 발송 여부 업데이트
+            status_log = StatusChangeLog.objects.filter(
+                request=request_instance,
+                to_status=new_status
+            ).order_by('-changed_at').first()
+            
+            if status_log:
+                status_log.notification_sent = notification_sent
+                status_log.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Order 상태가 변경되었습니다.',
+                'notification_sent': notification_sent
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
     @action(detail=True, methods=['post'])
     def change_payment(self, request, pk=None):

@@ -18,6 +18,11 @@
             <table id="excel-table" class="excel-table" style="width: max-content; border-collapse: collapse;">
                 <thead class="bg-gray-50" style="position: sticky; top: 0; z-index: 10;">
                     <tr>
+                        <th style="min-width: 50px; width: 50px; position: relative; border-right: 1px solid #e5e7eb; text-align: center;">
+                            <div class="th-content">
+                                <input type="checkbox" id="select-all-checkbox" onclick="toggleAllCheckboxes()" style="margin: 0;">
+                            </div>
+                        </th>
                         <th class="sortable-th" style="min-width: 100px; width: 100px; position: relative; border-right: 1px solid #e5e7eb;" data-sort="status">
                             <div class="th-content">
                                 상태
@@ -162,19 +167,51 @@
                             data-is-first-in-group="{% if forloop.first %}true{% else %}false{% endif %}" 
                             data-group-size="{{ order_group.list|length }}"
                             data-file-index="{{ forloop.counter0 }}">
-                        <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status }}">
-                            <div class="status-container">
-                                <span class="status-badge status-{{ result.status }}" id="status-badge-{{ result.id }}">
-                                    {{ result.get_status_display|default:"접수됨" }}
-                                </span>
-                                <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.status }}')">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
+                        {% comment %} 체크박스 셀 {% endcomment %}
+                        {% if hide_request_id and forloop.first %}
+                            {% comment %} Order ID List - 체크박스 병합 {% endcomment %}
+                            <td class="excel-cell checkbox-cell merged-cell clickable-checkbox-cell" rowspan="{{ order_group.list|length }}" style="text-align: center; vertical-align: middle; cursor: pointer;" onclick="toggleCheckbox(this)">
+                                <input type="checkbox" class="row-checkbox" data-order-id="{{ result.order_id }}" data-request-ids="{% for item in order_group.list %}{{ item.id }}{% if not forloop.last %},{% endif %}{% endfor %}" style="margin: 0; pointer-events: none;">
+                            </td>
+                        {% elif not hide_request_id %}
+                            {% comment %} Request ID List - 개별 체크박스 {% endcomment %}
+                            <td class="excel-cell checkbox-cell clickable-checkbox-cell" style="text-align: center; vertical-align: middle; cursor: pointer;" onclick="toggleCheckbox(this)">
+                                <input type="checkbox" class="row-checkbox" data-request-id="{{ result.id }}" style="margin: 0; pointer-events: none;">
+                            </td>
+                        {% endif %}
+                        
+                        {% comment %} 상태 셀 - Order ID List와 Request ID List에 따라 다른 상태 표시 {% endcomment %}
+                        {% if hide_request_id and forloop.first %}
+                            {% comment %} Order ID List - order_status 사용, 셀 병합 {% endcomment %}
+                            <td class="excel-cell status-cell merged-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-current-status="{{ result.order_status }}" data-status-type="order">
+                                <div class="status-container">
+                                    <span class="status-badge status-{{ result.order_status }}" id="status-badge-{{ result.id }}">
+                                        {{ result.get_order_status_display|default:"접수됨" }}
+                                    </span>
+                                    <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.order_status }}', 'order')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        {% elif not hide_request_id %}
+                            {% comment %} Request ID List - status 사용, 셀 병합 없음 {% endcomment %}
+                            <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status }}" data-status-type="request">
+                                <div class="status-container">
+                                    <span class="status-badge status-{{ result.status }}" id="status-badge-{{ result.id }}">
+                                        {{ result.get_status_display|default:"접수됨" }}
+                                    </span>
+                                    <button class="status-edit-btn" onclick="editStatus({{ result.id }}, '{{ result.status }}', 'request')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        {% endif %}
                         {% comment %} Order ID - 병합 대상 {% endcomment %}
                         {% if hide_request_id and forloop.first %}
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.order_id|default:"-" }}</td>
@@ -230,6 +267,63 @@
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.email }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
+                        <td class="excel-cell merged-cell payment-section-start payment-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
+                            <div class="payment-container">
+                                <span class="payment-badge payment-{{ result.payment_status }}">
+                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
+                                </span>
+                                <button class="payment-edit-btn" onclick="editPayment({{ result.id }}, '{{ result.payment_status }}')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="payment_amount" data-type="number">
+                            <div class="editable-container">
+                                <span class="editable-value">{% if result.payment_amount %}{{ result.payment_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'payment_amount', 'number')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="price_change_reason" data-type="text">
+                            <div class="editable-container">
+                                <span class="editable-value">{{ result.price_change_reason|default:"-" }}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'price_change_reason', 'text')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="refund_amount" data-type="number">
+                            <div class="editable-container">
+                                <span class="editable-value">{% if result.refund_amount %}{{ result.refund_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'refund_amount', 'number')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="cancel_reason" data-type="text">
+                            <div class="editable-container">
+                                <span class="editable-value">{{ result.cancel_reason|default:"-" }}</span>
+                                <button class="edit-btn" onclick="editField({{ result.id }}, 'cancel_reason', 'text')">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
                         {% elif not hide_request_id %}
                         <td class="excel-cell">{{ result.get_draft_format_display|default:"HWP" }}</td>
                         <td class="excel-cell">{{ result.get_final_option_display|default:"기본" }}</td>
@@ -238,7 +332,6 @@
                         <td class="excel-cell">{{ result.email }}</td>
                         <td class="excel-cell">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
-                        {% endif %}
                         <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
@@ -296,6 +389,7 @@
                                 </button>
                             </div>
                         </td>
+                        {% endif %}
                         <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="transcript" data-type="file">
                             <div class="editable-container">
                                 <span class="editable-value" data-original-transcript="{{ result.transcript|escapejs }}">
@@ -880,15 +974,24 @@
     };
 
     // 상태 정보 정의
-    const statusInfo = {
+    // Order 상태 정보
+    const orderStatusInfo = {
         'received': { name: '접수됨', color: '#f0f9ff', textColor: '#0c4a6e' },
         'payment_completed': { name: '결제완료', color: '#fef3c7', textColor: '#92400e' },
-        'in_progress': { name: '작업중', color: '#dbeafe', textColor: '#1e40af' },
-        'work_completed': { name: '작업완료', color: '#e0e7ff', textColor: '#3730a3' },
         'sent': { name: '발송완료', color: '#dcfce7', textColor: '#166534' },
         'impossible': { name: '작업불가', color: '#fce7f3', textColor: '#9f1239' },
         'cancelled': { name: '취소됨', color: '#fee2e2', textColor: '#991b1b' },
         'refunded': { name: '환불완료', color: '#f3f4f6', textColor: '#374151' }
+    };
+
+    // Request 상태 정보
+    const requestStatusInfo = {
+        'received': { name: '접수됨', color: '#f0f9ff', textColor: '#0c4a6e' },
+        'in_progress': { name: '작업중', color: '#dbeafe', textColor: '#1e40af' },
+        'work_completed': { name: '작업완료', color: '#e0e7ff', textColor: '#3730a3' },
+        'sent': { name: '발송완료', color: '#dcfce7', textColor: '#166534' },
+        'impossible': { name: '작업불가', color: '#fce7f3', textColor: '#9f1239' },
+        'cancelled': { name: '취소됨', color: '#fee2e2', textColor: '#991b1b' }
     };
 
     // 상태 전환 규칙
@@ -904,7 +1007,7 @@
     };
 
     // 상태 변경 함수
-    function editStatus(requestId, initialStatus) {
+    function editStatus(requestId, initialStatus, statusType = 'request') {
         const cell = document.querySelector(`[data-request-id="${requestId}"]`);
         const container = cell.querySelector('.status-container');
         
@@ -930,16 +1033,15 @@
         dropdown.style.left = buttonRect.left + 'px';
         dropdown.style.top = (buttonRect.bottom + 4) + 'px';
         
-        // 모든 상태 표시
+        // 상태 타입에 따라 적절한 상태 정보 선택
+        const statusInfo = statusType === 'order' ? orderStatusInfo : requestStatusInfo;
+        
+        // 허용된 상태만 표시
         for (const [key, info] of Object.entries(statusInfo)) {
             const item = document.createElement('div');
             item.className = 'status-dropdown-item';
             
-            // 임시로 모든 상태 선택 가능하도록 수정
             const isAllowed = true; // 모든 상태 선택 가능
-            // if (!isAllowed) {
-            //     item.classList.add('disabled');
-            // }
             
             const dot = document.createElement('span');
             dot.className = 'status-dot';
@@ -958,8 +1060,8 @@
             
             if (isAllowed) {
                 item.onclick = () => {
-                    // 팝업 입력 제거 - 바로 상태 변경
-                    changeStatus(requestId, key, '');
+                    // 상태 변경 (알림 없음) - 상태 타입 전달
+                    changeStatus(requestId, key, '', statusType);
                     dropdown.remove();
                 };
             }
@@ -981,9 +1083,14 @@
         }, 100);
     }
 
-    // 상태 변경 API 호출
-    function changeStatus(requestId, newStatus, reason = '') {
-        fetch(`/api/requests/${requestId}/change_status/`, {
+    // 상태 변경 API 호출 - 알림 발송 제거
+    function changeStatus(requestId, newStatus, reason = '', statusType = 'request') {
+        // API 엔드포인트 결정
+        const endpoint = statusType === 'order' ? 
+            `/api/requests/${requestId}/change_order_status/` : 
+            `/api/requests/${requestId}/change_status/`;
+        
+        fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -991,7 +1098,8 @@
             },
             body: JSON.stringify({
                 status: newStatus,
-                reason: reason
+                reason: reason,
+                skip_notification: true  // 알림 발송 스킵
             })
         })
         .then(response => response.json())
@@ -1000,6 +1108,10 @@
                 // UI 업데이트
                 const cell = document.querySelector(`[data-request-id="${requestId}"]`);
                 const badge = cell.querySelector('.status-badge');
+                
+                // 상태 타입에 따라 적절한 상태 정보 선택
+                const statusInfo = statusType === 'order' ? orderStatusInfo : requestStatusInfo;
+                
                 badge.className = `status-badge status-${newStatus}`;
                 badge.textContent = statusInfo[newStatus].name;
                 // 배경색과 텍스트 색상 직접 설정
@@ -1007,13 +1119,8 @@
                 badge.style.color = statusInfo[newStatus].textColor;
                 cell.dataset.currentStatus = newStatus;
                 
-                // 성공 메시지
+                // 성공 메시지 (알림 발송 메시지는 제거)
                 showNotification('상태가 변경되었습니다.', 'success');
-                
-                // 알림 발송 여부 표시
-                if (data.notification_sent) {
-                    showNotification('알림이 발송되었습니다.', 'info');
-                }
             } else {
                 showNotification(data.error || '상태 변경에 실패했습니다.', 'error');
             }
@@ -1711,6 +1818,56 @@
         valueSpan.style.display = '';
         container.querySelector('.edit-btn').style.display = '';
     }
+
+    // 전체 선택/해제 함수
+    function toggleAllCheckboxes() {
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
+        
+        updateSelectAllState();
+    }
+
+    // 개별 체크박스 토글 함수
+    function toggleCheckbox(cell) {
+        const checkbox = cell.querySelector('.row-checkbox');
+        checkbox.checked = !checkbox.checked;
+        updateSelectAllState();
+    }
+
+    // 전체 선택 체크박스 상태 업데이트
+    function updateSelectAllState() {
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        
+        if (checkedBoxes.length === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedBoxes.length === rowCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+
+    // 체크박스 상태 변경 이벤트 리스너
+    document.addEventListener('DOMContentLoaded', function() {
+        // 개별 체크박스 변경 감지
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateSelectAllState();
+            }
+        });
+        
+        // 초기 상태 설정
+        updateSelectAllState();
+    });
 
     </script>
 </div>
