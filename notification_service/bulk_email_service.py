@@ -171,23 +171,25 @@ class BulkEmailService:
             'address': first_request.address or '',
             'final_option': final_option_display,
             'file_summary': f"총 {len(uploaded_files)}개 파일 / {total_duration_str}",
-            'uploaded_files': uploaded_files
+            'uploaded_files': uploaded_files,
+            'payment_amount': getattr(first_request, 'payment_amount', ''),
+            'request_id': getattr(first_request, 'request_id', first_request.id)
         }
         
         return context
     
-    def send_emails_with_template(self, requests, template_name='email_templates/Service application completion Guide/email template_Service application completion Guide/index.html', email_subject='서비스 신청 완료 안내'):
+    def send_service_completion_guide(self, requests, email_subject='서비스 신청 완료 안내'):
         """
-        동적 템플릿을 사용하여 대량 이메일 발송
+        서비스 신청 완료 안내 이메일 발송 (첨부파일 없음)
         
         Args:
             requests: Request 객체 리스트
-            template_name: 이메일 템플릿 경로
             email_subject: 이메일 제목
             
         Returns:
             dict: 발송 결과
         """
+        template_name = 'email_templates/Service application completion Guide/email template_Service application completion Guide/index.html'
         grouped_requests = self.group_requests_by_email(requests)
         success_count = 0
         failed_emails = []
@@ -200,96 +202,30 @@ class BulkEmailService:
                 # 템플릿 렌더링
                 email_content = render_to_string(template_name, context)
                 
-                # 파일 첨부 처리 (기존 로직 사용)
-                file_keys = []
-                for request in email_requests:
-                    # 수정안 파일 수집
-                    if hasattr(request, 'draft_file') and request.draft_file and request.draft_file.file:
-                        file_keys.append(request.draft_file.file)
-                    
-                    # 속기록 파일 수집
-                    if hasattr(request, 'transcript_file') and request.transcript_file and request.transcript_file.file:
-                        file_keys.append(request.transcript_file.file)
-                    
-                    # 기타 첨부 파일들 수집
-                    for file_obj in request.files.all():
-                        if file_obj.file:
-                            file_keys.append(file_obj.file)
-                
-                # 중복 파일 제거
-                file_keys = list(set(file_keys))
-                
-                # 파일 크기 제한 체크 및 첨부파일 생성
-                attachments = []
-                total_size = 0
-                
-                for file_key in file_keys:
-                    try:
-                        # S3에서 파일 메타데이터 확인
-                        head_response = self.s3_client.head_object(
-                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                            Key=file_key
-                        )
-                        file_size = head_response['ContentLength']
-                        
-                        if total_size + file_size > 25 * 1024 * 1024:  # 25MB 제한
-                            print(f"[BulkEmailService] 파일 크기 제한 초과로 {file_key} 스킵")
-                            continue
-                        
-                        total_size += file_size
-                        
-                        # 실제 파일 다운로드
-                        response = self.s3_client.get_object(
-                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                            Key=file_key
-                        )
-                        
-                        file_content = response['Body'].read()
-                        filename = os.path.basename(file_key)
-                        file_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-                        
-                        # Request의 파일에서 원본 파일명 찾기
-                        original_filename = filename
-                        for request in email_requests:
-                            for file_obj in request.files.all():
-                                if file_obj.file == file_key:
-                                    original_filename = file_obj.original_name or filename
-                                    break
-                        
-                        attachments.append({
-                            'file_content': file_content,
-                            'filename': original_filename,
-                            'file_type': file_type
-                        })
-                        
-                    except Exception as e:
-                        print(f"[BulkEmailService] 파일 처리 실패: {file_key}, 오류: {str(e)}")
-                        continue
-                
-                # 이메일 발송
+                # 첨부파일 없이 이메일 발송
                 result = self.email_sender.send_html_email(
                     to_email=email,
                     subject=email_subject,
                     html_content=email_content,
-                    attachments=attachments
+                    attachments=[]
                 )
                 
                 if result.get('success'):
                     success_count += 1
-                    print(f"[BulkEmailService] 템플릿 이메일 발송 성공: {email}, 첨부파일 {len(attachments)}개")
+                    print(f"[BulkEmailService] 서비스 신청 완료 안내 발송 성공: {email}")
                 else:
                     failed_emails.append({
                         'email': email,
                         'error': result.get('error', '알 수 없는 오류')
                     })
-                    print(f"[BulkEmailService] 템플릿 이메일 발송 실패: {email}, 오류: {result.get('error')}")
+                    print(f"[BulkEmailService] 서비스 신청 완료 안내 발송 실패: {email}, 오류: {result.get('error')}")
                     
             except Exception as e:
                 failed_emails.append({
                     'email': email,
                     'error': str(e)
                 })
-                print(f"[BulkEmailService] 템플릿 이메일 처리 실패: {email}, 오류: {str(e)}")
+                print(f"[BulkEmailService] 서비스 신청 완료 안내 처리 실패: {email}, 오류: {str(e)}")
         
         return {
             'success_count': success_count,
@@ -324,7 +260,7 @@ class BulkEmailService:
                     if hasattr(request, 'draft_file') and request.draft_file and request.draft_file.file:
                         file_keys.append(request.draft_file.file)
                     
-                    # 속기록 파일 수집
+                    # 속기록 파일 수집 - 가장 중요!
                     if hasattr(request, 'transcript_file') and request.transcript_file and request.transcript_file.file:
                         file_keys.append(request.transcript_file.file)
                     
@@ -368,6 +304,12 @@ class BulkEmailService:
                         # Request의 파일에서 원본 파일명 찾기
                         original_filename = filename
                         for request in email_requests:
+                            # transcript_file에서 원본 파일명 찾기
+                            if hasattr(request, 'transcript_file') and request.transcript_file:
+                                if request.transcript_file.file == file_key:
+                                    original_filename = request.transcript_file.original_name or filename
+                                    break
+                            # 일반 파일에서 원본 파일명 찾기
                             for file_obj in request.files.all():
                                 if file_obj.file == file_key:
                                     original_filename = file_obj.original_name or filename
@@ -422,3 +364,190 @@ class BulkEmailService:
             'failed_emails': failed_emails,
             'total_emails': len(grouped_requests)
         }
+    
+    def send_template_with_transcript_files(self, requests, template_name, email_subject):
+        """
+        템플릿을 사용하여 속기록 파일과 함께 이메일 발송
+        
+        Args:
+            requests: Request 객체 리스트
+            template_name: 이메일 템플릿 경로
+            email_subject: 이메일 제목
+            
+        Returns:
+            dict: 발송 결과
+        """
+        grouped_requests = self.group_requests_by_email(requests)
+        success_count = 0
+        failed_emails = []
+        
+        for email, email_requests in grouped_requests.items():
+            try:
+                # 템플릿 컨텍스트 생성
+                context = self.create_template_context(email_requests)
+                
+                # 템플릿 렌더링
+                email_content = render_to_string(template_name, context)
+                
+                # 속기록 파일만 수집
+                file_keys = []
+                for request in email_requests:
+                    if hasattr(request, 'transcript_file') and request.transcript_file and request.transcript_file.file:
+                        file_keys.append(request.transcript_file.file)
+                
+                # 중복 제거
+                file_keys = list(set(file_keys))
+                
+                # 파일 첨부 처리
+                attachments = []
+                total_size = 0
+                
+                for file_key in file_keys:
+                    try:
+                        # S3에서 파일 크기 확인
+                        head_response = self.s3_client.head_object(
+                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                            Key=file_key
+                        )
+                        file_size = head_response['ContentLength']
+                        
+                        if total_size + file_size > 25 * 1024 * 1024:
+                            print(f"[BulkEmailService] 파일 크기 제한 초과로 {file_key} 스킵")
+                            continue
+                        
+                        total_size += file_size
+                        
+                        # 파일 다운로드
+                        response = self.s3_client.get_object(
+                            Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                            Key=file_key
+                        )
+                        
+                        file_content = response['Body'].read()
+                        filename = os.path.basename(file_key)
+                        file_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+                        
+                        # 원본 파일명 찾기
+                        original_filename = filename
+                        for request in email_requests:
+                            if hasattr(request, 'transcript_file') and request.transcript_file:
+                                if request.transcript_file.file == file_key:
+                                    original_filename = request.transcript_file.original_name or filename
+                                    break
+                        
+                        attachments.append({
+                            'file_content': file_content,
+                            'filename': original_filename,
+                            'file_type': file_type
+                        })
+                        
+                    except Exception as e:
+                        print(f"[BulkEmailService] 파일 처리 실패: {file_key}, 오류: {str(e)}")
+                        continue
+                
+                # 이메일 발송
+                result = self.email_sender.send_html_email(
+                    to_email=email,
+                    subject=email_subject,
+                    html_content=email_content,
+                    attachments=attachments
+                )
+                
+                if result.get('success'):
+                    success_count += 1
+                    print(f"[BulkEmailService] 템플릿 이메일 발송 성공: {email}, 속기록 파일 {len(attachments)}개")
+                else:
+                    failed_emails.append({
+                        'email': email,
+                        'error': result.get('error', '알 수 없는 오류')
+                    })
+                    print(f"[BulkEmailService] 템플릿 이메일 발송 실패: {email}, 오류: {result.get('error')}")
+                    
+            except Exception as e:
+                failed_emails.append({
+                    'email': email,
+                    'error': str(e)
+                })
+                print(f"[BulkEmailService] 템플릿 이메일 처리 실패: {email}, 오류: {str(e)}")
+        
+        return {
+            'success_count': success_count,
+            'failed_emails': failed_emails,
+            'total_emails': len(grouped_requests)
+        }
+    
+    def send_template_without_attachments(self, requests, template_name, email_subject):
+        """
+        템플릿을 사용하여 첨부파일 없이 이메일 발송
+        
+        Args:
+            requests: Request 객체 리스트
+            template_name: 이메일 템플릿 경로
+            email_subject: 이메일 제목
+            
+        Returns:
+            dict: 발송 결과
+        """
+        grouped_requests = self.group_requests_by_email(requests)
+        success_count = 0
+        failed_emails = []
+        
+        for email, email_requests in grouped_requests.items():
+            try:
+                # 템플릿 컨텍스트 생성
+                context = self.create_template_context(email_requests)
+                
+                # 템플릿 렌더링
+                email_content = render_to_string(template_name, context)
+                
+                # 첨부파일 없이 이메일 발송
+                result = self.email_sender.send_html_email(
+                    to_email=email,
+                    subject=email_subject,
+                    html_content=email_content,
+                    attachments=[]
+                )
+                
+                if result.get('success'):
+                    success_count += 1
+                    print(f"[BulkEmailService] 템플릿 이메일 발송 성공: {email}")
+                else:
+                    failed_emails.append({
+                        'email': email,
+                        'error': result.get('error', '알 수 없는 오류')
+                    })
+                    print(f"[BulkEmailService] 템플릿 이메일 발송 실패: {email}, 오류: {result.get('error')}")
+                    
+            except Exception as e:
+                failed_emails.append({
+                    'email': email,
+                    'error': str(e)
+                })
+                print(f"[BulkEmailService] 템플릿 이메일 처리 실패: {email}, 오류: {str(e)}")
+        
+        return {
+            'success_count': success_count,
+            'failed_emails': failed_emails,
+            'total_emails': len(grouped_requests)
+        }
+    
+    # 개별 템플릿 전용 함수들
+    def send_quotation_and_deposit_guide(self, requests, email_subject='견적 및 입금 안내'):
+        """견적 및 입금 안내 발송"""
+        template_name = 'email_templates/Quotation and Deposit Guide/email template_Quotation and Deposit Guide/ 견적 변동 시에도 활용/index.html'
+        return self.send_template_without_attachments(requests, template_name, email_subject)
+    
+    def send_payment_completion_guide(self, requests, email_subject='결제 완료 안내'):
+        """결제 완료 안내 발송"""
+        template_name = 'email_templates/Payment completion Guide/email template_Payment completion Guide/index.html'
+        return self.send_template_without_attachments(requests, template_name, email_subject)
+    
+    def send_sending_drafts_guide(self, requests, email_subject='속기록 초안/수정안 발송'):
+        """속기록 초안/수정안 발송"""
+        template_name = 'email_templates/Sending drafts Guide/email template_Sending drafts Guide/ 수정안 발송/index.html'
+        return self.send_template_with_transcript_files(requests, template_name, email_subject)
+    
+    def send_final_draft_guide(self, requests, email_subject='속기록 최종안 발송'):
+        """속기록 최종안 발송"""
+        template_name = 'email_templates/Final draft Guide/email template_Final draft Guide/index.html'
+        return self.send_template_with_transcript_files(requests, template_name, email_subject)

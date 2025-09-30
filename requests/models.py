@@ -228,9 +228,9 @@ class Request(models.Model):
                 logger.info(f'중복 발송 방지 - 첫 번째 요청이 아님: {self.request_id}')
                 return
             
-            # 대량 이메일 서비스 사용
+            # 대량 이메일 서비스 사용 (첨부파일 없음)
             bulk_service = BulkEmailService()
-            result = bulk_service.send_emails_with_template(
+            result = bulk_service.send_service_completion_guide(
                 requests=list(same_email_requests),
                 email_subject='서비스 신청 완료 안내'
             )

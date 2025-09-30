@@ -1111,11 +1111,22 @@ def send_quotation_guide(request):
                 error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
                 continue
             
-            # 이메일 발송 (실제 구현 시 이메일 서비스 사용)
+            # Order ID로 그룹화된 모든 Request 찾기
             try:
-                # TODO: 실제 이메일 발송 로직 구현
-                print(f'[SEND EMAIL] 견적 및 입금 안내 발송 - Order ID: {order_id}, Email: {request_obj.email}, Amount: {request_obj.payment_amount}')
-                success_count += 1
+                same_order_requests = Request.objects.filter(order_id=order_id, is_temporary=False)
+                
+                # 이메일 발송 (템플릿 사용)
+                bulk_service = BulkEmailService()
+                result = bulk_service.send_quotation_and_deposit_guide(
+                    requests=list(same_order_requests),
+                    email_subject='견적 및 입금 안내'
+                )
+                
+                if result['success_count'] > 0:
+                    success_count += 1
+                    print(f'[SEND EMAIL] 견적 및 입금 안내 발송 성공 - Order ID: {order_id}, Email: {request_obj.email}, Amount: {request_obj.payment_amount}')
+                else:
+                    error_messages.append(f'Order ID {order_id}: 이메일 발송 실패')
             except Exception as e:
                 error_messages.append(f'Order ID {order_id}: 이메일 발송 실패 - {str(e)}')
         
@@ -1157,10 +1168,22 @@ def send_payment_completion_guide(request):
                 error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
                 continue
             
+            # Order ID로 그룹화된 모든 Request 찾기
             try:
-                # TODO: 실제 이메일 발송 로직 구현
-                print(f'[SEND EMAIL] 결제 완료 안내 발송 - Order ID: {order_id}, Email: {request_obj.email}')
-                success_count += 1
+                same_order_requests = Request.objects.filter(order_id=order_id, is_temporary=False)
+                
+                # 이메일 발송 (템플릿 사용)
+                bulk_service = BulkEmailService()
+                result = bulk_service.send_payment_completion_guide(
+                    requests=list(same_order_requests),
+                    email_subject='결제 완료 안내'
+                )
+                
+                if result['success_count'] > 0:
+                    success_count += 1
+                    print(f'[SEND EMAIL] 결제 완료 안내 발송 성공 - Order ID: {order_id}, Email: {request_obj.email}')
+                else:
+                    error_messages.append(f'Order ID {order_id}: 이메일 발송 실패')
             except Exception as e:
                 error_messages.append(f'Order ID {order_id}: 이메일 발송 실패 - {str(e)}')
         
@@ -1211,20 +1234,11 @@ def send_draft_guide(request):
         # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
         try:
             bulk_service = BulkEmailService()
-            email_subject = "속기록 초안/수정안 발송"
-            email_content = """
-            <h2>속기록 초안/수정안 발송</h2>
-            <p>안녕하세요, 속기사무소 정입니다.</p>
-            <p>요청하신 속기록 초안/수정안을 첨부파일로 발송드립니다.</p>
-            <p>검토 후 수정사항이 있으시면 회신해주시기 바랍니다.</p>
-            <p>감사합니다.</p>
-            """
             
-            result = bulk_service.send_bulk_emails_with_attachments(
+            # 템플릿 기반 발송
+            result = bulk_service.send_sending_drafts_guide(
                 requests=valid_requests,
-                email_subject=email_subject,
-                email_content=email_content,
-                content_type='text/html'
+                email_subject='속기록 초안/수정안 발송'
             )
             
             success_count = result['success_count']
@@ -1282,20 +1296,11 @@ def send_final_draft_guide(request):
         # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
         try:
             bulk_service = BulkEmailService()
-            email_subject = "속기록 최종안 발송"
-            email_content = """
-            <h2>속기록 최종안 발송</h2>
-            <p>안녕하세요, 속기사무소 정입니다.</p>
-            <p>요청하신 속기록 최종안을 첨부파일로 발송드립니다.</p>
-            <p>작업이 완료되었습니다. 검토 후 문의사항이 있으시면 연락주시기 바랍니다.</p>
-            <p>감사합니다.</p>
-            """
             
-            result = bulk_service.send_bulk_emails_with_attachments(
+            # 템플릿 기반 발송
+            result = bulk_service.send_final_draft_guide(
                 requests=valid_requests,
-                email_subject=email_subject,
-                email_content=email_content,
-                content_type='text/html'
+                email_subject='속기록 최종안 발송'
             )
             
             success_count = result['success_count']
