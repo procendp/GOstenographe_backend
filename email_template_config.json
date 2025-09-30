@@ -1,0 +1,21 @@
+{
+    "bank_account": {
+        "bank_name": "신한은행",
+        "bank_account": "100-000-000000",
+        "bank_account_holder": "속기사무소 정"
+    },
+    "company_info": {
+        "company_name": "속기사무소 정",
+        "phone": "010-2681-2571",
+        "email": "sokgijung@gmail.com",
+        "business_hours": "평일 9시~18시",
+        "lunch_time": "점심시간 12~13시, 주말 및 공휴일 휴무"
+    },
+    "contact": {
+        "kakao_chat_url": "https://open.kakao.com/o/sCaE9jih"
+    },
+    "legal_info": {
+        "business_number": "174-58-00563",
+        "license_number": "16-G1-RT0932"
+    }
+}

@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from .email_sender import SendGridEmail
 import mimetypes
 import os
+import json
 from requests.models import Request
 
 class BulkEmailService:
@@ -20,6 +21,31 @@ class BulkEmailService:
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_NAME
         )
+        self.template_config = self.load_template_config()
+    
+    def load_template_config(self):
+        """이메일 템플릿 공용 설정을 JSON 파일에서 로드"""
+        try:
+            current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            file_path = os.path.join(current_dir, 'email_template_config.json')
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[BulkEmailService] 템플릿 설정 로드 실패: {e}")
+            # 기본값 반환
+            return {
+                "bank_account": {
+                    "bank_name": "신한은행",
+                    "bank_account": "100-000-000000", 
+                    "bank_account_holder": "속기사무소 정"
+                },
+                "company_info": {
+                    "company_name": "속기사무소 정",
+                    "phone": "010-2681-2571",
+                    "email": "sokgijung@gmail.com"
+                }
+            }
     
     def get_files_from_s3(self, file_keys):
         """
@@ -173,7 +199,15 @@ class BulkEmailService:
             'file_summary': f"총 {len(uploaded_files)}개 파일 / {total_duration_str}",
             'uploaded_files': uploaded_files,
             'payment_amount': getattr(first_request, 'payment_amount', ''),
-            'request_id': getattr(first_request, 'request_id', first_request.id)
+            'request_id': getattr(first_request, 'request_id', first_request.id),
+            # 공용 템플릿 변수들 추가
+            'bank_name': self.template_config.get('bank_account', {}).get('bank_name', ''),
+            'bank_account': self.template_config.get('bank_account', {}).get('bank_account', ''),
+            'bank_account_holder': self.template_config.get('bank_account', {}).get('bank_account_holder', ''),
+            'company_name': self.template_config.get('company_info', {}).get('company_name', ''),
+            'company_phone': self.template_config.get('company_info', {}).get('phone', ''),
+            'company_email': self.template_config.get('company_info', {}).get('email', ''),
+            'kakao_chat_url': self.template_config.get('contact', {}).get('kakao_chat_url', '')
         }
         
         return context
