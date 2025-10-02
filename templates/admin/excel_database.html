@@ -48,6 +48,29 @@
         </div>
     </div>
 
+    <!-- 중복 발송 확인 모달 -->
+    <div id="duplicateSendModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #dc2626;">⚠️ 중복 발송 확인</h3>
+                <button onclick="closeDuplicateModal()" style="color: #6b7280; hover:color: #111827; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div id="duplicateHistoryContent" style="margin-bottom: 24px;">
+                <!-- 발송 이력이 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeDuplicateModal()" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                    취소
+                </button>
+                <button id="confirmSendButton" onclick="confirmDuplicateSend()" style="padding: 10px 20px; background-color: #ef4444; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'">
+                    재발송
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 엑셀 스타일 테이블 -->
     <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         <div class="table-container" style="overflow-x: auto; max-width: 100%; position: relative;">
@@ -1921,6 +1944,53 @@
     });
 
     // 견적 및 입금 안내 발송
+    // 모달 관련 전역 변수
+    let pendingSendData = null;
+
+    function closeDuplicateModal() {
+        document.getElementById('duplicateSendModal').style.display = 'none';
+        pendingSendData = null;
+    }
+
+    function confirmDuplicateSend() {
+        if (pendingSendData) {
+            executeSend(pendingSendData.endpoint, pendingSendData.orderIds, pendingSendData.successMessage);
+            closeDuplicateModal();
+        }
+    }
+
+    function executeSend(endpoint, orderIds, successMessage) {
+        fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                order_ids: orderIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification(data.message || successMessage, 'success');
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(error => {
+                        showNotification(error, 'error');
+                    });
+                }
+                // 페이지 새로고침하여 업데이트된 상태 반영
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showNotification(data.error || '발송에 실패했습니다.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
     function sendQuotationGuide() {
         const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
         if (checkedBoxes.length === 0) {
@@ -1928,39 +1998,88 @@
             return;
         }
 
-        const orderIds = Array.from(checkedBoxes).map(checkbox => 
+        const orderIds = Array.from(checkedBoxes).map(checkbox =>
             checkbox.getAttribute('data-order-id')
         );
 
-        if (confirm(`${orderIds.length}건의 견적 및 입금 안내를 발송하시겠습니까?`)) {
-            fetch('/api/send/quotation-guide/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    order_ids: orderIds
-                })
+        // 먼저 발송 이력 확인
+        fetch('/api/send/check-history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                order_ids: orderIds,
+                email_type: 'quotation_guide'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    if (data.errors && data.errors.length > 0) {
-                        data.errors.forEach(error => {
-                            showNotification(error, 'error');
-                        });
-                    }
-                } else {
-                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_duplicate) {
+                // 중복 발송 이력이 있으면 모달 표시
+                showDuplicateModal(data.duplicate_history, '/api/send/quotation-guide/', orderIds, '견적 및 입금 안내');
+            } else {
+                // 중복 없으면 바로 발송
+                if (confirm(`${orderIds.length}건의 견적 및 입금 안내를 발송하시겠습니까?`)) {
+                    executeSend('/api/send/quotation-guide/', orderIds, '견적 및 입금 안내를 발송했습니다.');
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('발송 중 오류가 발생했습니다.', 'error');
-            });
-        }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    function showDuplicateModal(duplicateHistory, endpoint, orderIds, emailType) {
+        const modal = document.getElementById('duplicateSendModal');
+        const content = document.getElementById('duplicateHistoryContent');
+
+        // 모달 내용 생성
+        let html = `
+            <p style="color: #374151; margin-bottom: 16px;">다음 주문에 대해 이미 <strong style="color: #dc2626;">${emailType}</strong>를 발송한 이력이 있습니다:</p>
+        `;
+
+        duplicateHistory.forEach(item => {
+            html += `
+                <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin-bottom: 12px; border-radius: 4px;">
+                    <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 14px;">
+                        <span style="font-weight: 600; color: #991b1b;">주문번호:</span>
+                        <span style="color: #374151;">${item.order_id}</span>
+
+                        <span style="font-weight: 600; color: #991b1b;">발송 상태:</span>
+                        <span style="color: #374151;">${item.email_type_display}</span>
+
+                        <span style="font-weight: 600; color: #991b1b;">발송 시간:</span>
+                        <span style="color: #374151;">${item.sent_at}</span>
+
+                        <span style="font-weight: 600; color: #991b1b;">안내 금액:</span>
+                        <span style="color: #374151;">${Number(item.payment_amount).toLocaleString()}원</span>
+
+                        <span style="font-weight: 600; color: #991b1b;">수신자:</span>
+                        <span style="color: #374151;">${item.recipient_email}</span>
+
+                        <span style="font-weight: 600; color: #991b1b;">발송 횟수:</span>
+                        <span style="color: #dc2626; font-weight: 600;">${item.send_count}회</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `<p style="color: #991b1b; font-weight: 500; margin-top: 16px;">정말 다시 발송하시겠습니까?</p>`;
+
+        content.innerHTML = html;
+
+        // 발송 데이터 저장
+        pendingSendData = {
+            endpoint: endpoint,
+            orderIds: orderIds,
+            successMessage: `${emailType}를 재발송했습니다.`
+        };
+
+        // 모달 표시
+        modal.style.display = 'flex';
     }
 
     // 결제 완료 안내 발송
@@ -1971,39 +2090,38 @@
             return;
         }
 
-        const orderIds = Array.from(checkedBoxes).map(checkbox => 
+        const orderIds = Array.from(checkedBoxes).map(checkbox =>
             checkbox.getAttribute('data-order-id')
         );
 
-        if (confirm(`${orderIds.length}건의 결제 완료 안내를 발송하시겠습니까?`)) {
-            fetch('/api/send/payment-completion-guide/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    order_ids: orderIds
-                })
+        // 먼저 발송 이력 확인
+        fetch('/api/send/check-history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                order_ids: orderIds,
+                email_type: 'payment_completion_guide'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    if (data.errors && data.errors.length > 0) {
-                        data.errors.forEach(error => {
-                            showNotification(error, 'error');
-                        });
-                    }
-                } else {
-                    showNotification(data.error || '발송에 실패했습니다.', 'error');
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_duplicate) {
+                // 중복 발송 이력이 있으면 모달 표시
+                showDuplicateModal(data.duplicate_history, '/api/send/payment-completion-guide/', orderIds, '결제 완료 안내');
+            } else {
+                // 중복 없으면 바로 발송
+                if (confirm(`${orderIds.length}건의 결제 완료 안내를 발송하시겠습니까?`)) {
+                    executeSend('/api/send/payment-completion-guide/', orderIds, '결제 완료 안내를 발송했습니다.');
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('발송 중 오류가 발생했습니다.', 'error');
-            });
-        }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+        });
     }
 
     // 속기록 초안/수정안 요청 안내 발송

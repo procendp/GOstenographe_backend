@@ -258,6 +258,14 @@ class Template(models.Model):
         verbose_name_plural = _('템플릿 목록')
 
 class SendLog(models.Model):
+    EMAIL_TYPE_CHOICES = (
+        ('service_completion', _('서비스 신청 완료 안내')),
+        ('quotation_guide', _('견적 및 입금 안내')),
+        ('payment_completion_guide', _('결제 완료 안내')),
+        ('draft_guide', _('속기록 초안/수정안 발송')),
+        ('final_draft_guide', _('속기록 최종안 발송')),
+    )
+
     request = models.ForeignKey(
         'Request',
         on_delete=models.CASCADE,
@@ -265,6 +273,37 @@ class SendLog(models.Model):
         related_name='sendlog_set',
         null=True,
         blank=True
+    )
+    email_type = models.CharField(
+        verbose_name=_('이메일 종류'),
+        max_length=50,
+        choices=EMAIL_TYPE_CHOICES,
+        null=True,
+        blank=True
+    )
+    order_id = models.CharField(
+        verbose_name=_('Order ID'),
+        max_length=10,
+        null=True,
+        blank=True,
+        help_text='발송 시점의 Order ID'
+    )
+    payment_amount = models.DecimalField(
+        verbose_name=_('안내 금액'),
+        max_digits=10,
+        decimal_places=0,
+        null=True,
+        blank=True,
+        help_text='발송 시점의 결제 금액'
+    )
+    recipient_email = models.EmailField(
+        verbose_name=_('수신자 이메일'),
+        null=True,
+        blank=True
+    )
+    success = models.BooleanField(
+        verbose_name=_('발송 성공 여부'),
+        default=True
     )
     error_message = models.TextField(
         verbose_name=_('에러 메시지'),
@@ -284,9 +323,13 @@ class SendLog(models.Model):
         verbose_name = _('발송 로그')
         verbose_name_plural = _('발송 로그')
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order_id', 'email_type', '-created_at']),
+            models.Index(fields=['recipient_email', 'email_type', '-created_at']),
+        ]
 
     def __str__(self):
-        return f"{self.request} - {self.created_at}"
+        return f"{self.get_email_type_display()} - {self.order_id or self.request} - {self.created_at}"
 
 class File(models.Model):
     request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='files', verbose_name=_('요청서'))

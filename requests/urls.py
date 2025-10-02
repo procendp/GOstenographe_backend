@@ -17,4 +17,5 @@ urlpatterns = [
     path('send/draft-guide/', views.send_draft_guide, name='send-draft-guide'),
     path('send/final-draft-guide/', views.send_final_draft_guide, name='send-final-draft-guide'),
     path('send/application-completion-guide/', views.send_application_completion_guide, name='send-application-completion-guide'),
+    path('send/check-history/', views.check_send_history, name='check-send-history'),
 ] 
