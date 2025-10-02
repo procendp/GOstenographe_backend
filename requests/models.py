@@ -288,6 +288,13 @@ class SendLog(models.Model):
         blank=True,
         help_text='발송 시점의 Order ID'
     )
+    sent_request_id = models.CharField(
+        verbose_name=_('Request ID'),
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text='발송 시점의 Request ID (초안/최종안용)'
+    )
     payment_amount = models.DecimalField(
         verbose_name=_('안내 금액'),
         max_digits=10,
@@ -325,6 +332,7 @@ class SendLog(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['order_id', 'email_type', '-created_at']),
+            models.Index(fields=['sent_request_id', 'email_type', '-created_at']),
             models.Index(fields=['recipient_email', 'email_type', '-created_at']),
         ]
 

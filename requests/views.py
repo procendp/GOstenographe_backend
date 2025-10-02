@@ -1267,10 +1267,23 @@ def send_draft_guide(request):
             if result['failed_emails']:
                 for failed in result['failed_emails']:
                     error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
-            
+
+            # 발송 성공한 Request에 대해 SendLog 저장
+            for request_obj in valid_requests:
+                try:
+                    SendLog.objects.create(
+                        request=request_obj,
+                        email_type='draft_guide',
+                        sent_request_id=request_obj.request_id,
+                        recipient_email=request_obj.email,
+                        success=True
+                    )
+                except Exception as log_error:
+                    logger.error(f'[send_draft_guide] SendLog 저장 실패 - Request ID: {request_obj.request_id}, Error: {str(log_error)}')
+
         except Exception as e:
             return Response({'error': f'이메일 발송 중 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         return Response({
             'success': True,
             'message': f'{success_count}건의 속기록 초안/수정안을 발송했습니다.',
@@ -1329,17 +1342,30 @@ def send_final_draft_guide(request):
             if result['failed_emails']:
                 for failed in result['failed_emails']:
                     error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
-            
+
+            # 발송 성공한 Request에 대해 SendLog 저장
+            for request_obj in valid_requests:
+                try:
+                    SendLog.objects.create(
+                        request=request_obj,
+                        email_type='final_draft_guide',
+                        sent_request_id=request_obj.request_id,
+                        recipient_email=request_obj.email,
+                        success=True
+                    )
+                except Exception as log_error:
+                    logger.error(f'[send_final_draft_guide] SendLog 저장 실패 - Request ID: {request_obj.request_id}, Error: {str(log_error)}')
+
         except Exception as e:
             return Response({'error': f'이메일 발송 중 오류: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
+
         return Response({
             'success': True,
             'message': f'{success_count}건의 속기록 최종안을 발송했습니다.',
             'success_count': success_count,
             'errors': error_messages
         })
-        
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1375,53 +1401,82 @@ def send_application_completion_guide(request):
 def check_send_history(request):
     """
     발송 이력 확인 API
-    - 체크박스로 선택된 Order ID들의 이전 발송 이력 확인
-    - 결제 금액이 같은 이력만 반환 (중복 발송 체크용)
+    - 프로세스 1 (Order ID 기반): 견적/결제 완료 안내 - payment_amount 포함
+    - 프로세스 2 (Request ID 기반): 초안/최종안 - payment_amount 불필요
     """
     try:
-        order_ids = request.data.get('order_ids', [])
-        email_type = request.data.get('email_type')  # 'quotation_guide' or 'payment_completion_guide'
-
-        if not order_ids:
-            return Response({'error': '선택된 주문이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+        email_type = request.data.get('email_type')
 
         if not email_type:
             return Response({'error': '이메일 종류가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
         duplicate_history = []
 
-        for order_id in order_ids:
-            # 해당 Order ID의 현재 Request 정보 가져오기
-            request_obj = Request.objects.filter(order_id=order_id, is_temporary=False).first()
+        # 프로세스 1: Order ID 기반 (견적/결제)
+        if email_type in ['quotation_guide', 'payment_completion_guide']:
+            order_ids = request.data.get('order_ids', [])
 
-            if not request_obj:
-                continue
+            if not order_ids:
+                return Response({'error': '선택된 주문이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # 현재 결제 금액
-            current_payment_amount = request_obj.payment_amount
+            for order_id in order_ids:
+                # 해당 Order ID의 현재 Request 정보 가져오기
+                request_obj = Request.objects.filter(order_id=order_id, is_temporary=False).first()
 
-            if not current_payment_amount:
-                continue
+                if not request_obj:
+                    continue
 
-            # 같은 Order ID + 같은 이메일 종류 + 같은 금액의 이전 발송 이력 찾기
-            previous_logs = SendLog.objects.filter(
-                order_id=order_id,
-                email_type=email_type,
-                payment_amount=current_payment_amount,
-                success=True
-            ).order_by('-created_at')
+                # 현재 결제 금액
+                current_payment_amount = request_obj.payment_amount
 
-            if previous_logs.exists():
-                latest_log = previous_logs.first()
-                duplicate_history.append({
-                    'order_id': order_id,
-                    'email_type': email_type,
-                    'email_type_display': latest_log.get_email_type_display(),
-                    'sent_at': latest_log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                    'payment_amount': str(latest_log.payment_amount),
-                    'recipient_email': latest_log.recipient_email or request_obj.email,
-                    'send_count': previous_logs.count()
-                })
+                if not current_payment_amount:
+                    continue
+
+                # 같은 Order ID + 같은 이메일 종류 + 같은 금액의 이전 발송 이력 찾기
+                previous_logs = SendLog.objects.filter(
+                    order_id=order_id,
+                    email_type=email_type,
+                    payment_amount=current_payment_amount,
+                    success=True
+                ).order_by('-created_at')
+
+                if previous_logs.exists():
+                    latest_log = previous_logs.first()
+                    duplicate_history.append({
+                        'order_id': order_id,
+                        'email_type': email_type,
+                        'email_type_display': latest_log.get_email_type_display(),
+                        'sent_at': latest_log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        'payment_amount': str(latest_log.payment_amount),
+                        'recipient_email': latest_log.recipient_email or request_obj.email,
+                        'send_count': previous_logs.count()
+                    })
+
+        # 프로세스 2: Request ID 기반 (초안/최종안)
+        elif email_type in ['draft_guide', 'final_draft_guide']:
+            request_ids = request.data.get('request_ids', [])
+
+            if not request_ids:
+                return Response({'error': '선택된 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            for request_id in request_ids:
+                # Request ID + email_type만으로 체크 (payment_amount 불필요)
+                previous_logs = SendLog.objects.filter(
+                    sent_request_id=request_id,
+                    email_type=email_type,
+                    success=True
+                ).order_by('-created_at')
+
+                if previous_logs.exists():
+                    latest_log = previous_logs.first()
+                    duplicate_history.append({
+                        'request_id': request_id,
+                        'email_type': email_type,
+                        'email_type_display': latest_log.get_email_type_display(),
+                        'sent_at': latest_log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        'recipient_email': latest_log.recipient_email,
+                        'send_count': previous_logs.count()
+                    })
 
         return Response({
             'has_duplicate': len(duplicate_history) > 0,
