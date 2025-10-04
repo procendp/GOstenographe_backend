@@ -189,22 +189,25 @@ class Request(models.Model):
     
     def save(self, *args, **kwargs):
         """저장 시 Order ID와 Request ID 자동 생성"""
+        # skip_auto_email 플래그 추출 (File 생성 전 이메일 발송 방지)
+        skip_auto_email = kwargs.pop('skip_auto_email', False)
+
         is_new_record = not self.pk
-        
+
         # 새로운 레코드인 경우에만 ID 생성
         if is_new_record:  # 새로운 레코드
             # Order ID가 없으면 생성
             if not self.order_id:
                 self.order_id = self.generate_order_id()
-            
+
             # Request ID가 없으면 생성
             if not self.request_id:
                 self.request_id = self.generate_request_id(self.order_id)
-            
+
         super().save(*args, **kwargs)
-        
-        # 새로운 레코드이고 임시가 아닌 경우 서비스 신청 완료 안내 발송
-        if is_new_record and not self.is_temporary:
+
+        # 새로운 레코드이고 임시가 아니며, skip_auto_email=False인 경우만 이메일 발송
+        if is_new_record and not self.is_temporary and not skip_auto_email:
             self.send_application_completion_guide()
     
     def send_application_completion_guide(self):

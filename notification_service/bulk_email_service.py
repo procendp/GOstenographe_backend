@@ -149,12 +149,16 @@ class BulkEmailService:
                 for file_obj in request.files.all():
                     # 각 파일의 원본 이름 사용
                     file_name = file_obj.original_name or os.path.basename(file_obj.file)
-                    
+
+                    # 녹취 형태 추가 (전체/부분)
+                    recording_type_label = '전체' if request.recording_type == '전체' else '부분'
+                    duration_with_type = f"{file_duration_str} ({recording_type_label})"
+
                     uploaded_files.append({
                         'name': file_name,
-                        'duration': file_duration_str
+                        'duration': duration_with_type
                     })
-                    
+
                     total_duration += file_duration_seconds
             else:
                 # 파일이 없는 경우 Request 정보만으로 생성
@@ -181,12 +185,12 @@ class BulkEmailService:
         seconds = total_duration % 60
         total_duration_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
         
-        # final_option을 사용자 친화적인 값으로 변환
+        # final_option을 사용자 친화적인 값으로 변환 (가격 포함)
         final_option_display = {
             'file': '파일',
-            'file_usb': '파일+우편',
-            'file_usb_cd': '파일+우편+CD',
-            'file_usb_post': '파일+우편+USB'
+            'file_usb': '파일+등기우편 (+5,000원)',
+            'file_usb_cd': '파일+등기우편+CD (+6,000원)',
+            'file_usb_post': '파일+등기우편+USB (+10,000원)'
         }.get(first_request.final_option, first_request.final_option)
         
         context = {

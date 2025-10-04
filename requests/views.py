@@ -151,11 +151,11 @@ class RequestViewSet(viewsets.ModelViewSet):
                 'estimated_price': data.get('estimated_price'),  # 전체 견적을 각 파일에 동일하게
             })
             
-            # Request 생성
-            serializer = self.get_serializer(data=request_data)
+            # Request 생성 (파일 생성 전까지 이메일 발송 방지)
+            serializer = self.get_serializer(data=request_data, context={'skip_auto_email': True})
             if serializer.is_valid():
                 request_instance = serializer.save()
-                
+
                 # 파일 정보 저장
                 file_info = file_data.get('file_info', {})
                 if file_info.get('file_key'):
@@ -166,7 +166,10 @@ class RequestViewSet(viewsets.ModelViewSet):
                         file_type=file_info.get('file_type', ''),
                         file_size=file_info.get('file_size', 0)
                     )
-                
+
+                # 파일 생성 완료 후 이메일 발송
+                request_instance.send_application_completion_guide()
+
                 created_requests.append({
                     'id': request_instance.id,
                     'request_id': request_instance.request_id,
@@ -1081,6 +1084,66 @@ def statistics_api_view(request):
     }
     
     return JsonResponse(data)
+
+@api_view(['POST'])
+def validate_quotation_orders(request):
+    """견적 발송 전 주문 검증"""
+    try:
+        order_ids = request.data.get('order_ids', [])
+
+        if not order_ids:
+            return Response({'error': '선택된 주문이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        validation_results = []
+
+        for order_id in order_ids:
+            request_obj = Request.objects.filter(order_id=order_id, is_temporary=False).first()
+
+            result = {
+                'order_id': order_id,
+                'valid': True,
+                'errors': [],
+                'customer_name': '',
+                'email': '',
+                'payment_amount': None
+            }
+
+            if not request_obj:
+                result['valid'] = False
+                result['errors'].append('주문을 찾을 수 없습니다')
+                validation_results.append(result)
+                continue
+
+            # 기본 정보 설정
+            result['customer_name'] = request_obj.name
+            result['email'] = request_obj.email
+            result['payment_amount'] = str(request_obj.payment_amount) if request_obj.payment_amount else None
+
+            # 검증 조건
+            if request_obj.order_status != 'received':
+                result['valid'] = False
+                result['errors'].append(f'상태가 접수됨이 아닙니다 (현재: {request_obj.get_order_status_display()})')
+
+            if not request_obj.payment_amount:
+                result['valid'] = False
+                result['errors'].append('결제 금액이 입력되지 않았습니다')
+
+            if not request_obj.email:
+                result['valid'] = False
+                result['errors'].append('이메일 주소가 없습니다')
+
+            validation_results.append(result)
+
+        # 전체 검증 결과
+        all_valid = all(r['valid'] for r in validation_results)
+
+        return Response({
+            'all_valid': all_valid,
+            'results': validation_results
+        })
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 def send_quotation_guide(request):

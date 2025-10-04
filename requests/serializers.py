@@ -40,6 +40,13 @@ class RequestSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at')
 
+    def create(self, validated_data):
+        # skip_auto_email 플래그를 context에서 가져옴
+        skip_auto_email = self.context.get('skip_auto_email', False)
+        instance = Request(**validated_data)
+        instance.save(skip_auto_email=skip_auto_email)
+        return instance
+
 class TemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template

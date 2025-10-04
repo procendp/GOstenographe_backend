@@ -48,6 +48,48 @@
         </div>
     </div>
 
+    <!-- 필드 편집 모달 -->
+    <div id="fieldEditModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1002; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="fieldEditModalTitle" style="font-size: 18px; font-weight: 600; color: #111827;">필드 편집</h3>
+                <button onclick="closeFieldEditModal()" style="color: #6b7280; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <label id="fieldEditLabel" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">값</label>
+                <input id="fieldEditInput" type="text" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" placeholder="값을 입력하세요">
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-start;">
+                <button id="fieldEditSaveBtn" style="padding: 10px 24px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    저장
+                </button>
+                <button onclick="closeFieldEditModal()" style="padding: 10px 24px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                    취소
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 견적 발송 확인 모달 -->
+    <div id="quotationValidationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #059669;">📧 견적 및 입금 안내 발송 확인</h3>
+                <button onclick="closeQuotationValidationModal()" style="color: #6b7280; hover:color: #111827; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div id="quotationValidationContent" style="margin-bottom: 24px;">
+                <!-- 검증 결과가 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div id="quotationValidationButtons" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <!-- 버튼이 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
     <!-- 중복 발송 확인 모달 -->
     <div id="duplicateSendModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -1738,96 +1780,135 @@
     }
 
     // 필드 편집 함수
+    // 필드 편집 모달 관련 변수
+    let currentEditRequestId = null;
+    let currentEditFieldName = null;
+    let currentEditFieldType = null;
+
+    function closeFieldEditModal() {
+        document.getElementById('fieldEditModal').style.display = 'none';
+        currentEditRequestId = null;
+        currentEditFieldName = null;
+        currentEditFieldType = null;
+    }
+
+    function openFieldEditModal(requestId, fieldName, fieldType, currentValue, fieldLabel) {
+        currentEditRequestId = requestId;
+        currentEditFieldName = fieldName;
+        currentEditFieldType = fieldType;
+
+        const modal = document.getElementById('fieldEditModal');
+        const input = document.getElementById('fieldEditInput');
+        const title = document.getElementById('fieldEditModalTitle');
+        const label = document.getElementById('fieldEditLabel');
+
+        // 모달 설정
+        title.textContent = fieldLabel + ' 편집';
+        label.textContent = fieldLabel;
+        input.value = currentValue;
+        input.type = fieldType === 'number' ? 'number' : 'text';
+
+        if (fieldType === 'number') {
+            input.min = '0';
+            input.step = '1';
+        } else {
+            input.removeAttribute('min');
+            input.removeAttribute('step');
+        }
+
+        // 저장 버튼 이벤트
+        const saveBtn = document.getElementById('fieldEditSaveBtn');
+        saveBtn.onclick = () => saveFieldFromModal();
+
+        // Enter 키 이벤트
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                saveFieldFromModal();
+            } else if (e.key === 'Escape') {
+                closeFieldEditModal();
+            }
+        };
+
+        // 모달 표시 및 포커스
+        modal.style.display = 'flex';
+        setTimeout(() => input.focus(), 100);
+    }
+
+    function saveFieldFromModal() {
+        const input = document.getElementById('fieldEditInput');
+        const value = input.value;
+
+        // 값 저장
+        saveFieldValue(currentEditRequestId, currentEditFieldName, value);
+
+        // 모달 닫기
+        closeFieldEditModal();
+    }
+
+    function saveFieldValue(requestId, fieldName, value) {
+        fetch(`/api/requests/${requestId}/`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                [fieldName]: value || null
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // UI 업데이트
+            const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+            if (cell) {
+                const valueSpan = cell.querySelector('.editable-value');
+                if (valueSpan) {
+                    if (fieldName === 'payment_amount' || fieldName === 'refund_amount') {
+                        valueSpan.textContent = value ? `${Number(value).toLocaleString()}원` : '-';
+                    } else {
+                        valueSpan.textContent = value || '-';
+                    }
+                }
+
+                // 하이라이트 제거 (값이 입력된 경우)
+                if (value) {
+                    cell.style.backgroundColor = '';
+                }
+            }
+
+            showNotification('저장되었습니다.', 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('저장 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
     function editField(requestId, fieldName, fieldType) {
         const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
         const container = cell.querySelector('.editable-container');
         const valueSpan = container.querySelector('.editable-value');
-        
-        // 이미 편집 중이면 취소
-        if (container.querySelector('.inline-editor')) {
-            return;
+
+        let currentValue = valueSpan.textContent === '-' ? '' : valueSpan.textContent.trim();
+
+        // 숫자 필드의 경우 '원' 제거
+        if (fieldType === 'number' && currentValue.endsWith('원')) {
+            currentValue = currentValue.replace(/[^0-9]/g, '');
         }
-        
-        const currentValue = valueSpan.textContent === '-' ? '' : valueSpan.textContent.trim();
-        
-        // 인라인 에디터 생성
-        const editor = document.createElement('div');
-        editor.className = 'inline-editor';
-        
-        if (fieldType === 'file') {
-            // 파일 업로드 필드
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.className = 'file-upload-input';
-            fileInput.accept = '.pdf,.doc,.docx,.txt';
-            
-            const fileBtn = document.createElement('label');
-            fileBtn.className = 'file-upload-btn';
-            fileBtn.innerHTML = `
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14,2 14,8 20,8"></polyline>
-                </svg>
-                파일 선택
-            `;
-            
-            fileBtn.appendChild(fileInput);
-            editor.appendChild(fileBtn);
-            
-            fileInput.onchange = function() {
-                if (this.files.length > 0) {
-                    uploadFile(requestId, fieldName, this.files[0]);
-                    cancelEdit(container, editor, valueSpan);
-                }
-            };
-        } else {
-            // 텍스트/숫자 입력 필드
-            const input = document.createElement('input');
-            input.type = fieldType === 'number' ? 'number' : 'text';
-            input.className = 'inline-input';
-            input.value = currentValue;
-            
-            if (fieldType === 'number') {
-                input.min = '0';
-                input.step = '1';
-            }
-            
-            editor.appendChild(input);
-            
-            // 저장/취소 버튼
-            const actions = document.createElement('div');
-            actions.className = 'inline-actions';
-            
-            const saveBtn = document.createElement('button');
-            saveBtn.className = 'inline-btn save';
-            saveBtn.textContent = '저장';
-            saveBtn.onclick = () => saveField(requestId, fieldName, input.value, container, editor, valueSpan);
-            
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'inline-btn cancel';
-            cancelBtn.textContent = '취소';
-            cancelBtn.onclick = () => cancelEdit(container, editor, valueSpan);
-            
-            actions.appendChild(saveBtn);
-            actions.appendChild(cancelBtn);
-            editor.appendChild(actions);
-            
-            // Enter 키로 저장
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    saveField(requestId, fieldName, input.value, container, editor, valueSpan);
-                } else if (e.key === 'Escape') {
-                    cancelEdit(container, editor, valueSpan);
-                }
-            });
-            
-            setTimeout(() => input.focus(), 100);
-        }
-        
-        // 기존 내용 숨기고 에디터 표시
-        valueSpan.style.display = 'none';
-        container.querySelector('.edit-btn').style.display = 'none';
-        container.appendChild(editor);
+
+        // 필드 라벨 결정
+        const fieldLabels = {
+            'payment_amount': '결제 금액',
+            'refund_amount': '환불 금액',
+            'price_change_reason': '금액 변경 사유',
+            'cancel_reason': '취소 사유',
+            'notes': '메모'
+        };
+
+        const fieldLabel = fieldLabels[fieldName] || '값';
+
+        // 모달 열기
+        openFieldEditModal(requestId, fieldName, fieldType, currentValue, fieldLabel);
     }
     
     function saveField(requestId, fieldName, value, container, editor, valueSpan) {
@@ -2002,18 +2083,24 @@
         });
     }
 
-    function sendQuotationGuide() {
-        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-        if (checkedBoxes.length === 0) {
-            showNotification('선택된 주문이 없습니다.', 'error');
-            return;
-        }
+    // 견적 검증 모달 관련 변수
+    let quotationOrderIds = [];
+    let validOrderIds = [];
 
-        const orderIds = Array.from(checkedBoxes).map(checkbox =>
-            checkbox.getAttribute('data-order-id')
-        );
+    function closeQuotationValidationModal() {
+        document.getElementById('quotationValidationModal').style.display = 'none';
+        quotationOrderIds = [];
+        validOrderIds = [];
+    }
 
-        // 먼저 발송 이력 확인
+    function confirmQuotationSend() {
+        // validOrderIds를 사용하기 전에 복사
+        const orderIdsToSend = [...validOrderIds];
+
+        // 모달 닫기
+        closeQuotationValidationModal();
+
+        // 중복 발송 이력 확인
         fetch('/api/send/check-history/', {
             method: 'POST',
             headers: {
@@ -2021,26 +2108,259 @@
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
-                order_ids: orderIds,
+                order_ids: orderIdsToSend,
                 email_type: 'quotation_guide'
             })
         })
         .then(response => response.json())
         .then(data => {
             if (data.has_duplicate) {
-                // 중복 발송 이력이 있으면 모달 표시
-                showDuplicateModal(data.duplicate_history, '/api/send/quotation-guide/', orderIds, '견적 및 입금 안내');
+                showDuplicateModal(data.duplicate_history, '/api/send/quotation-guide/', orderIdsToSend, '견적 및 입금 안내');
             } else {
-                // 중복 없으면 바로 발송
-                if (confirm(`${orderIds.length}건의 견적 및 입금 안내를 발송하시겠습니까?`)) {
-                    executeSend('/api/send/quotation-guide/', orderIds, '견적 및 입금 안내를 발송했습니다.');
-                }
+                executeSend('/api/send/quotation-guide/', orderIdsToSend, '견적 및 입금 안내를 발송했습니다.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
         });
+    }
+
+    function sendOnlyValidOrders() {
+        if (validOrderIds.length === 0) {
+            showNotification('발송 가능한 주문이 없습니다.', 'error');
+            return;
+        }
+
+        // 문제있는 주문 체크 해제
+        document.querySelectorAll('.row-checkbox:checked').forEach(checkbox => {
+            const orderId = checkbox.getAttribute('data-order-id');
+            if (!validOrderIds.includes(orderId)) {
+                checkbox.checked = false;
+            }
+        });
+
+        confirmQuotationSend();
+    }
+
+    function highlightProblemOrders(invalidResults) {
+        console.log('Highlighting problem orders:', invalidResults);
+
+        // 모든 셀의 하이라이트 제거
+        document.querySelectorAll('.excel-cell').forEach(cell => {
+            cell.style.backgroundColor = '';
+            cell.style.border = '';
+        });
+        document.querySelectorAll('tr[data-order-id]').forEach(row => {
+            row.style.borderLeft = '';
+        });
+
+        // 문제있는 주문의 셀들을 하이라이트
+        invalidResults.forEach(result => {
+            const row = document.querySelector(`tr[data-order-id="${result.order_id}"]`);
+            console.log(`Looking for order ${result.order_id}:`, row);
+
+            if (row) {
+                // 에러별로 해당 셀 하이라이트
+                result.errors.forEach(error => {
+                    if (error.includes('결제 금액')) {
+                        // 결제 금액 셀 찾기
+                        const paymentCell = row.querySelector('td[data-field="payment_amount"]');
+                        if (paymentCell) {
+                            paymentCell.style.backgroundColor = '#ffb3b3';  // 중간 톤 빨간색 (더 진하게)
+                            paymentCell.style.transition = 'all 0.3s';
+                            console.log(`Highlighted payment_amount cell for order ${result.order_id}`);
+                        }
+                    }
+
+                    if (error.includes('이메일')) {
+                        // 이메일 셀 찾기 (Order ID List에는 없을 수 있음)
+                        const emailCell = row.querySelector('td[data-field="email"]');
+                        if (emailCell) {
+                            emailCell.style.backgroundColor = '#ffb3b3';  // 중간 톤 빨간색 (더 진하게)
+                            emailCell.style.transition = 'all 0.3s';
+                            console.log(`Highlighted email cell for order ${result.order_id}`);
+                        }
+                    }
+                });
+
+                // 왼쪽 테두리로 행 전체 표시
+                row.style.borderLeft = '4px solid #dc2626';
+                console.log(`Highlighted row for order ${result.order_id}`);
+            } else {
+                console.warn(`Row not found for order ${result.order_id}`);
+            }
+        });
+
+        // 잠시 후 스크롤 (DOM 업데이트 대기)
+        setTimeout(() => {
+            const firstInvalidRow = document.querySelector(`tr[data-order-id="${invalidResults[0].order_id}"]`);
+            if (firstInvalidRow) {
+                firstInvalidRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                console.log('Scrolled to first invalid row');
+            }
+        }, 100);
+
+        // 알림 표시
+        showNotification(`${invalidResults.length}개 주문에 필수 항목이 누락되었습니다. 빨간색으로 표시된 셀을 확인해주세요.`, 'error');
+    }
+
+    function sendQuotationGuide() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        console.log('Checked boxes:', checkedBoxes);
+        console.log('Checked boxes length:', checkedBoxes.length);
+
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 주문이 없습니다.', 'error');
+            return;
+        }
+
+        const orderIds = Array.from(checkedBoxes).map(checkbox => {
+            const orderId = checkbox.getAttribute('data-order-id');
+            console.log('Checkbox:', checkbox, 'Order ID:', orderId);
+            return orderId;
+        }).filter(id => id);  // null/undefined 제거
+
+        console.log('Order IDs to send:', orderIds);
+        quotationOrderIds = orderIds;
+
+        // 검증 API 호출
+        fetch('/api/send/validate-quotation/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                order_ids: orderIds
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
+            }
+
+            // 검증 모달 표시
+            showQuotationValidationModal(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('검증 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    function showQuotationValidationModal(validationData) {
+        const modal = document.getElementById('quotationValidationModal');
+        const content = document.getElementById('quotationValidationContent');
+        const buttonsContainer = document.getElementById('quotationValidationButtons');
+
+        // 유효한 주문들과 무효한 주문들 분리
+        const validResults = validationData.results.filter(r => r.valid);
+        const invalidResults = validationData.results.filter(r => !r.valid);
+
+        validOrderIds = validResults.map(r => r.order_id);
+
+        // 컨텐츠 생성
+        let html = `<p style="margin-bottom: 16px; color: #6b7280;">다음 ${validationData.results.length}개 주문에 이메일을 발송합니다:</p>`;
+
+        html += '<div style="max-height: 400px; overflow-y: auto;">';
+
+        // 유효한 주문들
+        validResults.forEach(result => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #16a34a; font-size: 18px;">✓</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">Order ${result.order_id} (${result.customer_name})</div>
+                            <div style="font-size: 14px; color: #15803d;">
+                                <div>• 결제 금액: ${result.payment_amount ? Number(result.payment_amount).toLocaleString() + '원' : '-'}</div>
+                                <div>• 이메일: ${result.email}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 무효한 주문들
+        invalidResults.forEach(result => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #dc2626; font-size: 18px;">✗</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #991b1b; margin-bottom: 4px;">Order ${result.order_id} (${result.customer_name || '정보 없음'})</div>
+                            <div style="font-size: 14px; color: #b91c1c;">
+                                <div>• 결제 금액: ${result.payment_amount ? Number(result.payment_amount).toLocaleString() + '원' : '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+                                <div>• 이메일: ${result.email || '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+            `;
+
+            if (result.errors.length > 0) {
+                html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #fca5a5;">';
+                result.errors.forEach(error => {
+                    html += `<div style="color: #dc2626;">⚠️ ${error}</div>`;
+                });
+                html += '</div>';
+            }
+
+            html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // 요약 메시지
+        if (invalidResults.length > 0) {
+            html += `<div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; color: #92400e;">
+                <strong>총 ${validationData.results.length}개 주문 중 ${invalidResults.length}개에 문제가 있습니다.</strong>
+            </div>`;
+        }
+
+        content.innerHTML = html;
+
+        // 버튼 생성
+        let buttonsHtml = `
+            <button onclick="closeQuotationValidationModal()" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                취소
+            </button>
+        `;
+
+        if (invalidResults.length > 0) {
+            // 문제가 있는 경우
+            if (validResults.length > 0) {
+                // 일부만 문제있음 - 문제없는 것만 발송 옵션 제공
+                buttonsHtml += `
+                    <button onclick="sendOnlyValidOrders()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                        문제없는 ${validResults.length}개 주문만 발송
+                    </button>
+                `;
+            }
+
+            buttonsHtml += `
+                <button onclick="closeQuotationValidationModal(); highlightProblemOrders(${JSON.stringify(invalidResults).replace(/"/g, '&quot;')})" style="padding: 10px 20px; background-color: #dc2626; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                        확인 - 문제 주문 확인하기
+                    </button>
+            `;
+        } else {
+            // 모든 주문이 정상인 경우
+            buttonsHtml += `
+                <button onclick="confirmQuotationSend()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    발송하기
+                </button>
+            `;
+        }
+
+        buttonsContainer.innerHTML = buttonsHtml;
+
+        // 모달 표시
+        modal.style.display = 'flex';
     }
 
     function showDuplicateModal(duplicateHistory, endpoint, orderIds, emailType) {
