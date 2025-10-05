@@ -14,6 +14,7 @@ urlpatterns = [
     path('s3/delete/', S3DeleteView.as_view(), name='s3-delete'),
     path('send/validate-quotation/', views.validate_quotation_orders, name='validate-quotation'),
     path('send/quotation-guide/', views.send_quotation_guide, name='send-quotation-guide'),
+    path('send/validate-payment-completion/', views.validate_payment_completion_orders, name='validate-payment-completion'),
     path('send/payment-completion-guide/', views.send_payment_completion_guide, name='send-payment-completion-guide'),
     path('send/validate-draft-guide/', views.validate_draft_guide, name='validate-draft-guide'),
     path('send/draft-guide/', views.send_draft_guide, name='send-draft-guide'),

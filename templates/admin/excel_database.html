@@ -90,6 +90,24 @@
         </div>
     </div>
 
+    <!-- 결제 완료 안내 검증 모달 -->
+    <div id="paymentCompletionValidationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #3b82f6;">📧 결제 완료 안내 발송 확인</h3>
+                <button onclick="closePaymentCompletionValidationModal()" style="color: #6b7280; hover:color: #111827; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div id="paymentCompletionValidationContent" style="margin-bottom: 24px;">
+                <!-- 검증 결과가 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div id="paymentCompletionValidationButtons" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <!-- 버튼이 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
     <!-- 속기록 초안/수정안 검증 모달 -->
     <div id="draftValidationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
         <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -2123,6 +2141,8 @@
     // 견적 검증 모달 관련 변수
     let quotationOrderIds = [];
     let validOrderIds = [];
+    let paymentCompletionOrderIds = [];
+    let validPaymentCompletionOrderIds = [];
 
     function closeQuotationValidationModal() {
         document.getElementById('quotationValidationModal').style.display = 'none';
@@ -2286,6 +2306,175 @@
             console.error('Error:', error);
             showNotification('검증 중 오류가 발생했습니다.', 'error');
         });
+    }
+
+    // 결제 완료 안내 검증 모달
+    function closePaymentCompletionValidationModal() {
+        document.getElementById('paymentCompletionValidationModal').style.display = 'none';
+        paymentCompletionOrderIds = [];
+        validPaymentCompletionOrderIds = [];
+    }
+
+    function confirmPaymentCompletionSend() {
+        // validPaymentCompletionOrderIds를 사용하기 전에 복사
+        const orderIdsToSend = [...validPaymentCompletionOrderIds];
+
+        // 모달 닫기
+        closePaymentCompletionValidationModal();
+
+        // 중복 발송 이력 확인
+        fetch('/api/send/check-history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                order_ids: orderIdsToSend,
+                email_type: 'payment_completion_guide'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_duplicate) {
+                showDuplicateModal(data.duplicate_history, '/api/send/payment-completion-guide/', orderIdsToSend, '결제 완료 안내');
+            } else {
+                executeSend('/api/send/payment-completion-guide/', orderIdsToSend, '결제 완료 안내를 발송했습니다.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    function sendOnlyValidPaymentCompletionOrders() {
+        if (validPaymentCompletionOrderIds.length === 0) {
+            showNotification('발송 가능한 주문이 없습니다.', 'error');
+            return;
+        }
+
+        // 문제있는 주문 체크 해제
+        document.querySelectorAll('.row-checkbox:checked').forEach(checkbox => {
+            const orderId = checkbox.getAttribute('data-order-id');
+            if (!validPaymentCompletionOrderIds.includes(orderId)) {
+                checkbox.checked = false;
+            }
+        });
+
+        confirmPaymentCompletionSend();
+    }
+
+    function showPaymentCompletionValidationModal(validationData) {
+        const modal = document.getElementById('paymentCompletionValidationModal');
+        const content = document.getElementById('paymentCompletionValidationContent');
+        const buttonsContainer = document.getElementById('paymentCompletionValidationButtons');
+
+        // 유효한 주문들과 무효한 주문들 분리
+        const validResults = validationData.results.filter(r => r.valid);
+        const invalidResults = validationData.results.filter(r => !r.valid);
+
+        validPaymentCompletionOrderIds = validResults.map(r => r.order_id);
+
+        // 컨텐츠 생성
+        let html = `<p style="margin-bottom: 16px; color: #6b7280;">다음 ${validationData.results.length}개 주문에 이메일을 발송합니다:</p>`;
+
+        html += '<div style="max-height: 400px; overflow-y: auto;">';
+
+        // 유효한 주문들
+        validResults.forEach(result => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #2563eb; font-size: 18px;">✓</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #1e40af; margin-bottom: 4px;">Order ${result.order_id} (${result.customer_name})</div>
+                            <div style="font-size: 14px; color: #1e40af;">
+                                <div>• 결제 금액: ${result.payment_amount ? Number(result.payment_amount).toLocaleString() + '원' : '-'}</div>
+                                <div>• 이메일: ${result.email}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 무효한 주문들
+        invalidResults.forEach(result => {
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #dc2626; font-size: 18px;">✗</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #991b1b; margin-bottom: 4px;">Order ${result.order_id} (${result.customer_name || '정보 없음'})</div>
+                            <div style="font-size: 14px; color: #b91c1c;">
+                                <div>• 결제 금액: ${result.payment_amount ? Number(result.payment_amount).toLocaleString() + '원' : '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+                                <div>• 이메일: ${result.email || '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+            `;
+
+            if (result.errors.length > 0) {
+                html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #fca5a5;">';
+                result.errors.forEach(error => {
+                    html += `<div style="color: #dc2626;">⚠️ ${error}</div>`;
+                });
+                html += '</div>';
+            }
+
+            html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // 요약 메시지
+        if (invalidResults.length > 0) {
+            html += `<div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; color: #92400e;">
+                <strong>총 ${validationData.results.length}개 주문 중 ${invalidResults.length}개에 문제가 있습니다.</strong>
+            </div>`;
+        }
+
+        content.innerHTML = html;
+
+        // 버튼 생성
+        let buttonsHtml = `
+            <button onclick="closePaymentCompletionValidationModal()" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                취소
+            </button>
+        `;
+
+        if (invalidResults.length > 0) {
+            // 문제가 있는 경우
+            if (validResults.length > 0) {
+                // 일부만 문제있음 - 문제없는 것만 발송 옵션 제공
+                buttonsHtml += `
+                    <button onclick="sendOnlyValidPaymentCompletionOrders()" style="padding: 10px 20px; background-color: #3b82f6; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#2563eb'" onmouseout="this.style.backgroundColor='#3b82f6'">
+                        문제없는 ${validResults.length}개 주문만 발송
+                    </button>
+                `;
+            }
+
+            buttonsHtml += `
+                <button onclick="closePaymentCompletionValidationModal(); highlightProblemOrders(${JSON.stringify(invalidResults).replace(/"/g, '&quot;')})" style="padding: 10px 20px; background-color: #dc2626; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                    확인 - 문제 주문 확인하기
+                </button>
+            `;
+        } else {
+            // 모든 주문이 정상인 경우
+            buttonsHtml += `
+                <button onclick="confirmPaymentCompletionSend()" style="padding: 10px 20px; background-color: #3b82f6; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#2563eb'" onmouseout="this.style.backgroundColor='#3b82f6'">
+                    발송하기
+                </button>
+            `;
+        }
+
+        buttonsContainer.innerHTML = buttonsHtml;
+
+        // 모달 표시
+        modal.style.display = 'flex';
     }
 
     function showQuotationValidationModal(validationData) {
@@ -2879,33 +3068,32 @@
             checkbox.getAttribute('data-order-id')
         );
 
-        // 먼저 발송 이력 확인
-        fetch('/api/send/check-history/', {
+        paymentCompletionOrderIds = orderIds;
+
+        // 검증 API 호출
+        fetch('/api/send/validate-payment-completion/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
-                order_ids: orderIds,
-                email_type: 'payment_completion_guide'
+                order_ids: orderIds
             })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.has_duplicate) {
-                // 중복 발송 이력이 있으면 모달 표시
-                showDuplicateModal(data.duplicate_history, '/api/send/payment-completion-guide/', orderIds, '결제 완료 안내');
-            } else {
-                // 중복 없으면 바로 발송
-                if (confirm(`${orderIds.length}건의 결제 완료 안내를 발송하시겠습니까?`)) {
-                    executeSend('/api/send/payment-completion-guide/', orderIds, '결제 완료 안내를 발송했습니다.');
-                }
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
             }
+
+            // 검증 모달 표시
+            showPaymentCompletionValidationModal(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+            showNotification('검증 중 오류가 발생했습니다.', 'error');
         });
     }
 

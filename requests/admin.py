@@ -51,7 +51,7 @@ class FileInline(admin.TabularInline):
     #     ... (주석처리)
     # preview.short_description = '미리보기'
 
-@admin.register(Request)
+# @admin.register(Request)  # 사이드바에서 숨김
 class RequestAdmin(ModelAdmin):
     list_display = (
         'id', 'name', 'email', 'phone', 'status', 
@@ -163,7 +163,7 @@ class RequestAdmin(ModelAdmin):
         return response
     export_to_csv.short_description = 'CSV로 내보내기'
 
-@admin.register(Template)
+# @admin.register(Template)  # 사이드바에서 숨김
 class TemplateAdmin(ModelAdmin):
     list_display = ('name', 'type', 'last_modified')
     list_filter = ('type',)
@@ -176,7 +176,10 @@ class SendLogAdmin(ModelAdmin):
     search_fields = ('request__name',)
     readonly_fields = ('created_at', 'updated_at')
 
-@admin.register(ExcelDatabase)
+    def has_add_permission(self, request):
+        return False
+
+# @admin.register(ExcelDatabase)  # 사이드바에서 숨김 (database/admin.py의 ExcelView 사용)
 class ExcelDatabaseAdmin(ModelAdmin):
     list_display = (
         'id', 'name', 'email', 'phone', 'status_display', 

@@ -276,44 +276,34 @@ UNFOLD = {
         "show_all_applications": True,
         "navigation": [
             {
-                "title": "요청 관리",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "요청서",
-                        "icon": "task_alt",
-                        "link": "/admin/requests/request/",
-                    },
-                    {
-                        "title": "템플릿",
-                        "icon": "article",
-                        "link": "/admin/requests/template/",
-                    },
-                    {
-                        "title": "발송 로그",
-                        "icon": "send",
-                        "link": "/admin/requests/sendlog/",
-                    },
-                ],
-            },
-            {
                 "title": "Database",
                 "separator": True,
                 "items": [
                     {
-                        "title": "엑셀 뷰",
+                        "title": "통합 뷰",
                         "icon": "table_view",
-                        "link": "/admin/requests/exceldatabase/",
+                        "link": "/admin/database/integratedview/",
                     },
                     {
-                        "title": "Order ID List",
+                        "title": "주문서 관리 (결제)",
                         "icon": "table_view",
-                        "link": "/admin/database/optiona/",
+                        "link": "/admin/database/ordermanagement/",
                     },
                     {
-                        "title": "Request ID List",
+                        "title": "요청서 관리 (파일/작업)",
                         "icon": "table_view",
-                        "link": "/admin/database/optionb/",
+                        "link": "/admin/database/requestmanagement/",
+                    },
+                ],
+            },
+            {
+                "title": "요청 관리",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "발송 로그",
+                        "icon": "send",
+                        "link": "/admin/requests/sendlog/",
                     },
                 ],
             },

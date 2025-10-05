@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
-from .models import ExcelView, OptionA, OptionB
+from .models import IntegratedView, OrderManagement, RequestManagement
 from requests.models import Request
 
-@admin.register(ExcelView)
-class ExcelViewAdmin(ModelAdmin):
+@admin.register(IntegratedView)
+class IntegratedViewAdmin(ModelAdmin):
     """엑셀 뷰 - 기존과 동일"""
     list_display = (
         'id', 'name', 'email', 'phone', 'status_display', 
@@ -46,8 +46,8 @@ class ExcelViewAdmin(ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-@admin.register(OptionA)
-class OptionAAdmin(ModelAdmin):
+@admin.register(OrderManagement)
+class OrderManagementAdmin(ModelAdmin):
     """Order ID List - Order ID 기준으로 표시"""
     list_display = (
         'order_id_with_requests', 'file_info', 'name', 'email', 'phone', 'status_display',
@@ -129,8 +129,8 @@ class OptionAAdmin(ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-@admin.register(OptionB)
-class OptionBAdmin(ModelAdmin):
+@admin.register(RequestManagement)
+class RequestManagementAdmin(ModelAdmin):
     """Request ID List - Request ID 기준으로 모든 레코드 표시"""
     list_display = (
         'request_id', 'order_id', 'name', 'email', 'phone', 'status_display',
