@@ -343,7 +343,14 @@ class SendLog(models.Model):
         return f"{self.get_email_type_display()} - {self.order_id or self.request} - {self.created_at}"
 
 class File(models.Model):
-    request = models.ForeignKey(Request, on_delete=models.CASCADE, related_name='files', verbose_name=_('요청서'))
+    request = models.ForeignKey(
+        Request,
+        on_delete=models.CASCADE,
+        related_name='files',
+        verbose_name=_('요청서'),
+        null=True,      # 속기록 파일은 Request와 직접 연결되지 않도록 허용
+        blank=True
+    )
     file = models.CharField(max_length=255)  # S3 파일 키를 저장
     original_name = models.CharField(max_length=255)
     file_type = models.CharField(max_length=50)

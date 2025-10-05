@@ -582,7 +582,7 @@ class BulkEmailService:
     
     def send_sending_drafts_guide(self, requests, email_subject='속기록 초안/수정안 발송'):
         """속기록 초안/수정안 발송"""
-        template_name = 'email_templates/Sending drafts Guide/email template_Sending drafts Guide/ 수정안 발송/index.html'
+        template_name = 'email_templates/Sending drafts Guide/email template_Sending drafts Guide/수정안 발송/index.html'
         return self.send_template_with_transcript_files(requests, template_name, email_subject)
     
     def send_final_draft_guide(self, requests, email_subject='속기록 최종안 발송'):

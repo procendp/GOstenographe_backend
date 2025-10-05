@@ -439,17 +439,17 @@ class RequestViewSet(viewsets.ModelViewSet):
                 s3_key,
                 ExtraArgs={'ContentType': file.content_type}
             )
-            
-            # File 모델 인스턴스 생성
+
+            # File 모델 인스턴스 생성 (속기록 파일은 files 컬렉션에 포함하지 않음)
             from .models import File
             new_file = File.objects.create(
-                request=request_instance,
+                request=None,  # 속기록 파일은 files 컬렉션과 분리
                 file=s3_key,
                 original_name=file.name,
                 file_type=file.content_type,
                 file_size=file.size
             )
-            
+
             # Request의 transcript_file 연결
             request_instance.transcript_file = new_file
             request_instance.save()
