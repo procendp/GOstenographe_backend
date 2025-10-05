@@ -188,9 +188,6 @@ class RequestViewSet(viewsets.ModelViewSet):
                         file_size=file_info.get('file_size', 0)
                     )
 
-                # 파일 생성 완료 후 이메일 발송
-                request_instance.send_application_completion_guide()
-
                 created_requests.append({
                     'id': request_instance.id,
                     'request_id': request_instance.request_id,
@@ -198,7 +195,18 @@ class RequestViewSet(viewsets.ModelViewSet):
                 })
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
+        # 모든 Request와 File 생성이 완료된 후, 첫 번째 Request에서 이메일 발송
+        # (이제 모든 파일 정보가 포함된 이메일이 발송됨)
+        if created_requests:
+            try:
+                first_request = Request.objects.get(id=created_requests[0]['id'])
+                first_request.send_application_completion_guide()
+                logger.info(f'[create_order_with_files] 서비스 신청 완료 안내 발송 완료 - Order ID: {order_id}, 파일 수: {len(created_requests)}')
+            except Exception as e:
+                logger.error(f'[create_order_with_files] 이메일 발송 실패 - Order ID: {order_id}, Error: {str(e)}')
+                # 이메일 발송 실패해도 Request/File 생성은 성공적으로 완료됨
+
         return Response({
             'success': True,
             'order_id': order_id,
