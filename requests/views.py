@@ -34,6 +34,27 @@ class RequestViewSet(viewsets.ModelViewSet):
     serializer_class = RequestSerializer
     parser_classes = (JSONParser, MultiPartParser, FormParser)
     permission_classes = [AllowAny]
+    lookup_field = 'request_id'
+
+    def get_object(self):
+        """
+        request_id 또는 pk로 객체를 조회합니다.
+        """
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+
+        try:
+            obj = self.queryset.get(**filter_kwargs)
+        except Request.DoesNotExist:
+            # request_id로 찾지 못하면 pk로 시도 (하위 호환성)
+            try:
+                obj = self.queryset.get(pk=self.kwargs[lookup_url_kwarg])
+            except (Request.DoesNotExist, ValueError):
+                from django.http import Http404
+                raise Http404
+
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -186,7 +207,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         }, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
-    def change_status(self, request, pk=None):
+    def change_status(self, request, request_id=None):
         """상태 변경 API"""
         try:
             request_instance = self.get_object()
@@ -256,7 +277,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
-    def change_order_status(self, request, pk=None):
+    def change_order_status(self, request, request_id=None):
         """Order 상태 변경 API"""
         try:
             request_instance = self.get_object()
@@ -321,7 +342,7 @@ class RequestViewSet(viewsets.ModelViewSet):
 
 
     @action(detail=True, methods=['post'])
-    def change_payment(self, request, pk=None):
+    def change_payment(self, request, request_id=None):
         """결제 상태 변경 API"""
         try:
             request_instance = self.get_object()
@@ -347,7 +368,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
-    def update_field(self, request, pk=None):
+    def update_field(self, request, request_id=None):
         """관리자 필드 업데이트 API"""
         try:
             request_instance = self.get_object()
@@ -375,7 +396,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
-    def upload_transcript(self, request, pk=None):
+    def upload_transcript(self, request, request_id=None):
         """속기록 파일 업로드 API"""
         try:
             request_instance = self.get_object()
@@ -449,7 +470,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=True, methods=['post'])
-    def get_upload_url(self, request, pk=None):
+    def get_upload_url(self, request, request_id=None):
         """
         파일 업로드를 위한 Presigned URL을 생성합니다.
         """
@@ -490,7 +511,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=['post'])
-    def upload_file(self, request, pk=None):
+    def upload_file(self, request, request_id=None):
         request_obj = self.get_object()
         # S3 presigned 업로드 방식: 실제 파일은 이미 S3에 업로드됨
         file_name = request.data.get('file_name')
@@ -523,7 +544,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=True, methods=['delete'])
-    def delete_file(self, request, pk=None):
+    def delete_file(self, request, request_id=None):
         file_key = request.data.get('file_key')
         print('[DEBUG] delete_file API 진입, file_key:', file_key, flush=True)
         if not file_key:
@@ -569,7 +590,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['get'])
-    def files(self, request, pk=None):
+    def files(self, request, request_id=None):
         """
         해당 request에 업로드된 파일 리스트를 반환합니다.
         """
@@ -579,7 +600,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'])
-    def submit(self, request, pk=None):
+    def submit(self, request, request_id=None):
         """
         서비스 신청 완료 시 호출. is_temporary를 False로 변경.
         """
@@ -1279,6 +1300,116 @@ def send_payment_completion_guide(request):
             'errors': error_messages
         })
         
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def validate_draft_guide(request):
+    """속기록 초안/수정안 발송 전 검증"""
+    try:
+        request_ids = request.data.get('request_ids', [])
+
+        if not request_ids:
+            return Response({'error': '선택된 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = []
+
+        for request_id in request_ids:
+            request_obj = Request.objects.filter(request_id=request_id, is_temporary=False).first()
+
+            result = {
+                'request_id': request_id,
+                'valid': True,
+                'errors': []
+            }
+
+            if not request_obj:
+                result['valid'] = False
+                result['errors'].append('요청을 찾을 수 없습니다.')
+                result['customer_name'] = None
+                result['email'] = None
+                result['transcript_file'] = None
+            else:
+                result['customer_name'] = request_obj.name
+                result['email'] = request_obj.email
+                result['transcript_file'] = request_obj.transcript_file.original_name if request_obj.transcript_file else None
+                result['status'] = request_obj.status
+                result['status_display'] = request_obj.get_status_display()
+
+                # 발송 조건 검증
+                if request_obj.status != 'in_progress':
+                    result['valid'] = False
+                    result['errors'].append(f'상태가 작업중이 아닙니다. (현재: {request_obj.get_status_display()})')
+
+                if not request_obj.transcript_file:
+                    result['valid'] = False
+                    result['errors'].append('속기록 파일이 업로드되지 않았습니다.')
+
+                if not request_obj.email:
+                    result['valid'] = False
+                    result['errors'].append('이메일 주소가 없습니다.')
+
+            results.append(result)
+
+        return Response({
+            'results': results
+        })
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def validate_final_draft_guide(request):
+    """속기록 최종안 발송 전 검증"""
+    try:
+        request_ids = request.data.get('request_ids', [])
+
+        if not request_ids:
+            return Response({'error': '선택된 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        results = []
+
+        for request_id in request_ids:
+            request_obj = Request.objects.filter(request_id=request_id, is_temporary=False).first()
+
+            result = {
+                'request_id': request_id,
+                'valid': True,
+                'errors': []
+            }
+
+            if not request_obj:
+                result['valid'] = False
+                result['errors'].append('요청을 찾을 수 없습니다.')
+                result['customer_name'] = None
+                result['email'] = None
+                result['transcript_file'] = None
+            else:
+                result['customer_name'] = request_obj.name
+                result['email'] = request_obj.email
+                result['transcript_file'] = request_obj.transcript_file.original_name if request_obj.transcript_file else None
+                result['status'] = request_obj.status
+                result['status_display'] = request_obj.get_status_display()
+
+                # 발송 조건 검증
+                if request_obj.status != 'work_completed':
+                    result['valid'] = False
+                    result['errors'].append(f'상태가 작업완료가 아닙니다. (현재: {request_obj.get_status_display()})')
+
+                if not request_obj.transcript_file:
+                    result['valid'] = False
+                    result['errors'].append('속기록 파일이 업로드되지 않았습니다.')
+
+                if not request_obj.email:
+                    result['valid'] = False
+                    result['errors'].append('이메일 주소가 없습니다.')
+
+            results.append(result)
+
+        return Response({
+            'results': results
+        })
+
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

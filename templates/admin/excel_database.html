@@ -90,6 +90,42 @@
         </div>
     </div>
 
+    <!-- 속기록 초안/수정안 검증 모달 -->
+    <div id="draftValidationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #059669;">📧 속기록 초안/수정안 발송 확인</h3>
+                <button onclick="closeDraftValidationModal()" style="color: #6b7280; hover:color: #111827; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div id="draftValidationContent" style="margin-bottom: 24px;">
+                <!-- 검증 결과가 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div id="draftValidationButtons" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <!-- 버튼이 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 속기록 최종안 검증 모달 -->
+    <div id="finalDraftValidationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #059669;">📧 속기록 최종안 발송 확인</h3>
+                <button onclick="closeFinalDraftValidationModal()" style="color: #6b7280; hover:color: #111827; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div id="finalDraftValidationContent" style="margin-bottom: 24px;">
+                <!-- 검증 결과가 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div id="finalDraftValidationButtons" style="display: flex; gap: 12px; justify-content: flex-end;">
+                <!-- 버튼이 동적으로 추가됩니다 -->
+            </div>
+        </div>
+    </div>
+
     <!-- 중복 발송 확인 모달 -->
     <div id="duplicateSendModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -264,32 +300,33 @@
                     {% for order_group in order_groups %}
                         {% for result in order_group.list %}
                         <tr class="hover:bg-gray-50 border-b border-gray-200 order-group-{{ forloop.parentloop.counter0|divisibleby:2|yesno:'even,odd' }}"
-                            data-order-id="{{ order_group.grouper }}" 
-                            data-is-first-in-group="{% if forloop.first %}true{% else %}false{% endif %}" 
+                            data-order-id="{{ order_group.grouper }}"
+                            data-request-id="{{ result.request_id }}"
+                            data-is-first-in-group="{% if forloop.first %}true{% else %}false{% endif %}"
                             data-group-size="{{ order_group.list|length }}"
                             data-file-index="{{ forloop.counter0 }}">
                         {% comment %} 체크박스 셀 {% endcomment %}
                         {% if hide_request_id and forloop.first %}
                             {% comment %} Order ID List - 체크박스 병합 {% endcomment %}
                             <td class="excel-cell checkbox-cell merged-cell clickable-checkbox-cell" rowspan="{{ order_group.list|length }}" style="text-align: center; vertical-align: middle; cursor: pointer;" onclick="toggleCheckbox(this)">
-                                <input type="checkbox" class="row-checkbox" data-order-id="{{ result.order_id }}" data-request-ids="{% for item in order_group.list %}{{ item.id }}{% if not forloop.last %},{% endif %}{% endfor %}" style="margin: 0; pointer-events: none;">
+                                <input type="checkbox" class="row-checkbox" data-order-id="{{ result.order_id }}" data-request-ids="{% for item in order_group.list %}{{ item.request_id }}{% if not forloop.last %},{% endif %}{% endfor %}" style="margin: 0; pointer-events: none;">
                             </td>
                         {% elif not hide_request_id %}
                             {% comment %} Request ID List - 개별 체크박스 {% endcomment %}
                             <td class="excel-cell checkbox-cell clickable-checkbox-cell" style="text-align: center; vertical-align: middle; cursor: pointer;" onclick="toggleCheckbox(this)">
-                                <input type="checkbox" class="row-checkbox" data-request-id="{{ result.id }}" style="margin: 0; pointer-events: none;">
+                                <input type="checkbox" class="row-checkbox" data-request-id="{{ result.request_id }}" style="margin: 0; pointer-events: none;">
                             </td>
                         {% endif %}
                         
                         {% comment %} 상태 셀 - Order ID List와 Request ID List에 따라 다른 상태 표시 {% endcomment %}
                         {% if hide_request_id and forloop.first %}
                             {% comment %} Order ID List - order_status 사용, 셀 병합 {% endcomment %}
-                            <td class="excel-cell status-cell merged-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-current-status="{{ result.order_status }}" data-status-type="order">
+                            <td class="excel-cell status-cell merged-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-current-status="{{ result.order_status }}" data-status-type="order">
                                 <div class="status-container">
-                                    <span class="status-badge status-{{ result.order_status }}" id="status-badge-{{ result.id }}">
+                                    <span class="status-badge status-{{ result.order_status }}" id="status-badge-{{ result.request_id }}">
                                         {{ result.get_order_status_display|default:"접수됨" }}
                                     </span>
-                                    <button class="status-edit-btn" onclick="editStatus('{{ result.id }}', '{{ result.order_status }}', 'order')">
+                                    <button class="status-edit-btn" onclick="editStatus('{{ result.request_id }}', '{{ result.order_status }}', 'order')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -299,12 +336,12 @@
                             </td>
                         {% elif not hide_request_id %}
                             {% comment %} Request ID List - status 사용, 셀 병합 없음 {% endcomment %}
-                            <td class="excel-cell status-cell" data-request-id="{{ result.id }}" data-current-status="{{ result.status|default:"received" }}" data-status-type="request">
+                            <td class="excel-cell status-cell" data-request-id="{{ result.request_id }}" data-current-status="{{ result.status|default:"received" }}" data-status-type="request">
                                 <div class="status-container">
-                                    <span class="status-badge status-{{ result.status|default:"received" }}" id="status-badge-{{ result.id }}">
+                                    <span class="status-badge status-{{ result.status|default:"received" }}" id="status-badge-{{ result.request_id }}">
                                         {{ result.get_status_display|default:"접수됨" }}
                                     </span>
-                                    <button class="status-edit-btn" onclick="editStatus('{{ result.id }}', '{{ result.status|default:"received" }}', 'request')">
+                                    <button class="status-edit-btn" onclick="editStatus('{{ result.request_id }}', '{{ result.status|default:"received" }}', 'request')">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -368,12 +405,12 @@
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.email }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
-                        <td class="excel-cell merged-cell payment-section-start payment-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
+                        <td class="excel-cell merged-cell payment-section-start payment-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
                                     {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
                                 </span>
-                                <button class="payment-edit-btn" onclick="editPayment({{ result.id }}, '{{ result.payment_status }}')">
+                                <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -381,10 +418,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="payment_amount" data-type="number">
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-field="payment_amount" data-type="number">
                             <div class="editable-container">
                                 <span class="editable-value">{% if result.payment_amount %}{{ result.payment_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'payment_amount', 'number')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'payment_amount', 'number')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -392,10 +429,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="price_change_reason" data-type="text">
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-field="price_change_reason" data-type="text">
                             <div class="editable-container">
                                 <span class="editable-value">{{ result.price_change_reason|default:"-" }}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'price_change_reason', 'text')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'price_change_reason', 'text')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -403,10 +440,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="refund_amount" data-type="number">
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-field="refund_amount" data-type="number">
                             <div class="editable-container">
                                 <span class="editable-value">{% if result.refund_amount %}{{ result.refund_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'refund_amount', 'number')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'refund_amount', 'number')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -414,10 +451,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.id }}" data-field="cancel_reason" data-type="text">
+                        <td class="excel-cell merged-cell editable-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-field="cancel_reason" data-type="text">
                             <div class="editable-container">
                                 <span class="editable-value">{{ result.cancel_reason|default:"-" }}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'cancel_reason', 'text')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'cancel_reason', 'text')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -433,12 +470,12 @@
                         <td class="excel-cell">{{ result.email }}</td>
                         <td class="excel-cell">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
-                        <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.id }}" data-current-payment="{{ result.payment_status }}">
+                        <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
                                     {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
                                 </span>
-                                <button class="payment-edit-btn" onclick="editPayment({{ result.id }}, '{{ result.payment_status }}')">
+                                <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -446,10 +483,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="payment_amount" data-type="number">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="payment_amount" data-type="number">
                             <div class="editable-container">
                                 <span class="editable-value">{% if result.payment_amount %}{{ result.payment_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'payment_amount', 'number')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'payment_amount', 'number')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -457,10 +494,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="price_change_reason" data-type="text">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="price_change_reason" data-type="text">
                             <div class="editable-container">
                                 <span class="editable-value">{{ result.price_change_reason|default:"-" }}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'price_change_reason', 'text')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'price_change_reason', 'text')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -468,10 +505,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="refund_amount" data-type="number">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="refund_amount" data-type="number">
                             <div class="editable-container">
                                 <span class="editable-value">{% if result.refund_amount %}{{ result.refund_amount|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'refund_amount', 'number')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'refund_amount', 'number')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -479,10 +516,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="cancel_reason" data-type="text">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="cancel_reason" data-type="text">
                             <div class="editable-container">
                                 <span class="editable-value">{{ result.cancel_reason|default:"-" }}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'cancel_reason', 'text')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'cancel_reason', 'text')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -491,7 +528,7 @@
                             </div>
                         </td>
                         {% endif %}
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="transcript_file" data-type="file">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="transcript_file" data-type="file">
                             <div class="editable-container">
                                 <span class="editable-value" data-original-transcript="{{ result.transcript_file.original_name|default:'-'|escapejs }}">
                                     {% if result.transcript_file %}
@@ -500,7 +537,7 @@
                                         -
                                     {% endif %}
                                 </span>
-                                <button class="edit-btn" onclick="openFileDialog({{ result.id }}, 'transcript_file')">
+                                <button class="edit-btn" onclick="openFileDialog('{{ result.request_id }}', 'transcript_file')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                         <polyline points="14,2 14,8 20,8"></polyline>
@@ -511,10 +548,10 @@
                                 </button>
                             </div>
                         </td>
-                        <td class="excel-cell editable-cell" data-request-id="{{ result.id }}" data-field="notes" data-type="text">
+                        <td class="excel-cell editable-cell" data-request-id="{{ result.request_id }}" data-field="notes" data-type="text">
                             <div class="editable-container">
                                 <span class="editable-value">{{ result.notes|default:"-" }}</span>
-                                <button class="edit-btn" onclick="editField({{ result.id }}, 'notes', 'text')">
+                                <button class="edit-btn" onclick="editField('{{ result.request_id }}', 'notes', 'text')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -2363,6 +2400,370 @@
         modal.style.display = 'flex';
     }
 
+    // 속기록 초안/수정안 검증 모달
+    let validDraftRequestIds = [];
+
+    function showDraftValidationModal(validationData) {
+        const modal = document.getElementById('draftValidationModal');
+        const content = document.getElementById('draftValidationContent');
+        const buttonsContainer = document.getElementById('draftValidationButtons');
+
+        // 유효한 요청들과 무효한 요청들 분리
+        const validResults = validationData.results.filter(r => r.valid);
+        const invalidResults = validationData.results.filter(r => !r.valid);
+
+        validDraftRequestIds = validResults.map(r => r.request_id);
+
+        // 컨텐츠 생성
+        let html = `<p style="margin-bottom: 16px; color: #6b7280;">다음 ${validationData.results.length}개 요청에 이메일을 발송합니다:</p>`;
+
+        html += '<div style="max-height: 400px; overflow-y: auto;">';
+
+        // 유효한 요청들
+        validResults.forEach(result => {
+            const fileName = result.transcript_file ? result.transcript_file.split('/').pop() : '-';
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #16a34a; font-size: 18px;">✓</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">Request ${result.request_id} (${result.customer_name})</div>
+                            <div style="font-size: 14px; color: #15803d;">
+                                <div>• 속기록 파일: ${fileName}</div>
+                                <div>• 이메일: ${result.email}</div>
+                                <div>• 상태: ${result.status_display}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 무효한 요청들
+        invalidResults.forEach(result => {
+            const fileName = result.transcript_file ? result.transcript_file.split('/').pop() : '<span style="color: #dc2626; font-weight: 600;">미업로드 ← 필수 항목</span>';
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #dc2626; font-size: 18px;">✗</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #991b1b; margin-bottom: 4px;">Request ${result.request_id} (${result.customer_name || '정보 없음'})</div>
+                            <div style="font-size: 14px; color: #b91c1c;">
+                                <div>• 속기록 파일: ${fileName}</div>
+                                <div>• 이메일: ${result.email || '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+                                <div>• 상태: ${result.status_display || '-'}</div>
+            `;
+
+            if (result.errors.length > 0) {
+                html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #fca5a5;">';
+                result.errors.forEach(error => {
+                    html += `<div style="color: #dc2626;">⚠️ ${error}</div>`;
+                });
+                html += '</div>';
+            }
+
+            html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // 요약 메시지
+        if (invalidResults.length > 0) {
+            html += `<div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; color: #92400e;">
+                <strong>총 ${validationData.results.length}개 요청 중 ${invalidResults.length}개에 문제가 있습니다.</strong>
+            </div>`;
+        }
+
+        content.innerHTML = html;
+
+        // 버튼 생성
+        let buttonsHtml = `
+            <button onclick="closeDraftValidationModal()" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                취소
+            </button>
+        `;
+
+        if (invalidResults.length > 0) {
+            // 문제가 있는 경우
+            if (validResults.length > 0) {
+                // 일부만 문제있음 - 문제없는 것만 발송 옵션 제공
+                buttonsHtml += `
+                    <button onclick="sendOnlyValidDrafts()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                        문제없는 ${validResults.length}개 요청만 발송
+                    </button>
+                `;
+            }
+
+            buttonsHtml += `
+                <button onclick="closeDraftValidationModal(); highlightProblemRequests(${JSON.stringify(invalidResults).replace(/"/g, '&quot;')})" style="padding: 10px 20px; background-color: #dc2626; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                    확인 - 문제 요청 확인하기
+                </button>
+            `;
+        } else {
+            // 모든 요청이 정상인 경우
+            buttonsHtml += `
+                <button onclick="confirmDraftSend()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    발송하기
+                </button>
+            `;
+        }
+
+        buttonsContainer.innerHTML = buttonsHtml;
+
+        // 모달 표시
+        modal.style.display = 'flex';
+    }
+
+    function closeDraftValidationModal() {
+        document.getElementById('draftValidationModal').style.display = 'none';
+        validDraftRequestIds = [];
+    }
+
+    function confirmDraftSend() {
+        const requestIdsToSend = [...validDraftRequestIds];
+        closeDraftValidationModal();
+
+        // 중복 발송 이력 확인
+        fetch('/api/send/check-history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                request_ids: requestIdsToSend,
+                email_type: 'draft_guide'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_duplicate) {
+                showDraftDuplicateModal(data.duplicate_history, requestIdsToSend);
+            } else {
+                executeSendDraft(requestIdsToSend);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    function sendOnlyValidDrafts() {
+        confirmDraftSend();
+    }
+
+    function highlightProblemRequests(invalidResults) {
+        // 기존 하이라이트 제거
+        document.querySelectorAll('tr[data-request-id]').forEach(row => {
+            row.style.borderLeft = '';
+        });
+
+        // 문제있는 요청의 셀들을 하이라이트
+        invalidResults.forEach(result => {
+            const row = document.querySelector(`tr[data-request-id="${result.request_id}"]`);
+            if (row) {
+                result.errors.forEach(error => {
+                    if (error.includes('속기록 파일')) {
+                        const fileCell = row.querySelector('td[data-field="transcript_file"]');
+                        if (fileCell) {
+                            fileCell.style.backgroundColor = '#ffb3b3';
+                            fileCell.style.transition = 'all 0.3s';
+                        }
+                    }
+
+                    if (error.includes('이메일')) {
+                        const emailCell = row.querySelector('td[data-field="email"]');
+                        if (emailCell) {
+                            emailCell.style.backgroundColor = '#ffb3b3';
+                            emailCell.style.transition = 'all 0.3s';
+                        }
+                    }
+
+                    if (error.includes('상태')) {
+                        const statusCell = row.querySelector('td[data-field="status"]');
+                        if (statusCell) {
+                            statusCell.style.backgroundColor = '#ffb3b3';
+                            statusCell.style.transition = 'all 0.3s';
+                        }
+                    }
+                });
+
+                row.style.borderLeft = '4px solid #dc2626';
+            }
+        });
+
+        setTimeout(() => {
+            const firstInvalidRow = document.querySelector(`tr[data-request-id="${invalidResults[0].request_id}"]`);
+            if (firstInvalidRow) {
+                firstInvalidRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
+    }
+
+    // 속기록 최종안 검증 모달
+    let validFinalDraftRequestIds = [];
+
+    function showFinalDraftValidationModal(validationData) {
+        const modal = document.getElementById('finalDraftValidationModal');
+        const content = document.getElementById('finalDraftValidationContent');
+        const buttonsContainer = document.getElementById('finalDraftValidationButtons');
+
+        // 유효한 요청들과 무효한 요청들 분리
+        const validResults = validationData.results.filter(r => r.valid);
+        const invalidResults = validationData.results.filter(r => !r.valid);
+
+        validFinalDraftRequestIds = validResults.map(r => r.request_id);
+
+        // 컨텐츠 생성
+        let html = `<p style="margin-bottom: 16px; color: #6b7280;">다음 ${validationData.results.length}개 요청에 이메일을 발송합니다:</p>`;
+
+        html += '<div style="max-height: 400px; overflow-y: auto;">';
+
+        // 유효한 요청들
+        validResults.forEach(result => {
+            const fileName = result.transcript_file ? result.transcript_file.split('/').pop() : '-';
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #16a34a; font-size: 18px;">✓</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #166534; margin-bottom: 4px;">Request ${result.request_id} (${result.customer_name})</div>
+                            <div style="font-size: 14px; color: #15803d;">
+                                <div>• 속기록 파일: ${fileName}</div>
+                                <div>• 이메일: ${result.email}</div>
+                                <div>• 상태: ${result.status_display}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // 무효한 요청들
+        invalidResults.forEach(result => {
+            const fileName = result.transcript_file ? result.transcript_file.split('/').pop() : '<span style="color: #dc2626; font-weight: 600;">미업로드 ← 필수 항목</span>';
+            html += `
+                <div style="padding: 12px; margin-bottom: 12px; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <span style="color: #dc2626; font-size: 18px;">✗</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #991b1b; margin-bottom: 4px;">Request ${result.request_id} (${result.customer_name || '정보 없음'})</div>
+                            <div style="font-size: 14px; color: #b91c1c;">
+                                <div>• 속기록 파일: ${fileName}</div>
+                                <div>• 이메일: ${result.email || '<span style="color: #dc2626; font-weight: 600;">미입력 ← 필수 항목</span>'}</div>
+                                <div>• 상태: ${result.status_display || '-'}</div>
+            `;
+
+            if (result.errors.length > 0) {
+                html += '<div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #fca5a5;">';
+                result.errors.forEach(error => {
+                    html += `<div style="color: #dc2626;">⚠️ ${error}</div>`;
+                });
+                html += '</div>';
+            }
+
+            html += `
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // 요약 메시지
+        if (invalidResults.length > 0) {
+            html += `<div style="margin-top: 16px; padding: 12px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; color: #92400e;">
+                <strong>총 ${validationData.results.length}개 요청 중 ${invalidResults.length}개에 문제가 있습니다.</strong>
+            </div>`;
+        }
+
+        content.innerHTML = html;
+
+        // 버튼 생성
+        let buttonsHtml = `
+            <button onclick="closeFinalDraftValidationModal()" style="padding: 10px 20px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                취소
+            </button>
+        `;
+
+        if (invalidResults.length > 0) {
+            // 문제가 있는 경우
+            if (validResults.length > 0) {
+                // 일부만 문제있음 - 문제없는 것만 발송 옵션 제공
+                buttonsHtml += `
+                    <button onclick="sendOnlyValidFinalDrafts()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                        문제없는 ${validResults.length}개 요청만 발송
+                    </button>
+                `;
+            }
+
+            buttonsHtml += `
+                <button onclick="closeFinalDraftValidationModal(); highlightProblemRequests(${JSON.stringify(invalidResults).replace(/"/g, '&quot;')})" style="padding: 10px 20px; background-color: #dc2626; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                    확인 - 문제 요청 확인하기
+                </button>
+            `;
+        } else {
+            // 모든 요청이 정상인 경우
+            buttonsHtml += `
+                <button onclick="confirmFinalDraftSend()" style="padding: 10px 20px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    발송하기
+                </button>
+            `;
+        }
+
+        buttonsContainer.innerHTML = buttonsHtml;
+
+        // 모달 표시
+        modal.style.display = 'flex';
+    }
+
+    function closeFinalDraftValidationModal() {
+        document.getElementById('finalDraftValidationModal').style.display = 'none';
+        validFinalDraftRequestIds = [];
+    }
+
+    function confirmFinalDraftSend() {
+        const requestIdsToSend = [...validFinalDraftRequestIds];
+        closeFinalDraftValidationModal();
+
+        // 중복 발송 이력 확인
+        fetch('/api/send/check-history/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                request_ids: requestIdsToSend,
+                email_type: 'final_draft_guide'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_duplicate) {
+                showDraftDuplicateModal(data.duplicate_history, requestIdsToSend, true);
+            } else {
+                executeSendFinalDraft(requestIdsToSend);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    function sendOnlyValidFinalDrafts() {
+        confirmFinalDraftSend();
+    }
+
     function showDuplicateModal(duplicateHistory, endpoint, orderIds, emailType) {
         const modal = document.getElementById('duplicateSendModal');
         const content = document.getElementById('duplicateHistoryContent');
@@ -2520,31 +2921,30 @@
             checkbox.getAttribute('data-request-id')
         );
 
-        // 중복 발송 체크
-        fetch('/api/check-send-history/', {
+        // 검증 API 호출
+        fetch('/api/send/validate-draft-guide/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
-                request_ids: requestIds,
-                email_type: 'draft_guide'
+                request_ids: requestIds
             })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.has_duplicate) {
-                showDraftDuplicateModal(data.duplicate_history, requestIds);
-            } else {
-                if (confirm(`${requestIds.length}건의 속기록 초안/수정안을 발송하시겠습니까?`)) {
-                    executeSendDraft(requestIds);
-                }
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
             }
+
+            // 검증 모달 표시
+            showDraftValidationModal(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+            showNotification('검증 중 오류가 발생했습니다.', 'error');
         });
     }
 
@@ -2560,7 +2960,14 @@
                 request_ids: requestIds
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw { status: response.status, data: data };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showNotification(data.message, 'success');
@@ -2569,13 +2976,31 @@
                         showNotification(error, 'error');
                     });
                 }
+                // 발송 성공 시 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
             } else {
                 showNotification(data.error || '발송에 실패했습니다.', 'error');
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(error => {
+                        showNotification(error, 'error');
+                    });
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('발송 중 오류가 발생했습니다.', 'error');
+            if (error.data && error.data.error) {
+                showNotification(error.data.error, 'error');
+                if (error.data.errors && error.data.errors.length > 0) {
+                    error.data.errors.forEach(err => {
+                        showNotification(err, 'error');
+                    });
+                }
+            } else {
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            }
         });
     }
 
@@ -2591,31 +3016,30 @@
             checkbox.getAttribute('data-request-id')
         );
 
-        // 중복 발송 체크
-        fetch('/api/check-send-history/', {
+        // 검증 API 호출
+        fetch('/api/send/validate-final-draft-guide/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
             body: JSON.stringify({
-                request_ids: requestIds,
-                email_type: 'final_draft_guide'
+                request_ids: requestIds
             })
         })
         .then(response => response.json())
         .then(data => {
-            if (data.has_duplicate) {
-                showDraftDuplicateModal(data.duplicate_history, requestIds, true);
-            } else {
-                if (confirm(`${requestIds.length}건의 속기록 최종안을 발송하시겠습니까?`)) {
-                    executeSendFinalDraft(requestIds);
-                }
+            if (data.error) {
+                showNotification(data.error, 'error');
+                return;
             }
+
+            // 검증 모달 표시
+            showFinalDraftValidationModal(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('발송 이력 확인 중 오류가 발생했습니다.', 'error');
+            showNotification('검증 중 오류가 발생했습니다.', 'error');
         });
     }
 
@@ -2631,7 +3055,14 @@
                 request_ids: requestIds
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw { status: response.status, data: data };
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 showNotification(data.message, 'success');
@@ -2640,13 +3071,31 @@
                         showNotification(error, 'error');
                     });
                 }
+                // 발송 성공 시 페이지 새로고침
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
             } else {
                 showNotification(data.error || '발송에 실패했습니다.', 'error');
+                if (data.errors && data.errors.length > 0) {
+                    data.errors.forEach(error => {
+                        showNotification(error, 'error');
+                    });
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showNotification('발송 중 오류가 발생했습니다.', 'error');
+            if (error.data && error.data.error) {
+                showNotification(error.data.error, 'error');
+                if (error.data.errors && error.data.errors.length > 0) {
+                    error.data.errors.forEach(err => {
+                        showNotification(err, 'error');
+                    });
+                }
+            } else {
+                showNotification('발송 중 오류가 발생했습니다.', 'error');
+            }
         });
     }
 
