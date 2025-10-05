@@ -29,7 +29,7 @@ class Request(models.Model):
         ('cancelled', _('취소됨')),
         ('refunded', _('환불완료')),
     )
-    
+
     DRAFT_FORMAT_CHOICES = (
         ('hwp', _('hwp')),
         ('txt', _('txt')),

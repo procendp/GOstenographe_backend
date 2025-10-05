@@ -1169,15 +1169,15 @@ def send_quotation_guide(request):
             if request_obj.order_status != 'received':
                 error_messages.append(f'Order ID {order_id}: 상태가 접수됨이 아닙니다. (현재: {request_obj.get_order_status_display()})')
                 continue
-                
+
             if not request_obj.payment_amount:
                 error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
                 continue
-            
+
             # Order ID로 그룹화된 모든 Request 찾기
             try:
                 same_order_requests = Request.objects.filter(order_id=order_id, is_temporary=False)
-                
+
                 # 이메일 발송 (템플릿 사용)
                 bulk_service = BulkEmailService()
                 result = bulk_service.send_quotation_and_deposit_guide(
@@ -1237,15 +1237,15 @@ def send_payment_completion_guide(request):
             if request_obj.order_status != 'received':
                 error_messages.append(f'Order ID {order_id}: 상태가 접수됨이 아닙니다. (현재: {request_obj.get_order_status_display()})')
                 continue
-                
+
             if not request_obj.payment_amount:
                 error_messages.append(f'Order ID {order_id}: 결제 금액이 입력되지 않았습니다.')
                 continue
-            
+
             # Order ID로 그룹화된 모든 Request 찾기
             try:
                 same_order_requests = Request.objects.filter(order_id=order_id, is_temporary=False)
-                
+
                 # 이메일 발송 (템플릿 사용)
                 bulk_service = BulkEmailService()
                 result = bulk_service.send_payment_completion_guide(
@@ -1312,14 +1312,17 @@ def send_draft_guide(request):
                 continue
             
             valid_requests.append(request_obj)
-        
+
         if not valid_requests:
-            return Response({'error': '발송 가능한 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({
+                'error': '발송 가능한 요청이 없습니다.',
+                'errors': error_messages
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
         try:
             bulk_service = BulkEmailService()
-            
+
             # 템플릿 기반 발송
             result = bulk_service.send_sending_drafts_guide(
                 requests=valid_requests,
@@ -1387,14 +1390,17 @@ def send_final_draft_guide(request):
                 continue
             
             valid_requests.append(request_obj)
-        
+
         if not valid_requests:
-            return Response({'error': '발송 가능한 요청이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({
+                'error': '발송 가능한 요청이 없습니다.',
+                'errors': error_messages
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # 대량 이메일 발송 (같은 이메일 주소끼리 파일 묶어서 발송)
         try:
             bulk_service = BulkEmailService()
-            
+
             # 템플릿 기반 발송
             result = bulk_service.send_final_draft_guide(
                 requests=valid_requests,
