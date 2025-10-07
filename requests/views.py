@@ -509,7 +509,7 @@ class RequestViewSet(viewsets.ModelViewSet):
         # 파일 크기 검증
         if not validate_file_size(int(file_size)):
             return Response(
-                {'error': '파일 크기가 제한을 초과합니다. (최대 3GB)'},
+                {'error': '파일 크기가 제한을 초과합니다. (최대 500MB)'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

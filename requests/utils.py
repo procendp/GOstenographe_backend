@@ -50,12 +50,12 @@ def generate_presigned_url(file_name, file_type, s3_key=None):
 def validate_file_size(file_size):
     """
     파일 크기가 제한을 초과하는지 확인합니다.
-    
+
     Args:
         file_size (int): 파일 크기 (bytes)
-    
+
     Returns:
         bool: 파일 크기가 유효한지 여부
     """
-    max_size = 3 * 1024 * 1024 * 1024  # 3GB in bytes
+    max_size = 500 * 1024 * 1024  # 500MB in bytes (한글/워드/텍스트 파일 용도)
     return file_size <= max_size 
