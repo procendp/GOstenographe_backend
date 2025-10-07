@@ -165,6 +165,178 @@
         </div>
     </div>
 
+    <!-- 주문서 삭제 확인 모달 -->
+    <div id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #dc2626;">🗑️ 주문서 삭제 확인</h3>
+                <button onclick="closeDeleteConfirmModal()" style="color: #6b7280; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 16px; margin-bottom: 20px; border-radius: 8px;">
+                <p style="color: #991b1b; font-weight: 500; margin: 0;">⚠️ 선택한 주문과 연관된 모든 데이터가 영구적으로 삭제됩니다.</p>
+                <p style="color: #991b1b; font-size: 14px; margin: 8px 0 0 0;">• S3에 저장된 파일도 함께 삭제됩니다.</p>
+                <p style="color: #991b1b; font-size: 14px; margin: 4px 0 0 0;">• 이 작업은 되돌릴 수 없습니다.</p>
+            </div>
+
+            <div id="deleteConfirmContent" style="margin-bottom: 24px;">
+                <!-- 삭제할 주문 목록이 여기에 동적으로 추가됩니다 -->
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button onclick="closeDeleteConfirmModal()" style="padding: 10px 24px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                    취소
+                </button>
+                <button id="confirmDeleteBtn" onclick="confirmDelete()" style="padding: 10px 24px; background-color: #dc2626; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#b91c1c'" onmouseout="this.style.backgroundColor='#dc2626'">
+                    삭제
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 주문서 추가 모달 -->
+    <div id="addOrderModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 800px; width: 90%; height: 80vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="font-size: 20px; font-weight: 600; color: #059669;">📝 주문서 추가 (DB)</h3>
+                <button onclick="closeAddModal()" style="color: #6b7280; cursor: pointer; background: none; border: none; font-size: 24px;">&times;</button>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 20px;">
+                <form id="addOrderForm">
+                    <!-- ID 필드 (자동 생성, 읽기 전용) -->
+                    <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #6b7280;">Order ID (자동 생성)</label>
+                                <input id="orderIdInput" type="text" readonly style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #e5e7eb; color: #6b7280; box-sizing: border-box;" placeholder="자동 생성됩니다">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #6b7280;">Request ID (자동 생성)</label>
+                                <input id="requestIdInput" type="text" readonly style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; background-color: #e5e7eb; color: #6b7280; box-sizing: border-box;" placeholder="자동 생성됩니다">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 파일 업로드 섹션 -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">첨부 파일 (최대 5개, 파일당 최대 3GB)</label>
+                        <input type="file" id="fileInput" multiple accept=".txt,.hwp,.doc,.docx,.pdf,.ppt,.pptx,.xls,.xlsx,.mp3,.mp4,.asf,.m4v,.mov,.wmv,.avi,.wav,.zip" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; box-sizing: border-box;">
+                        <div id="fileUploadProgress" style="margin-top: 12px; display: none;"></div>
+                        <div id="uploadedFiles" style="margin-top: 12px;"></div>
+                    </div>
+
+                    <!-- 나머지 필드들 -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">주문자명 <span style="color: #dc2626;">*</span></label>
+                            <input id="nameInput" type="text" required style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">연락처 <span style="color: #dc2626;">*</span></label>
+                            <input id="phoneInput" type="text" required style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">이메일 <span style="color: #dc2626;">*</span></label>
+                        <input id="emailInput" type="email" required style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">주소</label>
+                        <input id="addressInput" type="text" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
+                            <select id="recordingTypeInput" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                <option value="전체">전체</option>
+                                <option value="부분">부분</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
+                            <input id="totalDurationInput" type="text" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">부분 녹취 구간</label>
+                        <textarea id="partialRangeInput" rows="2" placeholder="예: 00:00:00 - 00:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수</label>
+                            <input id="speakerCountInput" type="number" min="1" max="5" value="1" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자 이름</label>
+                            <input id="speakerNamesInput" type="text" placeholder="예: 홍길동,김철수" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 일시</label>
+                        <input id="recordingDateInput" type="datetime-local" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">상세 정보</label>
+                        <textarea id="additionalInfoInput" rows="3" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">열람파일 형식</label>
+                            <select id="draftFormatInput" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                <option value="hwp">HWP</option>
+                                <option value="docx">DOCX</option>
+                                <option value="txt">TXT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">최종본 옵션</label>
+                            <select id="finalOptionInput" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                                <option value="file">파일</option>
+                                <option value="file_usb">파일+우편</option>
+                                <option value="file_usb_cd">파일+우편+CD</option>
+                                <option value="file_usb_post">파일+우편+USB</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input id="paymentStatusInput" type="checkbox" style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="paymentStatusInput" style="font-size: 14px; font-weight: 500; color: #374151; cursor: pointer;">결제 여부</label>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">결제 금액</label>
+                            <input id="paymentAmountInput" type="number" min="0" placeholder="예: 50000" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">기타 정보</label>
+                        <textarea id="notesInput" rows="3" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                <button onclick="closeAddModal()" style="padding: 10px 24px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                    취소
+                </button>
+                <button id="saveOrderBtn" onclick="saveOrder()" style="padding: 10px 24px; background-color: #059669; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#047857'" onmouseout="this.style.backgroundColor='#059669'">
+                    저장
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 중복 발송 확인 모달 -->
     <div id="duplicateSendModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000; justify-content: center; align-items: center;">
         <div style="background-color: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
@@ -2281,6 +2453,344 @@
 
         // 알림 표시
         showNotification(`${invalidResults.length}개 주문에 필수 항목이 누락되었습니다. 빨간색으로 표시된 셀을 확인해주세요.`, 'error');
+    }
+
+    // 주문서 삭제 기능
+    let deleteOrderIds = [];
+
+    function deleteSelected() {
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+
+        if (checkedBoxes.length === 0) {
+            showNotification('선택된 주문이 없습니다.', 'error');
+            return;
+        }
+
+        // Order ID 수집 (중복 제거)
+        const orderIdsSet = new Set();
+        checkedBoxes.forEach(checkbox => {
+            const orderId = checkbox.getAttribute('data-order-id');
+            if (orderId) {
+                orderIdsSet.add(orderId);
+            }
+        });
+
+        deleteOrderIds = Array.from(orderIdsSet);
+
+        // 모달에 삭제할 주문 목록 표시
+        const content = document.getElementById('deleteConfirmContent');
+        let html = `<div style="margin-bottom: 16px;">
+            <p style="color: #374151; font-weight: 500; margin-bottom: 12px;">다음 ${deleteOrderIds.length}개 주문이 삭제됩니다:</p>
+            <div style="max-height: 300px; overflow-y: auto;">`;
+
+        deleteOrderIds.forEach(orderId => {
+            // Order ID에 해당하는 Request 정보 찾기
+            const firstRow = document.querySelector(`.row-checkbox[data-order-id="${orderId}"]`).closest('tr');
+            const nameCell = firstRow.querySelector('td:nth-child(4)');  // 주문자명
+            const emailCell = firstRow.querySelector('td:nth-child(5)');  // 이메일
+            const name = nameCell ? nameCell.textContent.trim() : '-';
+            const email = emailCell ? emailCell.textContent.trim() : '-';
+
+            // 해당 Order ID의 파일 개수 계산
+            const fileCount = document.querySelectorAll(`.row-checkbox[data-order-id="${orderId}"]`).length;
+
+            html += `
+                <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #dc2626;">
+                    <p style="color: #111827; font-weight: 500; margin: 0 0 4px 0;">Order ID: ${orderId}</p>
+                    <p style="color: #6b7280; font-size: 14px; margin: 0;">주문자: ${name} (${email})</p>
+                    <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0 0;">파일 개수: ${fileCount}개</p>
+                </div>
+            `;
+        });
+
+        html += `</div></div>`;
+        content.innerHTML = html;
+
+        // 모달 열기
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+    }
+
+    function closeDeleteConfirmModal() {
+        document.getElementById('deleteConfirmModal').style.display = 'none';
+        deleteOrderIds = [];
+    }
+
+    async function confirmDelete() {
+        const btn = document.getElementById('confirmDeleteBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '삭제 중...';
+
+        try {
+            const response = await fetch('/api/database/delete-orders/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({ order_ids: deleteOrderIds })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showNotification(data.message, 'success');
+                closeDeleteConfirmModal();
+                // 페이지 새로고침
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showNotification(data.error || '삭제 실패', 'error');
+                if (data.errors && data.errors.length > 0) {
+                    console.error('삭제 오류:', data.errors);
+                }
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error('삭제 중 오류:', error);
+            showNotification('삭제 중 오류가 발생했습니다.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // 주문서 추가 모달 기능
+    let uploadedFilesData = [];
+
+    async function openAddModal() {
+        // Order ID와 Request ID 생성
+        try {
+            const response = await fetch('/api/database/generate-db-order-id/', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                document.getElementById('orderIdInput').value = data.order_id;
+                document.getElementById('requestIdInput').value = data.request_id;
+            }
+        } catch (error) {
+            console.error('ID 생성 오류:', error);
+        }
+
+        // 폼 초기화
+        document.getElementById('addOrderForm').reset();
+        uploadedFilesData = [];
+        document.getElementById('uploadedFiles').innerHTML = '';
+        document.getElementById('fileUploadProgress').style.display = 'none';
+
+        // 모달 열기
+        document.getElementById('addOrderModal').style.display = 'flex';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addOrderModal').style.display = 'none';
+        uploadedFilesData = [];
+    }
+
+    // 파일 업로드 처리 (Presigned URL 방식)
+    document.getElementById('fileInput').addEventListener('change', async function(e) {
+        const files = Array.from(e.target.files);
+
+        if (files.length === 0) return;
+
+        if (files.length > 5) {
+            showNotification('최대 5개 파일까지 업로드 가능합니다.', 'error');
+            e.target.value = '';
+            return;
+        }
+
+        // 3GB 제한 검증
+        const maxSize = 3 * 1024 * 1024 * 1024;  // 3GB
+        for (const file of files) {
+            if (file.size > maxSize) {
+                showNotification(`파일 "${file.name}"이(가) 3GB를 초과합니다.`, 'error');
+                e.target.value = '';
+                return;
+            }
+        }
+
+        const progressContainer = document.getElementById('fileUploadProgress');
+        const uploadedFilesContainer = document.getElementById('uploadedFiles');
+        progressContainer.style.display = 'block';
+        progressContainer.innerHTML = '';
+
+        const saveBtn = document.getElementById('saveOrderBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '업로드 중...';
+
+        // 병렬 업로드
+        try {
+            const uploadPromises = files.map((file, index) => uploadFile(file, index, progressContainer));
+            const results = await Promise.all(uploadPromises);
+
+            uploadedFilesData = results.filter(r => r.success);
+
+            // 업로드된 파일 목록 표시
+            uploadedFilesContainer.innerHTML = '<p style="font-size: 14px; font-weight: 500; color: #059669; margin-bottom: 8px;">✓ 업로드 완료:</p>';
+            uploadedFilesData.forEach(file => {
+                uploadedFilesContainer.innerHTML += `<p style="font-size: 13px; color: #6b7280; margin: 4px 0;">• ${file.original_name} (${(file.file_size / (1024 * 1024)).toFixed(2)} MB)</p>`;
+            });
+
+            progressContainer.style.display = 'none';
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '저장';
+
+            showNotification(`${uploadedFilesData.length}개 파일 업로드 완료`, 'success');
+        } catch (error) {
+            console.error('파일 업로드 오류:', error);
+            showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '저장';
+        }
+    });
+
+    async function uploadFile(file, index, progressContainer) {
+        // 프로그레스 바 생성
+        const progressDiv = document.createElement('div');
+        progressDiv.style.marginBottom = '12px';
+        progressDiv.innerHTML = `
+            <p style="font-size: 13px; color: #374151; margin-bottom: 4px;">${file.name}</p>
+            <div style="background-color: #e5e7eb; border-radius: 9999px; height: 8px; overflow: hidden;">
+                <div id="progress-${index}" style="background-color: #059669; height: 100%; width: 0%; transition: width 0.3s;"></div>
+            </div>
+        `;
+        progressContainer.appendChild(progressDiv);
+
+        try {
+            // 1. Presigned URL 요청
+            const customerName = document.getElementById('nameInput').value || 'Unknown';
+            const customerEmail = document.getElementById('emailInput').value || 'unknown@example.com';
+            const emailId = customerEmail.split('@')[0];
+
+            const presignedResponse = await fetch('/api/s3/presigned-url/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    file_name: file.name,
+                    file_type: file.type,
+                    file_size: file.size,
+                    customer_name: customerName,
+                    customer_email: customerEmail
+                })
+            });
+
+            if (!presignedResponse.ok) {
+                throw new Error('Presigned URL 생성 실패');
+            }
+
+            const presignedData = await presignedResponse.json();
+            const progressBar = document.getElementById(`progress-${index}`);
+            progressBar.style.width = '30%';
+
+            // 2. S3에 파일 업로드
+            const formData = new FormData();
+            Object.entries(presignedData.presigned_post.fields).forEach(([key, value]) => {
+                formData.append(key, value);
+            });
+            formData.append('file', file);
+
+            const uploadResponse = await fetch(presignedData.presigned_post.url, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error(`S3 업로드 실패: ${uploadResponse.status}`);
+            }
+
+            progressBar.style.width = '100%';
+
+            return {
+                success: true,
+                file_key: presignedData.file_name,
+                original_name: file.name,
+                file_type: file.type,
+                file_size: file.size
+            };
+        } catch (error) {
+            console.error(`파일 "${file.name}" 업로드 실패:`, error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async function saveOrder() {
+        // 폼 검증
+        const name = document.getElementById('nameInput').value.trim();
+        const email = document.getElementById('emailInput').value.trim();
+        const phone = document.getElementById('phoneInput').value.trim();
+
+        if (!name || !email || !phone) {
+            showNotification('필수 항목을 모두 입력해주세요.', 'error');
+            return;
+        }
+
+        const saveBtn = document.getElementById('saveOrderBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '저장 중...';
+
+        try {
+            const formData = {
+                name: name,
+                email: email,
+                phone: phone,
+                address: document.getElementById('addressInput').value.trim(),
+                recording_type: document.getElementById('recordingTypeInput').value,
+                total_duration: document.getElementById('totalDurationInput').value.trim(),
+                partial_range: document.getElementById('partialRangeInput').value.trim(),
+                speaker_count: parseInt(document.getElementById('speakerCountInput').value) || 1,
+                speaker_names: document.getElementById('speakerNamesInput').value.trim(),
+                recording_date: document.getElementById('recordingDateInput').value || null,
+                additional_info: document.getElementById('additionalInfoInput').value.trim(),
+                draft_format: document.getElementById('draftFormatInput').value,
+                final_option: document.getElementById('finalOptionInput').value,
+                payment_status: document.getElementById('paymentStatusInput').checked,
+                payment_amount: document.getElementById('paymentAmountInput').value ? parseInt(document.getElementById('paymentAmountInput').value) : null,
+                notes: document.getElementById('notesInput').value.trim(),
+                files: uploadedFilesData
+            };
+
+            const response = await fetch('/api/database/create-db-order/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showNotification(data.message, 'success');
+                closeAddModal();
+                // 페이지 새로고침
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                showNotification(data.error || '저장 실패', 'error');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '저장';
+            }
+        } catch (error) {
+            console.error('저장 중 오류:', error);
+            showNotification('저장 중 오류가 발생했습니다.', 'error');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '저장';
+        }
     }
 
     function sendQuotationGuide() {

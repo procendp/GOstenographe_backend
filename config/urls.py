@@ -64,6 +64,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
     path('api/', include('requests.urls')),
+    path('api/database/', include('database.urls')),
     path('api/check-admin/', check_admin, name='check-admin'),
     path('api/s3/presigned-url/', S3PresignedURLView.as_view(), name='s3-presigned-url'),
     path('api/download-file/', download_file_view, name='download-file'),

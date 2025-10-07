@@ -151,29 +151,67 @@ class Request(models.Model):
         return new_status in allowed_transitions.get(self.status, [])
     
     @classmethod
-    def get_next_order_counter(cls):
-        """전역 주문 카운터 반환 (00~99 순환)"""
-        # 모든 Order ID에서 마지막 2자리(카운터) 추출하여 최대값 찾기
-        last_order = cls.objects.filter(
-            order_id__isnull=False,
-            order_id__regex=r'^\d{6}\d{2}$'  # YYMMDDNN 형식 확인
-        ).order_by('-created_at').first()
-        
-        if last_order and last_order.order_id:
-            # Order ID의 마지막 2자리 추출
-            counter = int(last_order.order_id[-2:])
-            # 99 다음은 00으로 리셋
-            next_counter = (counter + 1) % 100
-            return next_counter
-        return 0  # 첫 번째 주문은 00
-    
+    def get_next_order_counter(cls, is_db_order=False):
+        """전역 주문 카운터 반환
+
+        Args:
+            is_db_order (bool): DB 주문 여부
+
+        Returns:
+            int: 다음 카운터 값
+                - 일반 주문: 00~99 (2자리)
+                - DB 주문: 0000~9999 (4자리)
+        """
+        if is_db_order:
+            # DB 주문: DB + YYMMDD + 0000~9999 형식
+            last_order = cls.objects.filter(
+                order_id__isnull=False,
+                order_id__startswith='DB',
+                order_id__regex=r'^DB\d{6}\d{4}$'  # DBYYMMDDNNNN 형식 확인
+            ).order_by('-created_at').first()
+
+            if last_order and last_order.order_id:
+                # Order ID의 마지막 4자리 추출
+                counter = int(last_order.order_id[-4:])
+                # 9999 다음은 0000으로 리셋
+                next_counter = (counter + 1) % 10000
+                return next_counter
+            return 0  # 첫 번째 주문은 0000
+        else:
+            # 일반 주문: YYMMDD + 00~99 형식
+            last_order = cls.objects.filter(
+                order_id__isnull=False,
+                order_id__regex=r'^\d{6}\d{2}$'  # YYMMDDNN 형식 확인
+            ).order_by('-created_at').first()
+
+            if last_order and last_order.order_id:
+                # Order ID의 마지막 2자리 추출
+                counter = int(last_order.order_id[-2:])
+                # 99 다음은 00으로 리셋
+                next_counter = (counter + 1) % 100
+                return next_counter
+            return 0  # 첫 번째 주문은 00
+
     @classmethod
-    def generate_order_id(cls):
-        """Order ID 생성 (YYMMDD + 00~99)"""
+    def generate_order_id(cls, is_db_order=False):
+        """Order ID 생성
+
+        Args:
+            is_db_order (bool): DB 주문 여부
+
+        Returns:
+            str: 생성된 Order ID
+                - 일반 주문: YYMMDD + 00~99 (예: 25100700)
+                - DB 주문: DB + YYMMDD + 0000~9999 (예: DB2510070000)
+        """
         today = datetime.now()
         date_str = today.strftime('%y%m%d')
-        counter = cls.get_next_order_counter()
-        return f"{date_str}{counter:02d}"
+        counter = cls.get_next_order_counter(is_db_order=is_db_order)
+
+        if is_db_order:
+            return f"DB{date_str}{counter:04d}"
+        else:
+            return f"{date_str}{counter:02d}"
     
     @classmethod 
     def generate_request_id(cls, order_id):
