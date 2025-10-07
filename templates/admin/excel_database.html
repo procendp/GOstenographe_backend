@@ -4,7 +4,28 @@
 {% block content %}
 <div class="p-6">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
+        <div class="flex items-center gap-4">
+            <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
+
+            <!-- 주문서 관리 전용 버튼들 (추가/삭제) -->
+            {% if show_add_delete %}
+            <div style="display: flex; gap: 0.5rem;">
+                <button onclick="openAddModal()" style="padding: 0.5rem 1rem; background-color: #dcfce7; color: #166534; border-radius: 9999px; border: 1px solid #86efac; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#bbf7d0'" onmouseout="this.style.backgroundColor='#dcfce7'">
+                    <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span>주문서 추가</span>
+                </button>
+                <button onclick="deleteSelected()" style="padding: 0.5rem 1rem; background-color: #fee2e2; color: #991b1b; border-radius: 9999px; border: 1px solid #fca5a5; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">
+                    <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    <span>선택 삭제</span>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
         <div class="flex space-x-2">
             <!-- 새로고침 버튼 -->
             <button onclick="window.location.reload()" style="padding: 0.5rem 1rem; background-color: #f3f4f6; color: #374151; border-radius: 9999px; border: 1px solid #d1d5db; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
@@ -14,9 +35,9 @@
                 <span>새로고침</span>
             </button>
 
-            <!-- Order ID List 전용 버튼들 -->
+            <!-- 주문서 관리 전용 버튼들 -->
             {% if hide_request_id %}
-            <button onclick="sendQuotationGuide()" style="padding: 0.5rem 1rem; background-color: #d1fae5; color: #047857; border-radius: 9999px; border: 1px solid #a7f3d0; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#a7f3d0'" onmouseout="this.style.backgroundColor='#d1fae5'">
+            <button onclick="sendQuotationGuide()" style="padding: 0.5rem 1rem; background-color: #fef3c7; color: #92400e; border-radius: 9999px; border: 1px solid #fcd34d; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
                 <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m-3-1h6M9 21h6"></path>
                 </svg>
@@ -30,7 +51,7 @@
             </button>
             {% endif %}
 
-            <!-- Request ID List 전용 버튼들 -->
+            <!-- 요청서 관리 전용 버튼들 -->
             {% if hide_order_id %}
             <button onclick="sendDraftGuide()" style="padding: 0.5rem 1rem; background-color: #fef3c7; color: #92400e; border-radius: 9999px; border: 1px solid #fcd34d; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
                 <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -295,12 +295,12 @@ UNFOLD = {
                 "separator": True,
                 "items": [
                     {
-                        "title": "통합 뷰",
+                        "title": "통합 관리",
                         "icon": "table_view",
                         "link": "/admin/database/integratedview/",
                     },
                     {
-                        "title": "주문서 관리 (결제)",
+                        "title": "주문서 관리 (추가/삭제, 결제 처리)",
                         "icon": "table_view",
                         "link": "/admin/database/ordermanagement/",
                     },

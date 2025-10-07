@@ -6,22 +6,22 @@ from requests.models import Request
 
 @admin.register(IntegratedView)
 class IntegratedViewAdmin(ModelAdmin):
-    """엑셀 뷰 - 기존과 동일"""
+    """통합 관리 - 읽기 전용"""
     list_display = (
-        'id', 'name', 'email', 'phone', 'status_display', 
+        'id', 'name', 'email', 'phone', 'status_display',
         'recording_date', 'recording_location', 'speaker_count',
         'draft_format', 'final_option', 'created_at'
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
     search_fields = ('name', 'email', 'phone', 'recording_location')
     list_per_page = 50
-    
+
     change_list_template = 'admin/excel_database.html'
-    
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False)
-    
+
     def status_display(self, obj):
         status_colors = {
             'pending': 'background-color: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 12px; font-size: 12px;',
@@ -36,13 +36,13 @@ class IntegratedViewAdmin(ModelAdmin):
             obj.get_status_display()
         )
     status_display.short_description = '상태'
-    
+
     def has_add_permission(self, request):
         return False
-    
+
     def has_delete_permission(self, request, obj=None):
         return False
-    
+
     def has_change_permission(self, request, obj=None):
         return False
 
@@ -56,9 +56,10 @@ class OrderManagementAdmin(ModelAdmin):
     )
     
     def changelist_view(self, request, extra_context=None):
-        """Option A용 커스텀 템플릿 컨텍스트"""
+        """주문서 관리용 커스텀 템플릿 컨텍스트"""
         extra_context = extra_context or {}
-        extra_context['hide_request_id'] = True  # Option A에서만 Request ID 숨김
+        extra_context['hide_request_id'] = True  # Request ID 숨김
+        extra_context['show_add_delete'] = True  # 추가/삭제 버튼 표시
         return super().changelist_view(request, extra_context)
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('order_id', 'name', 'email', 'phone')
@@ -119,15 +120,15 @@ class OrderManagementAdmin(ModelAdmin):
             style, obj.get_status_display()
         )
     status_display.short_description = '상태'
-    
+
     def has_add_permission(self, request):
-        return False
-    
+        return False  # 커스텀 버튼으로만 추가
+
     def has_delete_permission(self, request, obj=None):
-        return False
-    
+        return False  # 커스텀 버튼으로만 삭제
+
     def has_change_permission(self, request, obj=None):
-        return False
+        return False  # 읽기 전용
 
 @admin.register(RequestManagement)
 class RequestManagementAdmin(ModelAdmin):
