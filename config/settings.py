@@ -59,6 +59,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'django.middleware.gzip.GZipMiddleware',  # 응답 압축 (모바일 최적화)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -157,6 +158,20 @@ AUTH_USER_MODEL = 'core.User'
 # CORS 설정
 CORS_ALLOW_ALL_ORIGINS = True  # 개발 환경에서만 사용
 CORS_ALLOW_CREDENTIALS = True
+
+# REST Framework 설정 (모바일 최적화)
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,  # 모바일 친화적 페이지 크기
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',  # 익명 사용자 제한
+        'user': '1000/hour'  # 인증 사용자 제한
+    },
+}
 
 # AWS S3 설정
 AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']

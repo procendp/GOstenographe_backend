@@ -36,6 +36,12 @@ class RequestViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     lookup_field = 'request_id'
 
+    def get_queryset(self):
+        """
+        쿼리 최적화: 연관된 파일과 트랜스크립트를 한 번에 조회 (N+1 문제 해결)
+        """
+        return Request.objects.select_related('transcript_file').prefetch_related('files')
+
     def get_object(self):
         """
         request_id 또는 pk로 객체를 조회합니다.
