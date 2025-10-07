@@ -7,39 +7,39 @@
         <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
         <div class="flex space-x-2">
             <!-- 새로고침 버튼 -->
-            <button onclick="window.location.reload()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 border border-gray-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="window.location.reload()" style="padding: 0.5rem 1rem; background-color: #f3f4f6; color: #374151; border-radius: 9999px; border: 1px solid #d1d5db; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#e5e7eb'" onmouseout="this.style.backgroundColor='#f3f4f6'">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
                 <span>새로고침</span>
             </button>
-            
+
             <!-- Order ID List 전용 버튼들 -->
             {% if hide_request_id %}
-            <button onclick="sendQuotationGuide()" class="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 border border-emerald-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="sendQuotationGuide()" style="padding: 0.5rem 1rem; background-color: #d1fae5; color: #047857; border-radius: 9999px; border: 1px solid #a7f3d0; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#a7f3d0'" onmouseout="this.style.backgroundColor='#d1fae5'">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m-3-1h6M9 21h6"></path>
                 </svg>
                 <span>견적 및 입금 안내</span>
             </button>
-            <button onclick="sendPaymentCompletionGuide()" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 border border-blue-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="sendPaymentCompletionGuide()" style="padding: 0.5rem 1rem; background-color: #dbeafe; color: #1e40af; border-radius: 9999px; border: 1px solid #93c5fd; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#bfdbfe'" onmouseout="this.style.backgroundColor='#dbeafe'">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <span>결제 완료 안내</span>
             </button>
             {% endif %}
-            
+
             <!-- Request ID List 전용 버튼들 -->
             {% if hide_order_id %}
-            <button onclick="sendDraftGuide()" class="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 border border-amber-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="sendDraftGuide()" style="padding: 0.5rem 1rem; background-color: #fef3c7; color: #92400e; border-radius: 9999px; border: 1px solid #fcd34d; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                 </svg>
-                <span>속기록 초안/수정안 요청 안내</span>
+                <span>속기록 초안/수정안 안내</span>
             </button>
-            <button onclick="sendFinalDraftGuide()" class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 border border-purple-300 text-sm font-medium transition-colors duration-200 flex items-center space-x-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button onclick="sendFinalDraftGuide()" style="padding: 0.5rem 1rem; background-color: #e9d5ff; color: #6b21a8; border-radius: 9999px; border: 1px solid #d8b4fe; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;" onmouseover="this.style.backgroundColor='#d8b4fe'" onmouseout="this.style.backgroundColor='#e9d5ff'">
+                <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
                 </svg>
                 <span>속기록 최종안 안내</span>
