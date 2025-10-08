@@ -146,6 +146,7 @@ def create_db_order(request):
         data = json.loads(request.body)
 
         logger.info(f'[create_db_order] 요청 데이터: {data}')
+        logger.info(f'[create_db_order] files 데이터: {data.get("files", [])}')
 
         # 필수 필드 검증
         required_fields = ['name', 'email', 'phone']
@@ -158,8 +159,8 @@ def create_db_order(request):
 
         # 트랜잭션 시작
         with transaction.atomic():
-            # Request 생성
-            request_data = {
+            # 기본 주문자 정보 (모든 Request에 공통으로 사용)
+            base_request_data = {
                 'order_id': order_id,
                 'name': data.get('name'),
                 'email': data.get('email'),
@@ -180,17 +181,26 @@ def create_db_order(request):
                 'is_temporary': False  # DB 주문은 정식 주문
             }
 
-            # Request 생성 (skip_auto_email=True로 이메일 발송 방지)
-            request_instance = Request(**request_data)
-            request_instance.save(skip_auto_email=True)
-
-            # 파일 정보 저장
+            # 파일 정보 처리 - 각 파일별로 개별 Request 생성 (프론트엔드와 동일한 로직)
             files_data = data.get('files', [])
+            logger.info(f'[create_db_order] 파일별 Request 생성 시작 - 파일 수: {len(files_data)}')
+            created_requests = []
             created_files = []
 
-            for file_data in files_data:
+            for i, file_data in enumerate(files_data):
+                logger.info(f'[create_db_order] 파일 {i+1} 데이터: {file_data}')
+                
+                # 각 파일별로 개별 Request 생성
+                request_data = base_request_data.copy()
+                request_instance = Request(**request_data)
+                request_instance.save(skip_auto_email=True)
+                
+                logger.info(f'[create_db_order] 파일 {i+1} Request 생성 완료 - Request ID: {request_instance.request_id}')
+                
+                # 해당 파일을 개별 Request에 연결
                 file_key = file_data.get('file_key')
                 if file_key:
+                    logger.info(f'[create_db_order] 파일 {i+1} 저장 중: {file_key}')
                     file_instance = File.objects.create(
                         request=request_instance,
                         file=file_key,
@@ -200,16 +210,24 @@ def create_db_order(request):
                     )
                     created_files.append({
                         'file_key': file_instance.file,
-                        'original_name': file_instance.original_name
+                        'original_name': file_instance.original_name,
+                        'request_id': request_instance.request_id
                     })
+                    created_requests.append({
+                        'request_id': request_instance.request_id,
+                        'order_id': request_instance.order_id
+                    })
+                    logger.info(f'[create_db_order] 파일 {i+1} 저장 완료: ID {file_instance.id}, Request ID: {request_instance.request_id}')
+                else:
+                    logger.warning(f'[create_db_order] 파일 {i+1}에 file_key가 없음')
 
-            logger.info(f'[create_db_order] DB 주문 생성 완료 - Order ID: {order_id}, Request ID: {request_instance.request_id}, 파일 수: {len(created_files)}')
+            logger.info(f'[create_db_order] DB 주문 생성 완료 - Order ID: {order_id}, Request 수: {len(created_requests)}, 파일 수: {len(created_files)}')
 
             return JsonResponse({
                 'success': True,
-                'message': 'DB 주문서가 생성되었습니다.',
-                'order_id': request_instance.order_id,
-                'request_id': request_instance.request_id,
+                'message': f'DB 주문서가 생성되었습니다. ({len(created_requests)}개의 요청)',
+                'order_id': order_id,
+                'requests': created_requests,
                 'files': created_files
             })
 
@@ -220,3 +238,51 @@ def create_db_order(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@staff_member_required
+@require_POST
+@csrf_exempt
+def delete_uploaded_files(request):
+    """
+    업로드된 파일들을 S3와 DB에서 삭제
+    """
+    try:
+        data = json.loads(request.body)
+        file_keys = data.get('file_keys', [])
+        
+        if not file_keys:
+            return JsonResponse({'error': '삭제할 파일이 없습니다.'}, status=400)
+        
+        deleted_files = []
+        failed_files = []
+        
+        for file_key in file_keys:
+            try:
+                # S3에서 파일 삭제
+                s3_client = boto3.client('s3', region_name=settings.AWS_S3_REGION_NAME)
+                s3_client.delete_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=file_key
+                )
+                
+                # DB에서 파일 정보 삭제 (연결되지 않은 파일들)
+                File.objects.filter(file=file_key, request__isnull=True).delete()
+                
+                deleted_files.append(file_key)
+                logger.info(f'[delete_uploaded_files] 파일 삭제 완료: {file_key}')
+                
+            except Exception as e:
+                failed_files.append({'file_key': file_key, 'error': str(e)})
+                logger.error(f'[delete_uploaded_files] 파일 삭제 실패: {file_key}, 오류: {str(e)}')
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_files': deleted_files,
+            'failed_files': failed_files,
+            'message': f'{len(deleted_files)}개 파일이 삭제되었습니다.'
+        })
+        
+    except Exception as e:
+        logger.error(f'[delete_uploaded_files] 오류 발생: {str(e)}')
+        return JsonResponse({'error': '파일 삭제 중 오류가 발생했습니다.'}, status=500)

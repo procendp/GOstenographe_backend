@@ -50,9 +50,9 @@ class IntegratedViewAdmin(ModelAdmin):
 class OrderManagementAdmin(ModelAdmin):
     """Order ID List - Order ID 기준으로 표시"""
     list_display = (
-        'order_id_with_requests', 'file_info', 'name', 'email', 'phone', 'status_display',
+        'order_id_with_requests', 'attachment_files', 'name', 'email', 'phone_display', 'status_display',
         'recording_date', 'speaker_count', 'payment_amount',
-        'draft_format', 'final_option', 'created_at'
+        'draft_format', 'final_option_display', 'created_at'
     )
     
     def changelist_view(self, request, extra_context=None):
@@ -79,31 +79,22 @@ class OrderManagementAdmin(ModelAdmin):
         return obj.order_id if obj.order_id else '-'
     order_id_with_requests.short_description = 'Order ID'
     
-    def file_info(self, obj):
-        """파일 정보 표시 (Request ID는 내부적으로만 사용)"""
-        if obj.request_id:
-            # 파일 번호를 Order 내에서 계산
-            same_order = Request.objects.filter(
-                order_id=obj.order_id,
-                is_temporary=False
-            ).order_by('request_id').values_list('request_id', flat=True)
+    def attachment_files(self, obj):
+        """첨부 파일 표시"""
+        files = obj.files.all()
+        if files:
+            file_list = []
+            for file in files:
+                file_name = file.original_name or file.file.split('/')[-1] if file.file else 'Unknown'
+                file_size = f"({file.file_size // 1024 // 1024}MB)" if file.file_size else ""
+                file_list.append(f"{file_name} {file_size}")
             
-            file_list = list(same_order)
-            if obj.request_id in file_list:
-                file_num = file_list.index(obj.request_id) + 1
-                total_files = len(file_list)
-                
-                if total_files > 1:
-                    return format_html(
-                        '<span style="color: #6b7280; font-size: 12px;">File {}/{}</span>',
-                        file_num, total_files
-                    )
-                else:
-                    return format_html(
-                        '<span style="color: #6b7280; font-size: 12px;">Single file</span>'
-                    )
-        return '-'
-    file_info.short_description = 'File Info'
+            return format_html(
+                '<div style="font-size: 12px; color: #374151;">{}</div>',
+                '<br>'.join(file_list)
+            )
+        return format_html('<span style="color: #9ca3af;">No files</span>')
+    attachment_files.short_description = '첨부 파일'
     
     def status_display(self, obj):
         status_colors = {
@@ -121,6 +112,42 @@ class OrderManagementAdmin(ModelAdmin):
         )
     status_display.short_description = '상태'
 
+    def final_option_display(self, obj):
+        """최종본 옵션을 사용자 친화적 텍스트로 표시"""
+        option_map = {
+            'file': '파일',
+            'file_post': '파일 +등기 우편 (+5,000원)',
+            'file_post_cd': '파일 +등기 우편 +CD (+6,000원)',
+            'file_post_usb': '파일 +등기 우편 +USB (+10,000원)',
+            'file_usb': '파일+우편 (+5,000원)',  # 기존 값 호환성
+            'file_usb_cd': '파일+우편+CD (+5,000원)',  # 기존 값 호환성
+            'file_usb_post': '파일+우편+USB (+5,000원)',  # 기존 값 호환성
+        }
+        return option_map.get(obj.final_option, obj.final_option)
+    final_option_display.short_description = '최종본 옵션'
+
+    def phone_display(self, obj):
+        """연락처를 하이픈 포함 형식으로 표시"""
+        if not obj.phone:
+            return '-'
+        
+        # 숫자만 추출
+        phone_digits = ''.join(filter(str.isdigit, obj.phone))
+        
+        # 010으로 시작하는 11자리 번호인 경우
+        if len(phone_digits) == 11 and phone_digits.startswith('010'):
+            return f"{phone_digits[:3]}-{phone_digits[3:7]}-{phone_digits[7:]}"
+        # 02로 시작하는 10자리 번호인 경우 (서울)
+        elif len(phone_digits) == 10 and phone_digits.startswith('02'):
+            return f"{phone_digits[:2]}-{phone_digits[2:6]}-{phone_digits[6:]}"
+        # 기타 지역번호로 시작하는 10자리 번호인 경우
+        elif len(phone_digits) == 10:
+            return f"{phone_digits[:3]}-{phone_digits[3:6]}-{phone_digits[6:]}"
+        # 형식이 맞지 않는 경우 원본 반환
+        else:
+            return obj.phone
+    phone_display.short_description = '연락처'
+
     def has_add_permission(self, request):
         return False  # 커스텀 버튼으로만 추가
 
@@ -134,9 +161,9 @@ class OrderManagementAdmin(ModelAdmin):
 class RequestManagementAdmin(ModelAdmin):
     """Request ID List - Request ID 기준으로 모든 레코드 표시"""
     list_display = (
-        'request_id', 'order_id', 'name', 'email', 'phone', 'status_display',
+        'request_id', 'order_id', 'attachment_files', 'name', 'email', 'phone_display', 'status_display',
         'recording_date', 'speaker_count', 'payment_amount',
-        'draft_format', 'final_option', 'created_at'
+        'draft_format', 'final_option_display', 'created_at'
     )
     
     def changelist_view(self, request, extra_context=None):
@@ -157,6 +184,23 @@ class RequestManagementAdmin(ModelAdmin):
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False)
     
+    def attachment_files(self, obj):
+        """첨부 파일 표시"""
+        files = obj.files.all()
+        if files:
+            file_list = []
+            for file in files:
+                file_name = file.original_name or file.file.split('/')[-1] if file.file else 'Unknown'
+                file_size = f"({file.file_size // 1024 // 1024}MB)" if file.file_size else ""
+                file_list.append(f"{file_name} {file_size}")
+            
+            return format_html(
+                '<div style="font-size: 12px; color: #374151;">{}</div>',
+                '<br>'.join(file_list)
+            )
+        return format_html('<span style="color: #9ca3af;">No files</span>')
+    attachment_files.short_description = '첨부 파일'
+    
     def status_display(self, obj):
         status_colors = {
             'received': 'background-color: #fef3c7; color: #92400e;',
@@ -172,6 +216,42 @@ class RequestManagementAdmin(ModelAdmin):
             style, obj.get_status_display()
         )
     status_display.short_description = '상태'
+
+    def final_option_display(self, obj):
+        """최종본 옵션을 사용자 친화적 텍스트로 표시"""
+        option_map = {
+            'file': '파일',
+            'file_post': '파일 +등기 우편 (+5,000원)',
+            'file_post_cd': '파일 +등기 우편 +CD (+6,000원)',
+            'file_post_usb': '파일 +등기 우편 +USB (+10,000원)',
+            'file_usb': '파일+우편 (+5,000원)',  # 기존 값 호환성
+            'file_usb_cd': '파일+우편+CD (+5,000원)',  # 기존 값 호환성
+            'file_usb_post': '파일+우편+USB (+5,000원)',  # 기존 값 호환성
+        }
+        return option_map.get(obj.final_option, obj.final_option)
+    final_option_display.short_description = '최종본 옵션'
+
+    def phone_display(self, obj):
+        """연락처를 하이픈 포함 형식으로 표시"""
+        if not obj.phone:
+            return '-'
+        
+        # 숫자만 추출
+        phone_digits = ''.join(filter(str.isdigit, obj.phone))
+        
+        # 010으로 시작하는 11자리 번호인 경우
+        if len(phone_digits) == 11 and phone_digits.startswith('010'):
+            return f"{phone_digits[:3]}-{phone_digits[3:7]}-{phone_digits[7:]}"
+        # 02로 시작하는 10자리 번호인 경우 (서울)
+        elif len(phone_digits) == 10 and phone_digits.startswith('02'):
+            return f"{phone_digits[:2]}-{phone_digits[2:6]}-{phone_digits[6:]}"
+        # 기타 지역번호로 시작하는 10자리 번호인 경우
+        elif len(phone_digits) == 10:
+            return f"{phone_digits[:3]}-{phone_digits[3:6]}-{phone_digits[6:]}"
+        # 형식이 맞지 않는 경우 원본 반환
+        else:
+            return obj.phone
+    phone_display.short_description = '연락처'
     
     def has_add_permission(self, request):
         return False
