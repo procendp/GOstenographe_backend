@@ -1929,7 +1929,8 @@
                 }
             }
             
-            // 데이터 셀 너비 계산
+            // 첨부파일 컬럼인지 확인
+            const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');            // 데이터 셀 너비 계산
             for (let i = 1; i < rows.length; i++) {
                 const cell = rows[i].cells[columnIndex];
                 if (cell) {
