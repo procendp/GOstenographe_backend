@@ -166,13 +166,6 @@ def create_db_order(request):
                 'email': data.get('email'),
                 'phone': data.get('phone'),
                 'address': data.get('address', ''),
-                'recording_type': data.get('recording_type', '전체'),
-                'partial_range': data.get('partial_range', ''),
-                'total_duration': data.get('total_duration', ''),
-                'speaker_count': data.get('speaker_count', 1),
-                'speaker_names': data.get('speaker_names', ''),
-                'recording_date': data.get('recording_date'),
-                'additional_info': data.get('additional_info', ''),
                 'draft_format': data.get('draft_format', 'hwp'),
                 'final_option': data.get('final_option', 'file'),
                 'payment_status': data.get('payment_status', False),
@@ -190,8 +183,20 @@ def create_db_order(request):
             for i, file_data in enumerate(files_data):
                 logger.info(f'[create_db_order] 파일 {i+1} 데이터: {file_data}')
                 
-                # 각 파일별로 개별 Request 생성
+                # 각 파일별로 개별 Request 생성 (파일별 설정 포함)
                 request_data = base_request_data.copy()
+                
+                # 파일별 설정 데이터 추가
+                request_data.update({
+                    'recording_type': file_data.get('recording_type', '전체'),
+                    'partial_range': file_data.get('partial_range', ''),
+                    'total_duration': file_data.get('total_duration', ''),
+                    'speaker_count': file_data.get('speaker_count', 1),
+                    'speaker_names': file_data.get('speaker_names', ''),
+                    'recording_date': file_data.get('recording_date') or None,  # 빈 문자열을 None으로 변환
+                    'additional_info': file_data.get('additional_info', ''),
+                })
+                
                 request_instance = Request(**request_data)
                 request_instance.save(skip_auto_email=True)
                 

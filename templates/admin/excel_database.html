@@ -293,6 +293,14 @@
                             </button>
                         </div>
                         <div id="fileUploadProgress" style="margin-top: 12px; display: none;"></div>
+                                                <div id="fileTabsContainer" style="margin-bottom: 20px; display: none;">
+                            <div id="fileTabs" style="display: flex; gap: 0; overflow-x: auto; padding-bottom: 0; border-bottom: 2px solid #e5e7eb; background-color: #f8f9fa; scrollbar-width: thin;">
+                                <!-- 파일 탭들이 여기에 동적으로 추가됩니다 -->
+                            </div>
+                            <div id="fileSettingsPanel" style="background-color: #ffffff; border: 2px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px; min-height: 400px;">
+                                <!-- 파일별 설정 패널이 여기에 동적으로 로드됩니다 -->
+                            </div>
+                        </div>
                         <div id="uploadedFiles" style="margin-top: 12px;"></div>
                     </div>
 
@@ -1380,6 +1388,11 @@
     </style>
 
     <script>
+    // 파일 탭 관련 변수들
+    let activeFileTabIndex = 0;
+    let fileTabsData = [];
+    
+    
     // 파일 정보 맵핑 (transcript_file로 변경)
     const transcriptDataMap = {
         {% regroup cl.result_list by order_id as order_groups %}
@@ -2636,7 +2649,18 @@
         uploadedFilesData = [];
         document.getElementById('uploadedFiles').innerHTML = '';
         document.getElementById('fileUploadProgress').style.display = 'none';
-
+        
+        // 파일 탭 관련 데이터 초기화
+        fileTabsData = [];
+        activeFileTabIndex = 0;
+        
+        // 파일 탭 컨테이너 숨김
+        const fileTabsContainer = document.getElementById('fileTabsContainer');
+        if (fileTabsContainer) {
+            fileTabsContainer.style.display = 'none';
+            document.getElementById('fileTabs').innerHTML = '';
+            document.getElementById('fileSettingsPanel').innerHTML = '';
+        }
         // Order ID와 Request ID 생성
         try {
             const response = await fetch('/api/database/generate-db-order-id/', {
@@ -2686,9 +2710,24 @@
 
     async function closeAddModal() {
         document.getElementById('addOrderModal').style.display = 'none';
+        
+        // 모든 데이터 초기화
         uploadedFilesData = [];
+        fileTabsData = [];
+        activeFileTabIndex = 0;
+        
+        // 파일 탭 컨테이너 숨김 및 초기화
+        const fileTabsContainer = document.getElementById('fileTabsContainer');
+        if (fileTabsContainer) {
+            fileTabsContainer.style.display = 'none';
+            document.getElementById('fileTabs').innerHTML = '';
+            document.getElementById('fileSettingsPanel').innerHTML = '';
+        }
+        
+        // 업로드된 파일 목록 초기화
+        document.getElementById('uploadedFiles').innerHTML = '';
+        document.getElementById('fileUploadProgress').style.display = 'none';
     }
-
     async function confirmCloseAddModal() {
         // 업로드된 파일이 있다면 삭제 확인
         if (uploadedFilesData.length > 0) {
@@ -2777,7 +2816,9 @@
             saveBtn.innerHTML = '저장';
 
             showNotification(`${uploadedFilesData.length}개 파일 업로드 완료`, 'success');
-        } catch (error) {
+            
+            // 파일 탭 생성
+            await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
             console.error('파일 업로드 오류:', error);
             showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
             saveBtn.disabled = false;
@@ -3952,6 +3993,317 @@
         });
     }
 
+    
+    // 파일 업로드 후 탭 생성
+    async function createFileSettingsTabs(files) {
+        const tabsContainer = document.getElementById('fileTabs');
+        const settingsPanel = document.getElementById('fileSettingsPanel');
+        const fileTabsContainer = document.getElementById('fileTabsContainer');
+        
+        // 컨테이너 표시
+        fileTabsContainer.style.display = 'block';
+        
+        // 기존 탭과 패널 초기화
+        tabsContainer.innerHTML = '';
+        settingsPanel.innerHTML = '';
+        fileTabsData = [];
+        
+        // 각 파일에 대해 탭과 설정 패널 생성
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const orderId = document.getElementById('orderIdInput').value;
+            const requestId = `${orderId}${String(i).padStart(2, '0')}`;
+            
+            // 미디어 길이 추출
+            let duration = '00:00:00';
+            if (file.type && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
+                duration = await getMediaDuration(file);
+            }
+            
+            // 파일 탭 데이터 저장
+            fileTabsData.push({
+                file: file,
+                requestId: requestId,
+                recordingType: '전체',
+                totalDuration: duration,
+                partialRange: '',
+                speakerCount: 1,
+                speakerNames: '',
+                recordingDate: '',
+                additionalInfo: ''
+            });
+            
+            // 탭 버튼 생성
+            const tab = document.createElement('div');
+            tab.id = `fileTab${i}`;
+            tab.className = 'file-tab';
+            tab.dataset.index = i;
+            
+            // 파일명만 표시 (Request ID 제거하고 길이 제한)
+            const fileName = file.original_name || file.name;
+            const displayName = fileName.length > 18 ? fileName.substring(0, 15) + '...' : fileName;
+            
+            tab.style.cssText = `
+                width: 200px;
+                min-width: 120px;
+                max-width: 200px;
+                padding: 12px 8px;
+                background-color: ${i === 0 ? '#ffffff' : '#f8f9fa'};
+                color: ${i === 0 ? '#059669' : '#6b7280'};
+                border: 2px solid #e5e7eb;
+                border-bottom: ${i === 0 ? '2px solid #ffffff' : '2px solid #e5e7eb'};
+                border-radius: 0;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: ${i === 0 ? '600' : '500'};
+                position: relative;
+                transition: all 0.2s;
+                display: flex;
+                align-items: center;
+                margin-right: 2px;
+                box-shadow: ${i === 0 ? '0 -2px 4px rgba(0,0,0,0.1)' : 'none'};
+                z-index: ${i === 0 ? '2' : '1'};
+                flex-shrink: 0;
+            `;
+            
+            tab.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; position: relative;">
+                    <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 20px;" title="${fileName}">${displayName}</span>
+                    <button class="tab-delete-btn" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border: none; background: none; color: #dc2626; cursor: pointer; font-size: 14px; font-weight: bold; opacity: 0; transition: opacity 0.2s; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="deleteFileTab(${i}, event)" title="삭제">×</button>
+                </div>
+            `;
+            
+            // 탭 클릭 이벤트
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                switchFileTab(i);
+            });
+            
+            // 탭 호버 이벤트 (삭제 버튼 표시/숨김)
+            tab.addEventListener('mouseenter', () => {
+                const deleteBtn = tab.querySelector('.tab-delete-btn');
+                if (deleteBtn) deleteBtn.style.opacity = '1';
+            });
+            
+            tab.addEventListener('mouseleave', () => {
+                const deleteBtn = tab.querySelector('.tab-delete-btn');
+                if (deleteBtn) deleteBtn.style.opacity = '0';
+            });
+            
+            tabsContainer.appendChild(tab);
+        }
+        
+        // 첫 번째 탭 활성화
+        if (files.length > 0) {
+            switchFileTab(0);
+        }
+    }
+    
+    
+    // 파일 탭 전환
+    function switchFileTab(index) {
+        // 주문자명 필드 validation 방지
+        const nameInput = document.getElementById('nameInput');
+        if (nameInput) {
+            nameInput.required = false;
+        }
+        
+        activeFileTabIndex = index;
+        
+        // 모든 탭 비활성화
+        document.querySelectorAll('.file-tab').forEach((tab, i) => {
+            if (i === index) {
+                tab.style.backgroundColor = '#ffffff';
+                tab.style.color = '#059669';
+                tab.style.borderBottom = '2px solid #ffffff';
+                tab.style.fontWeight = '600';
+                tab.style.boxShadow = '0 -2px 4px rgba(0,0,0,0.1)';
+                tab.style.zIndex = '2';
+            } else {
+                tab.style.backgroundColor = '#f8f9fa';
+                tab.style.color = '#6b7280';
+                tab.style.borderBottom = '2px solid #e5e7eb';
+                tab.style.fontWeight = '500';
+                tab.style.boxShadow = 'none';
+                tab.style.zIndex = '1';
+            }
+        });
+        
+        // 설정 패널 내용 업데이트
+        updateFileSettingsPanel(index);
+    }
+    
+    
+    // 파일 설정 패널 업데이트
+    function updateFileSettingsPanel(index) {
+        const settingsPanel = document.getElementById('fileSettingsPanel');
+        const fileData = fileTabsData[index];
+        
+        if (!fileData) return;
+        
+        const panel = document.createElement('div');
+        panel.innerHTML = `
+            <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <div style="font-weight: 600; color: #374151; margin-bottom: 8px;">📄 ${fileData.file.original_name || fileData.file.name}</div>
+                <div style="font-size: 13px; color: #6b7280;">Request ID: ${fileData.requestId}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
+                    <select id="recordingType${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingType', this.value); togglePartialRange(${index})">
+                        <option value="전체">전체</option>
+                        <option value="부분">부분</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
+                    <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">부분 녹취 구간</label>
+                <textarea id="partialRange${index}" rows="2" placeholder="예: 00:00:00 - 00:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; background-color: #f3f4f6; color: #9ca3af;" disabled oninput="updateFileTabData(${index}, 'partialRange', this.value)"></textarea>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수</label>
+                    <input id="speakerCount${index}" type="number" min="1" max="5" value="${fileData.speakerCount}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'speakerCount', this.value)">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자 이름</label>
+                    <input id="speakerNames${index}" type="text" placeholder="예: 홍길동,김철수" value="${fileData.speakerNames}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'speakerNames', this.value)">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 일시</label>
+                <input id="recordingDate${index}" type="datetime-local" value="${fileData.recordingDate}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'recordingDate', this.value)">
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">상세 정보</label>
+                <textarea id="additionalInfo${index}" rows="3" placeholder="추가 정보를 입력하세요" value="${fileData.additionalInfo}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;" oninput="updateFileTabData(${index}, 'additionalInfo', this.value)">${fileData.additionalInfo}</textarea>
+            </div>
+        `;
+        
+        settingsPanel.innerHTML = '';
+        settingsPanel.appendChild(panel);
+        
+        // 녹취 타입에 따라 부분 구간 필드 토글
+        togglePartialRange(index);
+    }
+    
+    
+    // 미디어 파일 길이 추출
+    function getMediaDuration(file) {
+        return new Promise((resolve) => {
+            const isAudio = file.type && file.type.startsWith('audio/');
+            const isVideo = file.type && file.type.startsWith('video/');
+            
+            if (!isAudio && !isVideo) {
+                resolve('00:00:00');
+                return;
+            }
+            
+            const media = isAudio ? new Audio() : document.createElement('video');
+            const objectUrl = URL.createObjectURL(file);
+            
+            media.preload = 'metadata';
+            
+            media.onloadedmetadata = () => {
+                URL.revokeObjectURL(objectUrl);
+                const duration = media.duration;
+                if (isNaN(duration) || !isFinite(duration)) {
+                    resolve('00:00:00');
+                    return;
+                }
+                const hours = Math.floor(duration / 3600);
+                const minutes = Math.floor((duration % 3600) / 60);
+                const seconds = Math.floor(duration % 60);
+                const formatted = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                resolve(formatted);
+            };
+            
+            media.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve('00:00:00');
+            };
+            
+            media.src = objectUrl;
+        });
+    }
+    
+    
+    // 파일 탭 데이터 업데이트
+    function updateFileTabData(index, field, value) {
+        if (fileTabsData[index]) {
+            fileTabsData[index][field] = value;
+        }
+    }
+    
+    // 부분 녹취 구간 필드 토글
+    function togglePartialRange(index) {
+        const recordingType = document.getElementById(`recordingType${index}`).value;
+        const partialRange = document.getElementById(`partialRange${index}`);
+        
+        if (recordingType === '전체') {
+            partialRange.disabled = true;
+            partialRange.style.backgroundColor = '#f3f4f6';
+            partialRange.style.color = '#9ca3af';
+            partialRange.value = '';
+            updateFileTabData(index, 'partialRange', '');
+        } else {
+            partialRange.disabled = false;
+            partialRange.style.backgroundColor = '#ffffff';
+            partialRange.style.color = '#374151';
+        }
+    }
+    
+    // 파일 탭 삭제
+    function deleteFileTab(index, event) {
+        if (event) event.stopPropagation();
+        
+        if (fileTabsData.length <= 1) {
+            showNotification('최소 하나의 파일은 필요합니다.', 'error');
+            return;
+        }
+        
+        if (confirm('이 파일을 삭제하시겠습니까?')) {
+            // 파일 데이터에서 제거
+            const fileData = fileTabsData[index];
+            fileTabsData.splice(index, 1);
+            
+            // 업로드된 파일 목록에서도 제거
+            uploadedFilesData.splice(index, 1);
+            
+            // 탭 UI 재생성
+            createFileSettingsTabs(uploadedFilesData);
+            
+            showNotification('파일이 삭제되었습니다.', 'success');
+        }
+    }
+    
+    // 파일 설정 데이터 수집
+    function getFileSettingsData() {
+        return fileTabsData.map(fileData => ({
+            file_key: fileData.file.file_key || fileData.file.key,
+            original_name: fileData.file.original_name || fileData.file.name,
+            file_type: fileData.file.type || '',
+            file_size: fileData.file.size || 0,
+            recording_type: fileData.recordingType,
+            total_duration: fileData.totalDuration,
+            partial_range: fileData.partialRange,
+            speaker_count: fileData.speakerCount,
+            speaker_names: fileData.speakerNames,
+            recording_date: fileData.recordingDate || null,
+            additional_info: fileData.additionalInfo
+        }));
+    }
+    
     </script>
 </div>
 {% endblock %}

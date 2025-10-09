@@ -54,3 +54,6 @@ coverage.xml
 .dmypy.json
 dmypy.json
 backups/
+*.backup
+*.bak
+*.bak[0-9]

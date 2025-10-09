@@ -8,9 +8,9 @@ from requests.models import Request
 class IntegratedViewAdmin(ModelAdmin):
     """통합 관리 - 읽기 전용"""
     list_display = (
-        'id', 'name', 'email', 'phone', 'status_display',
+        'id', 'name', 'email', 'phone_display', 'status_display',
         'recording_date', 'recording_location', 'speaker_count',
-        'draft_format', 'final_option', 'created_at'
+        'draft_format', 'final_option_display', 'created_at'
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
     search_fields = ('name', 'email', 'phone', 'recording_location')
@@ -112,42 +112,6 @@ class OrderManagementAdmin(ModelAdmin):
         )
     status_display.short_description = '상태'
 
-    def final_option_display(self, obj):
-        """최종본 옵션을 사용자 친화적 텍스트로 표시"""
-        option_map = {
-            'file': '파일',
-            'file_post': '파일 +등기 우편 (+5,000원)',
-            'file_post_cd': '파일 +등기 우편 +CD (+6,000원)',
-            'file_post_usb': '파일 +등기 우편 +USB (+10,000원)',
-            'file_usb': '파일+우편 (+5,000원)',  # 기존 값 호환성
-            'file_usb_cd': '파일+우편+CD (+5,000원)',  # 기존 값 호환성
-            'file_usb_post': '파일+우편+USB (+5,000원)',  # 기존 값 호환성
-        }
-        return option_map.get(obj.final_option, obj.final_option)
-    final_option_display.short_description = '최종본 옵션'
-
-    def phone_display(self, obj):
-        """연락처를 하이픈 포함 형식으로 표시"""
-        if not obj.phone:
-            return '-'
-        
-        # 숫자만 추출
-        phone_digits = ''.join(filter(str.isdigit, obj.phone))
-        
-        # 010으로 시작하는 11자리 번호인 경우
-        if len(phone_digits) == 11 and phone_digits.startswith('010'):
-            return f"{phone_digits[:3]}-{phone_digits[3:7]}-{phone_digits[7:]}"
-        # 02로 시작하는 10자리 번호인 경우 (서울)
-        elif len(phone_digits) == 10 and phone_digits.startswith('02'):
-            return f"{phone_digits[:2]}-{phone_digits[2:6]}-{phone_digits[6:]}"
-        # 기타 지역번호로 시작하는 10자리 번호인 경우
-        elif len(phone_digits) == 10:
-            return f"{phone_digits[:3]}-{phone_digits[3:6]}-{phone_digits[6:]}"
-        # 형식이 맞지 않는 경우 원본 반환
-        else:
-            return obj.phone
-    phone_display.short_description = '연락처'
-
     def has_add_permission(self, request):
         return False  # 커스텀 버튼으로만 추가
 
@@ -216,42 +180,6 @@ class RequestManagementAdmin(ModelAdmin):
             style, obj.get_status_display()
         )
     status_display.short_description = '상태'
-
-    def final_option_display(self, obj):
-        """최종본 옵션을 사용자 친화적 텍스트로 표시"""
-        option_map = {
-            'file': '파일',
-            'file_post': '파일 +등기 우편 (+5,000원)',
-            'file_post_cd': '파일 +등기 우편 +CD (+6,000원)',
-            'file_post_usb': '파일 +등기 우편 +USB (+10,000원)',
-            'file_usb': '파일+우편 (+5,000원)',  # 기존 값 호환성
-            'file_usb_cd': '파일+우편+CD (+5,000원)',  # 기존 값 호환성
-            'file_usb_post': '파일+우편+USB (+5,000원)',  # 기존 값 호환성
-        }
-        return option_map.get(obj.final_option, obj.final_option)
-    final_option_display.short_description = '최종본 옵션'
-
-    def phone_display(self, obj):
-        """연락처를 하이픈 포함 형식으로 표시"""
-        if not obj.phone:
-            return '-'
-        
-        # 숫자만 추출
-        phone_digits = ''.join(filter(str.isdigit, obj.phone))
-        
-        # 010으로 시작하는 11자리 번호인 경우
-        if len(phone_digits) == 11 and phone_digits.startswith('010'):
-            return f"{phone_digits[:3]}-{phone_digits[3:7]}-{phone_digits[7:]}"
-        # 02로 시작하는 10자리 번호인 경우 (서울)
-        elif len(phone_digits) == 10 and phone_digits.startswith('02'):
-            return f"{phone_digits[:2]}-{phone_digits[2:6]}-{phone_digits[6:]}"
-        # 기타 지역번호로 시작하는 10자리 번호인 경우
-        elif len(phone_digits) == 10:
-            return f"{phone_digits[:3]}-{phone_digits[3:6]}-{phone_digits[6:]}"
-        # 형식이 맞지 않는 경우 원본 반환
-        else:
-            return obj.phone
-    phone_display.short_description = '연락처'
     
     def has_add_permission(self, request):
         return False
