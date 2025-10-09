@@ -68,6 +68,38 @@ class OrderManagementAdmin(ModelAdmin):
     
     change_list_template = 'admin/excel_database.html'
     
+    def final_option_display(self, obj):
+        """최종본 옵션 표시 형식 개선"""
+        option_map = {
+            'file': '파일',
+            'file_post': '파일 + 등기 우편 (+5,000원)',
+            'file_post_cd': '파일 + 등기 우편 + CD (+6,000원)',
+            'file_post_usb': '파일 + 등기 우편 + USB (+10,000원)'
+        }
+        return option_map.get(obj.final_option, obj.final_option)
+    final_option_display.short_description = '최종본 옵션'
+    
+    def phone_display(self, obj):
+        """연락처 표시 형식 개선 (010-5590-7193 형태)"""
+        if not obj.phone:
+            return obj.phone
+        
+        import re
+        # 숫자만 추출
+        digits = re.sub(r'\D', '', obj.phone)
+        
+        # 010으로 시작하는 11자리 번호인 경우
+        if len(digits) == 11 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
+        
+        # 010으로 시작하는 10자리 번호인 경우 (중간 3자리)
+        if len(digits) == 10 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+        
+        # 다른 형식은 그대로 반환
+        return obj.phone
+    phone_display.short_description = '연락처'
+    
     def get_queryset(self, request):
         """모든 Request를 표시하되 Order ID로 정렬"""
         qs = super().get_queryset(request)

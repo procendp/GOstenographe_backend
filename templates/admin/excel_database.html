@@ -278,7 +278,7 @@
 
                     <!-- 파일 업로드 섹션 -->
                     <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">첨부 파일 (최대 5개, 파일당 최대 3GB)</label>
+                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">첨부 파일 (파일당 최대 3GB)</label>
                         <div style="position: relative; display: inline-block; width: 100%;">
                             <input type="file" id="fileInput" multiple accept=".txt,.hwp,.doc,.docx,.pdf,.ppt,.pptx,.xls,.xlsx,.mp3,.mp4,.asf,.m4v,.mov,.wmv,.avi,.wav,.zip" style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
                             <button type="button" style="width: 100%; padding: 12px; border: 2px dashed #d1d5db; border-radius: 8px; background-color: #f9fafb; color: #374151; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.borderColor='#059669'; this.style.backgroundColor='#f0fdf4'" onmouseout="this.style.borderColor='#d1d5db'; this.style.backgroundColor='#f9fafb'">
@@ -293,7 +293,7 @@
                             </button>
                         </div>
                         <div id="fileUploadProgress" style="margin-top: 12px; display: none;"></div>
-                                                <div id="fileTabsContainer" style="margin-bottom: 20px; display: none;">
+                        <div id="uploadStatusContainer" style="margin-top: 12px; display: none;"></div>                                                <div id="fileTabsContainer" style="margin-bottom: 20px; display: none;">
                             <div id="fileTabs" style="display: flex; gap: 0; overflow-x: auto; padding-bottom: 0; border-bottom: 2px solid #e5e7eb; background-color: #f8f9fa; scrollbar-width: thin;">
                                 <!-- 파일 탭들이 여기에 동적으로 추가됩니다 -->
                             </div>
@@ -534,7 +534,7 @@
                             </div>
                             <div class="resize-handle"></div>
                         </th>
-                        <th class="resizable-th sortable-th" style="min-width: 200px; position: relative;" data-sort="address">
+                        <th class="resizable-th sortable-th" style="min-width: 250px; position: relative;" data-sort="address">
                             <div class="th-content">
                                 주소
                                 <span class="sort-icon">↕</span>
@@ -574,11 +574,11 @@
                             <div class="th-content">취소 사유</div>
                             <div class="resize-handle"></div>
                         </th>
-                        <th class="resizable-th" style="min-width: 200px; position: relative;">
+                        <th class="resizable-th" style="min-width: 250px; position: relative;">
                             <div class="th-content">속기록</div>
                             <div class="resize-handle"></div>
                         </th>
-                        <th class="resizable-th" style="min-width: 200px; position: relative;">
+                        <th class="resizable-th" style="min-width: 250px; position: relative;">
                             <div class="th-content">기타 정보</div>
                             <div class="resize-handle"></div>
                         </th>
@@ -2648,6 +2648,8 @@
         document.getElementById('addOrderForm').reset();
         uploadedFilesData = [];
         document.getElementById('uploadedFiles').innerHTML = '';
+        document.getElementById('uploadStatusContainer').style.display = 'none';
+        document.getElementById('uploadStatusContainer').innerHTML = '';
         document.getElementById('fileUploadProgress').style.display = 'none';
         
         // 파일 탭 관련 데이터 초기화
@@ -2681,7 +2683,6 @@
         }
 
         // 녹취 타입 변경 이벤트 리스너 추가
-        document.getElementById('recordingTypeInput').addEventListener('change', function() {
             const partialRangeInput = document.getElementById('partialRangeInput');
             if (this.value === '전체') {
                 partialRangeInput.disabled = true;
@@ -2696,13 +2697,6 @@
         });
 
         // 초기 상태 설정
-        const recordingTypeInput = document.getElementById('recordingTypeInput');
-        const partialRangeInput = document.getElementById('partialRangeInput');
-        if (recordingTypeInput.value === '전체') {
-            partialRangeInput.disabled = true;
-            partialRangeInput.style.backgroundColor = '#f3f4f6';
-            partialRangeInput.style.color = '#9ca3af';
-        }
 
         // 모달 열기
         document.getElementById('addOrderModal').style.display = 'flex';
@@ -2726,6 +2720,8 @@
         
         // 업로드된 파일 목록 초기화
         document.getElementById('uploadedFiles').innerHTML = '';
+        document.getElementById('uploadStatusContainer').style.display = 'none';
+        document.getElementById('uploadStatusContainer').innerHTML = '';
         document.getElementById('fileUploadProgress').style.display = 'none';
     }
     async function confirmCloseAddModal() {
@@ -2769,11 +2765,6 @@
 
         if (files.length === 0) return;
 
-        if (files.length > 5) {
-            showNotification('최대 5개 파일까지 업로드 가능합니다.', 'error');
-            e.target.value = '';
-            return;
-        }
 
         // 3GB 제한 검증
         const maxSize = 3 * 1024 * 1024 * 1024;  // 3GB
@@ -2805,9 +2796,9 @@
 
             // 업로드된 파일 목록 표시 (누적 방식)
             if (uploadedFilesData.length > 0) {
-                uploadedFilesContainer.innerHTML = '<p style="font-size: 14px; font-weight: 500; color: #059669; margin-bottom: 8px;">✓ 업로드 완료:</p>';
+                uploadStatusContainer.style.display = 'block'; uploadStatusContainer.innerHTML = '<p style="font-size: 14px; font-weight: 500; color: #059669; margin-bottom: 8px;">✓ 업로드 완료:</p>';
                 uploadedFilesData.forEach(file => {
-                    uploadedFilesContainer.innerHTML += `<p style="font-size: 13px; color: #6b7280; margin: 4px 0;">• ${file.original_name} (${(file.file_size / (1024 * 1024)).toFixed(2)} MB)</p>`;
+                    uploadStatusContainer.style.display = 'block'; uploadStatusContainer.innerHTML += `<p style="font-size: 13px; color: #6b7280; margin: 4px 0;">• ${file.original_name} (${(file.file_size / (1024 * 1024)).toFixed(2)} MB)</p>`;
                 });
             }
 
@@ -2922,19 +2913,12 @@
                 email: email,
                 phone: phone,
                 address: document.getElementById('addressInput').value.trim(),
-                recording_type: document.getElementById('recordingTypeInput').value,
-                total_duration: document.getElementById('totalDurationInput').value.trim(),
-                partial_range: document.getElementById('partialRangeInput').value.trim(),
-                speaker_count: parseInt(document.getElementById('speakerCountInput').value) || 1,
-                speaker_names: document.getElementById('speakerNamesInput').value.trim(),
-                recording_date: document.getElementById('recordingDateInput').value || null,
-                additional_info: document.getElementById('additionalInfoInput').value.trim(),
                 draft_format: document.getElementById('draftFormatInput').value,
                 final_option: document.getElementById('finalOptionInput').value,
                 payment_status: document.getElementById('paymentStatusInput').checked,
                 payment_amount: document.getElementById('paymentAmountInput').value ? parseInt(document.getElementById('paymentAmountInput').value) : null,
                 notes: document.getElementById('notesInput').value.trim(),
-                files: uploadedFilesData
+                files_data: getFileSettingsData()
             };
 
             const response = await fetch('/api/database/create-db-order/', {
@@ -4041,13 +4025,17 @@
             
             // 파일명만 표시 (Request ID 제거하고 길이 제한)
             const fileName = file.original_name || file.name;
-            const displayName = fileName.length > 18 ? fileName.substring(0, 15) + '...' : fileName;
+            // 동적 탭 너비 계산 (파일 개수에 따라 크롬 탭처럼 작아짐)
+            const maxTabWidth = 250;
+            const minTabWidth = 120;
+            const tabWidth = Math.max(minTabWidth, Math.min(maxTabWidth, Math.floor(800 / files.length)));
+            
+            const displayName = fileName.length > (tabWidth / 8) ? fileName.substring(0, Math.floor(tabWidth / 8) - 3) + '...' : fileName;
             
             tab.style.cssText = `
-                width: 200px;
-                min-width: 120px;
-                max-width: 200px;
-                padding: 12px 8px;
+                width: ${tabWidth}px;
+                min-width: ${minTabWidth}px;
+                max-width: ${tabWidth}px;                padding: 12px 8px;
                 background-color: ${i === 0 ? '#ffffff' : '#f8f9fa'};
                 color: ${i === 0 ? '#059669' : '#6b7280'};
                 border: 2px solid #e5e7eb;
@@ -4139,7 +4127,29 @@
     function updateFileSettingsPanel(index) {
         const settingsPanel = document.getElementById('fileSettingsPanel');
         const fileData = fileTabsData[index];
-        
+            const fileToDelete = uploadedFilesData[index];
+            
+            // S3/DB에서 파일 삭제
+            if (fileToDelete && fileToDelete.file_key) {
+                try {
+                    const response = await fetch('/api/database/delete-uploaded-files/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            file_keys: [fileToDelete.file_key]
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        console.error('파일 삭제 실패');
+                    }
+                } catch (error) {
+                    console.error('파일 삭제 중 오류:', error);
+                }
+            }        
         if (!fileData) return;
         
         const panel = document.createElement('div');
@@ -4264,7 +4274,7 @@
     }
     
     // 파일 탭 삭제
-    function deleteFileTab(index, event) {
+    async function deleteFileTab(index, event) {
         if (event) event.stopPropagation();
         
         if (fileTabsData.length <= 1) {
@@ -4275,7 +4285,29 @@
         if (confirm('이 파일을 삭제하시겠습니까?')) {
             // 파일 데이터에서 제거
             const fileData = fileTabsData[index];
-            fileTabsData.splice(index, 1);
+            const fileToDelete = uploadedFilesData[index];
+            
+            // S3/DB에서 파일 삭제
+            if (fileToDelete && fileToDelete.file_key) {
+                try {
+                    const response = await fetch('/api/database/delete-uploaded-files/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({
+                            file_keys: [fileToDelete.file_key]
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        console.error('파일 삭제 실패');
+                    }
+                } catch (error) {
+                    console.error('파일 삭제 중 오류:', error);
+                }
+            }            fileTabsData.splice(index, 1);
             
             // 업로드된 파일 목록에서도 제거
             uploadedFilesData.splice(index, 1);

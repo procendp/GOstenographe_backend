@@ -8,8 +8,38 @@ from django.conf import settings
 import logging
 import json
 from django.db import transaction
+import re
 
 logger = logging.getLogger(__name__)
+
+def format_final_option(final_option):
+    """최종본 옵션 표시 형식을 개선합니다."""
+    option_map = {
+        'file': '파일',
+        'file_post': '파일 + 등기 우편 (+5,000원)',
+        'file_post_cd': '파일 + 등기 우편 + CD (+6,000원)',
+        'file_post_usb': '파일 + 등기 우편 + USB (+10,000원)'
+    }
+    return option_map.get(final_option, final_option)
+
+def format_phone_number(phone):
+    """연락처 표시 형식을 개선합니다. (010-5590-7193 형태)"""
+    if not phone:
+        return phone
+    
+    # 숫자만 추출
+    digits = re.sub(r'\D', '', phone)
+    
+    # 010으로 시작하는 11자리 번호인 경우
+    if len(digits) == 11 and digits.startswith('010'):
+        return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
+    
+    # 010으로 시작하는 10자리 번호인 경우 (중간 3자리)
+    if len(digits) == 10 and digits.startswith('010'):
+        return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+    
+    # 다른 형식은 그대로 반환
+    return phone
 
 @staff_member_required
 @require_POST
