@@ -2700,6 +2700,9 @@
         document.getElementById('fileUploadProgress').style.display = 'none';
     }
     async function confirmCloseAddModal() {
+        console.log(`[CLOSE MODAL] confirmCloseAddModal 호출`);
+        console.log(`[CLOSE MODAL] uploadedFilesData.length: ${uploadedFilesData.length}`);
+        
         // 업로드된 파일이 있다면 삭제 확인
         if (uploadedFilesData.length > 0) {
             const confirmed = confirm(`업로드한 ${uploadedFilesData.length}개 파일이 DB에서 삭제됩니다.\n정말 취소하시겠습니까?`);
@@ -2709,6 +2712,7 @@
             
             try {
                 const fileKeys = uploadedFilesData.map(file => file.file_key);
+                console.log(`[CLOSE MODAL] 삭제할 파일 키:`, fileKeys);
                 const response = await fetch('/api/database/delete-uploaded-files/', {
                     method: 'POST',
                     headers: {
@@ -2783,7 +2787,7 @@
 
             showNotification(`${uploadedFilesData.length}개 파일 업로드 완료`, 'success');
             
-            // 파일 탭 생성
+            // 파일 탭 생성 (전체 누적 파일 전달)
             await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
             console.error('파일 업로드 오류:', error);
             showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
@@ -2793,6 +2797,7 @@
     });
 
     async function uploadFile(file, index, progressContainer) {
+        console.log(`[DEBUG] uploadFile 시작 - index: ${index}, 파일명: ${file.name}`);
         // 프로그레스 바 생성
         const progressDiv = document.createElement('div');
         progressDiv.style.marginBottom = '12px';
@@ -2810,6 +2815,7 @@
             const customerEmail = document.getElementById('emailInput').value || 'unknown@example.com';
             const emailId = customerEmail.split('@')[0];
 
+            
             const presignedResponse = await fetch('/api/s3/presigned-url/', {
                 method: 'POST',
                 headers: {
@@ -2825,11 +2831,15 @@
                 })
             });
 
+            
             if (!presignedResponse.ok) {
                 throw new Error('Presigned URL 생성 실패');
             }
 
             const presignedData = await presignedResponse.json();
+            
+            
+            
             const progressBar = document.getElementById(`progress-${index}`);
             progressBar.style.width = '30%';
 
@@ -2840,16 +2850,21 @@
             });
             formData.append('file', file);
 
+            
             const uploadResponse = await fetch(presignedData.presigned_post.url, {
                 method: 'POST',
                 body: formData
             });
 
+            
             if (!uploadResponse.ok) {
+                const errorText = await uploadResponse.text();
+                console.error(`[DEBUG ${index}] S3 응답 에러:`, errorText);
                 throw new Error(`S3 업로드 실패: ${uploadResponse.status}`);
             }
 
             progressBar.style.width = '100%';
+            
 
             return {
                 success: true,
@@ -2859,7 +2874,7 @@
                 file_size: file.size
             };
         } catch (error) {
-            console.error(`파일 "${file.name}" 업로드 실패:`, error);
+            console.error(`[DEBUG ${index}] ❌ 파일 "${file.name}" 업로드 실패:`, error);
             return {
                 success: false,
                 error: error.message
@@ -2868,6 +2883,8 @@
     }
 
     async function saveOrder() {
+        
+        
         // 폼 검증
         const name = document.getElementById('nameInput').value.trim();
         const email = document.getElementById('emailInput').value.trim();
@@ -2883,6 +2900,11 @@
         saveBtn.innerHTML = '저장 중...';
 
         try {
+            const filesData = getFileSettingsData();
+            
+            
+            
+            
             const formData = {
                 name: name,
                 email: email,
@@ -2893,8 +2915,10 @@
                 payment_status: document.getElementById('paymentStatusInput').checked,
                 payment_amount: document.getElementById('paymentAmountInput').value ? parseInt(document.getElementById('paymentAmountInput').value) : null,
                 notes: document.getElementById('notesInput').value.trim(),
-                files_data: getFileSettingsData()
+                files_data: filesData
             };
+            
+            
 
             const response = await fetch('/api/database/create-db-order/', {
                 method: 'POST',
@@ -3955,6 +3979,10 @@
     
     // 파일 업로드 후 탭 생성
     async function createFileSettingsTabs(files) {
+        console.log(`[CREATE TABS] createFileSettingsTabs 호출 - files.length: ${files.length}`);
+        console.log(`[CREATE TABS] 기존 fileTabsData.length: ${fileTabsData.length}`);
+        console.log(`[CREATE TABS] 기존 uploadedFilesData.length: ${uploadedFilesData.length}`);
+        
         const tabsContainer = document.getElementById('fileTabs');
         const settingsPanel = document.getElementById('fileSettingsPanel');
         const fileTabsContainer = document.getElementById('fileTabsContainer');
@@ -3965,7 +3993,7 @@
         // 기존 탭과 패널 초기화
         tabsContainer.innerHTML = '';
         settingsPanel.innerHTML = '';
-        fileTabsData = [];
+        fileTabsData = []; // 매번 전체를 다시 생성
         
         // 각 파일에 대해 탭과 설정 패널 생성
         for (let i = 0; i < files.length; i++) {
@@ -4114,29 +4142,7 @@
     async function updateFileSettingsPanel(index) {
         const settingsPanel = document.getElementById('fileSettingsPanel');
         const fileData = fileTabsData[index];
-            const fileToDelete = uploadedFilesData[index];
-            
-            // S3/DB에서 파일 삭제
-            if (fileToDelete && fileToDelete.file_key) {
-                try {
-                    const response = await fetch('/api/database/delete-uploaded-files/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': getCookie('csrftoken')
-                        },
-                        body: JSON.stringify({
-                            file_keys: [fileToDelete.file_key]
-                        })
-                    });
-                    
-                    if (!response.ok) {
-                        console.error('파일 삭제 실패');
-                    }
-                } catch (error) {
-                    console.error('파일 삭제 중 오류:', error);
-                }
-            }        
+        
         if (!fileData) return;
         
         const panel = document.createElement('div');
@@ -4262,6 +4268,10 @@
     
     // 파일 탭 삭제
     async function deleteFileTab(index, event) {
+        console.log(`[DELETE TAB] deleteFileTab 호출 - index: ${index}`);
+        console.log(`[DELETE TAB] fileTabsData.length: ${fileTabsData.length}`);
+        console.log(`[DELETE TAB] uploadedFilesData.length: ${uploadedFilesData.length}`);
+        
         if (event) event.stopPropagation();
         
         if (fileTabsData.length <= 1) {
@@ -4273,6 +4283,7 @@
             // 파일 데이터에서 제거
             const fileData = fileTabsData[index];
             const fileToDelete = uploadedFilesData[index];
+            
             
             // S3/DB에서 파일 삭제
             if (fileToDelete && fileToDelete.file_key) {

@@ -712,12 +712,14 @@ class S3PresignedURLView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (Signature V4 강제)
+            from botocore.config import Config
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(signature_version='s3v4')
             )
 
             unique_file_name = f"{uuid.uuid4()}_{file_name}"
@@ -739,6 +741,12 @@ class S3PresignedURLView(APIView):
                 Fields=fields,
                 Conditions=conditions,
                 ExpiresIn=3600
+            )
+
+            # 리전별 엔드포인트로 URL 수정
+            presigned_post['url'] = presigned_post['url'].replace(
+                'https://go-stenographe-web.s3.amazonaws.com/',
+                f'https://go-stenographe-web.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/'
             )
 
             return Response({

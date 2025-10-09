@@ -205,13 +205,14 @@ def create_db_order(request):
             }
 
             # 파일 정보 처리 - 각 파일별로 개별 Request 생성 (프론트엔드와 동일한 로직)
-            files_data = data.get('files', [])
-            logger.info(f'[create_db_order] 파일별 Request 생성 시작 - 파일 수: {len(files_data)}')
+            files_data = data.get('files_data', [])
+            
+            
             created_requests = []
             created_files = []
 
             for i, file_data in enumerate(files_data):
-                logger.info(f'[create_db_order] 파일 {i+1} 데이터: {file_data}')
+                
                 
                 # 각 파일별로 개별 Request 생성 (파일별 설정 포함)
                 request_data = base_request_data.copy()
@@ -230,12 +231,12 @@ def create_db_order(request):
                 request_instance = Request(**request_data)
                 request_instance.save(skip_auto_email=True)
                 
-                logger.info(f'[create_db_order] 파일 {i+1} Request 생성 완료 - Request ID: {request_instance.request_id}')
+                
                 
                 # 해당 파일을 개별 Request에 연결
                 file_key = file_data.get('file_key')
                 if file_key:
-                    logger.info(f'[create_db_order] 파일 {i+1} 저장 중: {file_key}')
+                    
                     file_instance = File.objects.create(
                         request=request_instance,
                         file=file_key,
@@ -252,9 +253,9 @@ def create_db_order(request):
                         'request_id': request_instance.request_id,
                         'order_id': request_instance.order_id
                     })
-                    logger.info(f'[create_db_order] 파일 {i+1} 저장 완료: ID {file_instance.id}, Request ID: {request_instance.request_id}')
+                    
                 else:
-                    logger.warning(f'[create_db_order] 파일 {i+1}에 file_key가 없음')
+                    
 
             logger.info(f'[create_db_order] DB 주문 생성 완료 - Order ID: {order_id}, Request 수: {len(created_requests)}, 파일 수: {len(created_files)}')
 
@@ -285,6 +286,7 @@ def delete_uploaded_files(request):
     try:
         data = json.loads(request.body)
         file_keys = data.get('file_keys', [])
+        
         
         if not file_keys:
             return JsonResponse({'error': '삭제할 파일이 없습니다.'}, status=400)
