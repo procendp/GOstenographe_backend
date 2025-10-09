@@ -1393,18 +1393,6 @@
     let fileTabsData = [];
     
     
-    // 파일 정보 맵핑 (transcript_file로 변경)
-    const transcriptDataMap = {
-        {% regroup cl.result_list by order_id as order_groups %}
-        {% for order_group in order_groups %}
-            {% for result in order_group.list %}
-                {% if result.transcript_file %}
-                {{ result.id }}: `{{ result.transcript_file.original_name|escapejs }}`{% if not forloop.last or not forloop.parentloop.last %},{% endif %}
-                {% endif %}
-            {% endfor %}
-        {% endfor %}
-    };
-
     // 상태 정보 정의
     // Order 상태 정보
     const orderStatusInfo = {
@@ -2682,19 +2670,6 @@
             console.error('ID 생성 오류:', error);
         }
 
-        // 녹취 타입 변경 이벤트 리스너 추가
-            const partialRangeInput = document.getElementById('partialRangeInput');
-            if (this.value === '전체') {
-                partialRangeInput.disabled = true;
-                partialRangeInput.style.backgroundColor = '#f3f4f6';
-                partialRangeInput.style.color = '#9ca3af';
-                partialRangeInput.value = '';
-            } else {
-                partialRangeInput.disabled = false;
-                partialRangeInput.style.backgroundColor = 'white';
-                partialRangeInput.style.color = '#374151';
-            }
-        });
 
         // 초기 상태 설정
 
@@ -4035,7 +4010,8 @@
             tab.style.cssText = `
                 width: ${tabWidth}px;
                 min-width: ${minTabWidth}px;
-                max-width: ${tabWidth}px;                padding: 12px 8px;
+                max-width: ${tabWidth}px;
+                padding: 12px 8px;
                 background-color: ${i === 0 ? '#ffffff' : '#f8f9fa'};
                 color: ${i === 0 ? '#059669' : '#6b7280'};
                 border: 2px solid #e5e7eb;
@@ -4057,9 +4033,20 @@
             tab.innerHTML = `
                 <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; position: relative;">
                     <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 20px;" title="${fileName}">${displayName}</span>
-                    <button class="tab-delete-btn" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border: none; background: none; color: #dc2626; cursor: pointer; font-size: 14px; font-weight: bold; opacity: 0; transition: opacity 0.2s; border-radius: 50%; display: flex; align-items: center; justify-content: center;" onclick="deleteFileTab(${i}, event)" title="삭제">×</button>
+                    <button class="tab-delete-btn" style="position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border: none; background: none; color: #dc2626; cursor: pointer; font-size: 14px; font-weight: bold; opacity: 0; transition: opacity 0.2s; border-radius: 50%; display: flex; align-items: center; justify-content: center;" data-tab-index="${i}" title="삭제">×</button>
                 </div>
             `;
+            
+            // 탭 클릭 이벤트
+            // 삭제 버튼 이벤트 리스너 추가
+            const deleteBtn = tab.querySelector('.tab-delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const tabIndex = parseInt(deleteBtn.getAttribute('data-tab-index'));
+                    await deleteFileTab(tabIndex, e);
+                });
+            }
             
             // 탭 클릭 이벤트
             tab.addEventListener('click', (e) => {
@@ -4124,7 +4111,7 @@
     
     
     // 파일 설정 패널 업데이트
-    function updateFileSettingsPanel(index) {
+    async function updateFileSettingsPanel(index) {
         const settingsPanel = document.getElementById('fileSettingsPanel');
         const fileData = fileTabsData[index];
             const fileToDelete = uploadedFilesData[index];
@@ -4307,7 +4294,8 @@
                 } catch (error) {
                     console.error('파일 삭제 중 오류:', error);
                 }
-            }            fileTabsData.splice(index, 1);
+            }
+            fileTabsData.splice(index, 1);
             
             // 업로드된 파일 목록에서도 제거
             uploadedFilesData.splice(index, 1);
