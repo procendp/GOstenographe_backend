@@ -255,7 +255,7 @@ def create_db_order(request):
                     })
                     
                 else:
-                    
+                    logger.warning(f'[create_db_order] 파일 {i+1}에 file_key가 없음')
 
             logger.info(f'[create_db_order] DB 주문 생성 완료 - Order ID: {order_id}, Request 수: {len(created_requests)}, 파일 수: {len(created_files)}')
 

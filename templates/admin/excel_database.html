@@ -1514,7 +1514,7 @@
         
         // 외부 클릭시 닫기
         setTimeout(() => {
-            document.addEventListener('click', function closeDropdown(e) {
+            document.addEventListener('click', function closeStatusDropdown(e) {
                 if (!container.contains(e.target)) {
                     dropdown.remove();
                     document.removeEventListener('click', closeDropdown);
@@ -1656,7 +1656,7 @@
         
         // 외부 클릭시 닫기
         setTimeout(() => {
-            document.addEventListener('click', function closeDropdown(e) {
+            document.addEventListener('click', function closePaymentDropdown(e) {
                 if (!container.contains(e.target)) {
                     dropdown.remove();
                     document.removeEventListener('click', closeDropdown);
@@ -2088,7 +2088,7 @@
         // 파일 선택 이벤트
         fileInput.onchange = function() {
             if (this.files.length > 0) {
-                uploadFile(requestId, fieldName, this.files[0]);
+                uploadTranscriptFile(requestId, fieldName, this.files[0]);
             }
             // 사용 후 요소 제거
             document.body.removeChild(fileInput);
@@ -2259,7 +2259,7 @@
         });
     }
     
-    function uploadFile(requestId, fieldName, file) {
+    function uploadTranscriptFile(requestId, fieldName, file) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('field_name', fieldName);
@@ -2766,7 +2766,7 @@
 
         // 병렬 업로드
         try {
-            const uploadPromises = files.map((file, index) => uploadFile(file, index, progressContainer));
+            const uploadPromises = files.map((file, index) => uploadOrderFile(file, index, progressContainer));
             const results = await Promise.all(uploadPromises);
 
             // 기존 파일들과 새로 업로드된 파일들 합치기 (누적)
@@ -2796,7 +2796,7 @@
         }
     });
 
-    async function uploadFile(file, index, progressContainer) {
+    async function uploadOrderFile(file, index, progressContainer) {
         console.log(`[DEBUG] uploadFile 시작 - index: ${index}, 파일명: ${file.name}`);
         // 프로그레스 바 생성
         const progressDiv = document.createElement('div');
