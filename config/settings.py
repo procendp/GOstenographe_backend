@@ -261,7 +261,7 @@ UNFOLD = {
     "SITE_TITLE": "속기사무소 정",
     "SITE_HEADER": "속기사무소 정 관리자",
     "SITE_URL": "http://localhost:3000",
-    "SITE_SYMBOL": "speed",
+    "SITE_SYMBOL": "record_voice_over",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
     "ENVIRONMENT": "config.settings.environment_callback",
