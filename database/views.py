@@ -42,6 +42,59 @@ def format_phone_number(phone):
     return phone
 
 @staff_member_required
+@require_GET
+def get_order_file_counts(request):
+    """Order ID별 파일 개수와 파일 목록을 반환하는 API"""
+    try:
+        order_ids = request.GET.get('order_ids', '').split(',')
+        order_ids = [oid.strip() for oid in order_ids if oid.strip()]
+        
+        if not order_ids:
+            return JsonResponse({'error': 'Order ID가 필요합니다.'}, status=400)
+        
+        file_counts = {}
+        file_lists = {}
+        
+        for order_id in order_ids:
+            # Order ID에 해당하는 모든 Request 조회
+            requests = Request.objects.filter(order_id=order_id, is_temporary=False)
+            
+            total_files = 0
+            file_list = []
+            
+            for request_obj in requests:
+                # 첨부 파일들
+                attachment_files = request_obj.files.all()
+                for file_instance in attachment_files:
+                    file_name = file_instance.original_name or file_instance.file.split('/')[-1]
+                    file_list.append({
+                        'name': file_name,
+                        'type': '첨부파일'
+                    })
+                    total_files += 1
+                
+                # 속기록 파일
+                if request_obj.transcript_file:
+                    transcript_name = request_obj.transcript_file.original_name or request_obj.transcript_file.file.split('/')[-1]
+                    file_list.append({
+                        'name': transcript_name,
+                        'type': '속기록'
+                    })
+                    total_files += 1
+            
+            file_counts[order_id] = total_files
+            file_lists[order_id] = file_list
+        
+        return JsonResponse({
+            'file_counts': file_counts,
+            'file_lists': file_lists
+        })
+        
+    except Exception as e:
+        logger.error(f'[get_order_file_counts] 오류: {str(e)}')
+        return JsonResponse({'error': str(e)}, status=500)
+
+@staff_member_required
 @require_POST
 @csrf_exempt
 def delete_orders(request):
@@ -92,19 +145,33 @@ def delete_orders(request):
 
                 # 각 Request의 파일들 S3에서 삭제
                 for request_obj in requests:
+                    # 첨부 파일들 삭제
                     files = request_obj.files.all()
-
                     for file_instance in files:
                         try:
-                            logger.info(f'[delete_orders] S3 파일 삭제 시도 - Key: {file_instance.file}')
+                            logger.info(f'[delete_orders] S3 첨부 파일 삭제 시도 - Key: {file_instance.file}')
                             s3_client.delete_object(
                                 Bucket=settings.AWS_STORAGE_BUCKET_NAME,
                                 Key=file_instance.file
                             )
-                            logger.info(f'[delete_orders] S3 파일 삭제 성공 - Key: {file_instance.file}')
+                            logger.info(f'[delete_orders] S3 첨부 파일 삭제 성공 - Key: {file_instance.file}')
                             order_file_count += 1
                         except Exception as e:
-                            logger.error(f'[delete_orders] S3 파일 삭제 실패 - Key: {file_instance.file}, Error: {str(e)}')
+                            logger.error(f'[delete_orders] S3 첨부 파일 삭제 실패 - Key: {file_instance.file}, Error: {str(e)}')
+                            # S3 삭제 실패해도 계속 진행
+                    
+                    # 속기록 파일 삭제
+                    if request_obj.transcript_file:
+                        try:
+                            logger.info(f'[delete_orders] S3 속기록 파일 삭제 시도 - Key: {request_obj.transcript_file.file}')
+                            s3_client.delete_object(
+                                Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                                Key=request_obj.transcript_file.file
+                            )
+                            logger.info(f'[delete_orders] S3 속기록 파일 삭제 성공 - Key: {request_obj.transcript_file.file}')
+                            order_file_count += 1
+                        except Exception as e:
+                            logger.error(f'[delete_orders] S3 속기록 파일 삭제 실패 - Key: {request_obj.transcript_file.file}, Error: {str(e)}')
                             # S3 삭제 실패해도 계속 진행
 
                 # DB에서 Request 삭제 (CASCADE로 File도 자동 삭제)

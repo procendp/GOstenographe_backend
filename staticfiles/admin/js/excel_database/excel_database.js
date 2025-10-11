@@ -885,8 +885,12 @@ function uploadTranscriptFile(requestId, fieldName, file) {
     .then(data => {
         if (data.success) {
             const editableCell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
-            const valueSpan = editableCell.querySelector('.editable-value');
-            valueSpan.textContent = data.original_name || file.name;
+            if (editableCell) {
+                const valueSpan = editableCell.querySelector('.editable-value');
+                if (valueSpan) {
+                    valueSpan.textContent = data.original_name || file.name;
+                }
+            }
             showNotification('파일이 업로드되었습니다.', 'success');
         } else {
             showNotification(data.error || '파일 업로드에 실패했습니다.', 'error');
@@ -1140,7 +1144,7 @@ function highlightProblemOrders(invalidResults) {
 // 주문서 삭제 기능
 let deleteOrderIds = [];
 
-function deleteSelected() {
+async function deleteSelected() {
     const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
 
     if (checkedBoxes.length === 0) {
@@ -1159,37 +1163,77 @@ function deleteSelected() {
 
     deleteOrderIds = Array.from(orderIdsSet);
 
-    // 모달에 삭제할 주문 목록 표시
-    const content = document.getElementById('deleteConfirmContent');
-    let html = `<div style="margin-bottom: 16px;">
-        <p style="color: #374151; font-weight: 500; margin-bottom: 12px;">다음 ${deleteOrderIds.length}개 주문이 삭제됩니다:</p>
-        <div style="max-height: 300px; overflow-y: auto;">`;
+    // 실제 파일 개수를 서버에서 가져오기
+    try {
+        const response = await fetch(`/api/database/get-order-file-counts/?order_ids=${deleteOrderIds.join(',')}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || '파일 개수 조회 실패');
+        }
+        
+        const fileCounts = data.file_counts;
+        const fileLists = data.file_lists;
+        
+        // 모달에 삭제할 주문 목록 표시
+        const content = document.getElementById('deleteConfirmContent');
+        let html = `<div style="margin-bottom: 16px;">
+            <p style="color: #374151; font-weight: 500; margin-bottom: 12px;">다음 ${deleteOrderIds.length}개 주문이 삭제됩니다:</p>
+            <div style="max-height: 400px; overflow-y: auto;">`;
 
-    deleteOrderIds.forEach(orderId => {
-        // Order ID에 해당하는 Request 정보 찾기
-        const firstRow = document.querySelector(`.row-checkbox[data-order-id="${orderId}"]`).closest('tr');
-        const nameCell = firstRow.querySelector('td:nth-child(4)');  // 주문자명
-        const emailCell = firstRow.querySelector('td:nth-child(5)');  // 이메일
-        const name = nameCell ? nameCell.textContent.trim() : '-';
-        const email = emailCell ? emailCell.textContent.trim() : '-';
+        deleteOrderIds.forEach(orderId => {
+            // Order ID에 해당하는 Request 정보 찾기
+            const firstRow = document.querySelector(`.row-checkbox[data-order-id="${orderId}"]`).closest('tr');
+            const nameCell = firstRow.querySelector('td:nth-child(4)');  // 주문자명
+            const emailCell = firstRow.querySelector('td:nth-child(5)');  // 이메일
+            const name = nameCell ? nameCell.textContent.trim() : '-';
+            const email = emailCell ? emailCell.textContent.trim() : '-';
 
-        // 해당 Order ID의 파일 개수 계산
-        const fileCount = document.querySelectorAll(`.row-checkbox[data-order-id="${orderId}"]`).length;
+            // 서버에서 가져온 실제 파일 개수와 파일 목록 사용
+            const fileCount = fileCounts[orderId] || 0;
+            const files = fileLists[orderId] || [];
 
-        html += `
-            <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #dc2626;">
-                <p style="color: #111827; font-weight: 500; margin: 0 0 4px 0;">Order ID: ${orderId}</p>
-                <p style="color: #6b7280; font-size: 14px; margin: 0;">주문자: ${name} (${email})</p>
-                <p style="color: #6b7280; font-size: 14px; margin: 4px 0 0 0;">파일 개수: ${fileCount}개</p>
-            </div>
-        `;
-    });
+            html += `
+                <div style="background-color: #f9fafb; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 3px solid #dc2626;">
+                    <p style="color: #111827; font-weight: 500; margin: 0 0 4px 0;">Order ID: ${orderId}</p>
+                    <p style="color: #6b7280; font-size: 14px; margin: 0 0 8px 0;">주문자: ${name} (${email})</p>
+                    <p style="color: #dc2626; font-size: 14px; margin: 0 0 8px 0; font-weight: 500;">파일 개수: ${fileCount}개</p>
+            `;
 
-    html += `</div></div>`;
-    content.innerHTML = html;
+            // 파일 목록 표시
+            if (files.length > 0) {
+                html += `<div style="margin-top: 8px; padding: 8px; background-color: #fee2e2; border-radius: 6px;">
+                    <p style="color: #991b1b; font-size: 12px; font-weight: 500; margin: 0 0 6px 0;">삭제될 파일 목록:</p>`;
+                
+                files.forEach(file => {
+                    const typeColor = file.type === '속기록' ? '#dc2626' : '#7c2d12';
+                    const typeIcon = file.type === '속기록' ? '📝' : '📎';
+                    html += `<p style="color: ${typeColor}; font-size: 11px; margin: 2px 0; padding-left: 12px;">
+                        ${typeIcon} ${file.name}
+                    </p>`;
+                });
+                
+                html += `</div>`;
+            }
 
-    // 모달 열기
-    document.getElementById('deleteConfirmModal').style.display = 'flex';
+            html += `</div>`;
+        });
+
+        html += `</div></div>`;
+        content.innerHTML = html;
+
+        // 모달 열기
+        document.getElementById('deleteConfirmModal').style.display = 'flex';
+        
+    } catch (error) {
+        console.error('파일 개수 조회 오류:', error);
+        showNotification('파일 개수 조회 중 오류가 발생했습니다.', 'error');
+    }
 }
 
 function closeDeleteConfirmModal() {
