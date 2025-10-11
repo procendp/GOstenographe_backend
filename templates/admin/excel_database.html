@@ -1438,19 +1438,19 @@
         });
         
         // 상태 셀 찾기
-        const cell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
+        const statusCell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
         console.log('[DEBUG] Looking for requestId:', requestId);
-        console.log('[DEBUG] Found cell:', cell);
-        const container = cell ? cell.querySelector('.status-container') : null;
+        console.log('[DEBUG] Found cell:', statusCell);
+        const container = statusCell ? statusCell.querySelector('.status-container') : null;
         console.log('[DEBUG] Found container:', container);
         
-        if (!cell || !container) {
+        if (!statusCell || !container) {
             console.error('[ERROR] Cell or container not found for request ID:', requestId);
             return;
         }
         
         // 현재 상태를 셀의 data attribute에서 동적으로 가져오기
-        const currentStatus = cell.dataset.currentStatus || initialStatus;
+        const currentStatus = statusCell.dataset.currentStatus || initialStatus;
         console.log('[DEBUG] Current status:', currentStatus);
         
         // 이미 드롭다운이 열려있으면 닫기
@@ -1546,14 +1546,14 @@
         .then(data => {
             if (data.success) {
                 // UI 업데이트 - status-cell 클래스로 찾기
-                const cell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
-                if (!cell) {
+                const statusCell = document.querySelector(`.status-cell[data-request-id="${requestId}"]`);
+                if (!statusCell) {
                     console.error('Cell not found for UI update:', requestId);
                     showNotification('상태가 변경되었지만 UI 업데이트에 실패했습니다. 페이지를 새로고침하세요.', 'warning');
                     return;
                 }
                 
-                const badge = cell.querySelector('.status-badge');
+                const badge = statusCell.querySelector('.status-badge');
                 if (!badge) {
                     console.error('Badge not found in cell');
                     showNotification('상태가 변경되었지만 UI 업데이트에 실패했습니다. 페이지를 새로고침하세요.', 'warning');
@@ -1575,7 +1575,7 @@
                 // 배경색과 텍스트 색상 직접 설정
                 badge.style.background = statusInfo[newStatus].color;
                 badge.style.color = statusInfo[newStatus].textColor;
-                cell.dataset.currentStatus = newStatus;
+                statusCell.dataset.currentStatus = newStatus;
                 
                 // 성공 메시지 (알림 발송 메시지는 제거)
                 showNotification('상태가 변경되었습니다.', 'success');
@@ -1591,11 +1591,11 @@
 
     // 결제 상태 변경 함수
     function editPayment(requestId, currentPayment) {
-        const cell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
-        const container = cell.querySelector('.payment-container');
+        const paymentCell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
+        const container = paymentCell.querySelector('.payment-container');
         
         // 현재 결제 상태를 셀의 data attribute에서 동적으로 가져오기
-        const currentPaymentStatus = cell.dataset.currentPayment === 'True';
+        const currentPaymentStatus = paymentCell.dataset.currentPayment === 'True';
         
         // 이미 드롭다운이 열려있으면 닫기
         const existingDropdown = container.querySelector('.payment-dropdown');
@@ -1681,14 +1681,14 @@
         .then(data => {
             if (data.success) {
                 // UI 업데이트
-                const cell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
-                const badge = cell.querySelector('.payment-badge');
+                const paymentCell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
+                const badge = paymentCell.querySelector('.payment-badge');
                 badge.className = `payment-badge payment-${paymentStatus}`;
                 badge.textContent = paymentStatus ? '결제 완료' : '미결제';
                 // 배경색과 텍스트 색상 직접 설정
                 badge.style.background = paymentStatus ? '#dcfce7' : '#fee2e2';
                 badge.style.color = paymentStatus ? '#166534' : '#991b1b';
-                cell.dataset.currentPayment = paymentStatus;
+                paymentCell.dataset.currentPayment = paymentStatus;
                 
                 // 성공 메시지
                 showNotification('결제 상태가 변경되었습니다.', 'success');
@@ -1792,11 +1792,11 @@
         const groups = new Map();
         
         rows.forEach(row => {
-            const orderId = row.getAttribute('data-order-id');
-            if (!groups.has(orderId)) {
-                groups.set(orderId, []);
+            const rowOrderId = row.getAttribute('data-order-id');
+            if (!groups.has(rowOrderId)) {
+                groups.set(rowOrderId, []);
             }
-            groups.get(orderId).push(row);
+            groups.get(rowOrderId).push(row);
         });
         
         // 컬럼 인덱스 찾기
@@ -1810,11 +1810,11 @@
             const firstRowA = rowsA[0];
             const firstRowB = rowsB[0];
             
-            const cellA = firstRowA.cells[columnIndex];
-            const cellB = firstRowB.cells[columnIndex];
+            const sortCellA = firstRowA.cells[columnIndex];
+            const sortCellB = firstRowB.cells[columnIndex];
             
-            let valueA = getCellValue(cellA, column);
-            let valueB = getCellValue(cellB, column);
+            let valueA = getCellValue(sortCellA, column);
+            let valueB = getCellValue(sortCellB, column);
             
             // 정렬 비교
             let comparison = 0;
@@ -1858,11 +1858,11 @@
         
         // 일반적인 행 정렬
         rows.sort((a, b) => {
-            const cellA = a.cells[columnIndex];
-            const cellB = b.cells[columnIndex];
+            const sortCellA = a.cells[columnIndex];
+            const sortCellB = b.cells[columnIndex];
             
-            let valueA = getCellValue(cellA, column);
-            let valueB = getCellValue(cellB, column);
+            let valueA = getCellValue(sortCellA, column);
+            let valueB = getCellValue(sortCellB, column);
             
             // 정렬 비교
             let comparison = 0;
@@ -1933,13 +1933,13 @@
             // 첨부파일 컬럼인지 확인
             const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');            // 데이터 셀 너비 계산
             for (let i = 1; i < rows.length; i++) {
-                const cell = rows[i].cells[columnIndex];
-                if (cell) {
+                const measureCell = rows[i].cells[columnIndex];
+                if (measureCell) {
                     // 셀의 실제 콘텐츠 가져오기
                     let content = '';
-                    const statusBadge = cell.querySelector('.status-badge');
-                    const paymentBadge = cell.querySelector('.payment-badge');
-                    const editableValue = cell.querySelector('.editable-value');
+                    const statusBadge = measureCell.querySelector('.status-badge');
+                    const paymentBadge = measureCell.querySelector('.payment-badge');
+                    const editableValue = measureCell.querySelector('.editable-value');
                     
                     if (statusBadge) {
                         content = statusBadge.textContent.trim();
@@ -1948,7 +1948,7 @@
                     } else if (editableValue) {
                         content = editableValue.textContent.trim();
                     } else {
-                        content = cell.textContent.trim();
+                        content = measureCell.textContent.trim();
                     }
                     
                     // 임시 요소로 너비 측정
@@ -2050,9 +2050,9 @@
             cell.addEventListener('mouseenter', function(e) {
                 const row = this.closest('tr');
                 if (row) {
-                    const orderId = row.getAttribute('data-order-id');
-                    if (orderId) {
-                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${orderId}"]`);
+                    const hoverOrderId = row.getAttribute('data-order-id');
+                    if (hoverOrderId) {
+                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${hoverOrderId}"]`);
                         relatedRows.forEach(relatedRow => {
                             relatedRow.classList.add('merged-row-hover');
                         });
@@ -2063,9 +2063,9 @@
             cell.addEventListener('mouseleave', function(e) {
                 const row = this.closest('tr');
                 if (row) {
-                    const orderId = row.getAttribute('data-order-id');
-                    if (orderId) {
-                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${orderId}"]`);
+                    const hoverOrderId = row.getAttribute('data-order-id');
+                    if (hoverOrderId) {
+                        const relatedRows = document.querySelectorAll(`tr[data-order-id="${hoverOrderId}"]`);
                         relatedRows.forEach(relatedRow => {
                             relatedRow.classList.remove('merged-row-hover');
                         });
@@ -2117,7 +2117,7 @@
         currentEditFieldName = fieldName;
         currentEditFieldType = fieldType;
 
-        const modal = document.getElementById('fieldEditModal');
+        const fieldEditModal = document.getElementById('fieldEditModal');
         const input = document.getElementById('fieldEditInput');
         const title = document.getElementById('fieldEditModalTitle');
         const label = document.getElementById('fieldEditLabel');
@@ -2150,7 +2150,7 @@
         };
 
         // 모달 표시 및 포커스
-        modal.style.display = 'flex';
+        fieldEditModal.style.display = 'flex';
         setTimeout(() => input.focus(), 100);
     }
 
@@ -2179,9 +2179,9 @@
         .then(response => response.json())
         .then(data => {
             // UI 업데이트
-            const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
-            if (cell) {
-                const valueSpan = cell.querySelector('.editable-value');
+            const editableCell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+            if (editableCell) {
+                const valueSpan = editableCell.querySelector('.editable-value');
                 if (valueSpan) {
                     if (fieldName === 'payment_amount' || fieldName === 'refund_amount') {
                         valueSpan.textContent = value ? `${Number(value).toLocaleString()}원` : '-';
@@ -2192,7 +2192,7 @@
 
                 // 하이라이트 제거 (값이 입력된 경우)
                 if (value) {
-                    cell.style.backgroundColor = '';
+                    editableCell.style.backgroundColor = '';
                 }
             }
 
@@ -2205,8 +2205,8 @@
     }
 
     function editField(requestId, fieldName, fieldType) {
-        const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
-        const container = cell.querySelector('.editable-container');
+        const editableCell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+        const container = editableCell.querySelector('.editable-container');
         const valueSpan = container.querySelector('.editable-value');
 
         let currentValue = valueSpan.textContent === '-' ? '' : valueSpan.textContent.trim();
@@ -2274,8 +2274,8 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const cell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
-                const valueSpan = cell.querySelector('.editable-value');
+                const editableCell = document.querySelector(`[data-request-id="${requestId}"][data-field="${fieldName}"]`);
+                const valueSpan = editableCell.querySelector('.editable-value');
                 valueSpan.textContent = data.original_name || file.name;
                 showNotification('파일이 업로드되었습니다.', 'success');
             } else {
@@ -2541,9 +2541,9 @@
         // Order ID 수집 (중복 제거)
         const orderIdsSet = new Set();
         checkedBoxes.forEach(checkbox => {
-            const orderId = checkbox.getAttribute('data-order-id');
-            if (orderId) {
-                orderIdsSet.add(orderId);
+            const checkedOrderId = checkbox.getAttribute('data-order-id');
+            if (checkedOrderId) {
+                orderIdsSet.add(checkedOrderId);
             }
         });
 
