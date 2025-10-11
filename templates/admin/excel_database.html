@@ -237,7 +237,7 @@
                         </div>
                         <div id="fileUploadProgress" style="margin-top: 12px; display: none;"></div>
                         <div id="uploadStatusContainer" style="margin-top: 12px; display: none;"></div>                                                <div id="fileTabsContainer" style="margin-bottom: 20px; display: none;">
-                            <div id="fileTabs" style="display: flex; gap: 0; overflow-x: auto; padding-bottom: 0; border-bottom: 2px solid #e5e7eb; background-color: #f8f9fa; scrollbar-width: thin;">
+                            <div id="fileTabs" style="display: flex; gap: 0; padding-bottom: 0; border-bottom: 2px solid #e5e7eb; background-color: #f8f9fa; flex-wrap: nowrap; overflow-x: visible;">
                                 <!-- 파일 탭들이 여기에 동적으로 추가됩니다 -->
                             </div>
                             <div id="fileSettingsPanel" style="background-color: #ffffff; border: 2px solid #e5e7eb; border-top: none; padding: 24px; border-radius: 0 0 8px 8px; min-height: 400px;">
@@ -267,46 +267,6 @@
                     <div style="margin-bottom: 16px;">
                         <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">주소</label>
                         <input id="addressInput" type="text" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
-                            <select id="recordingTypeInput" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                                <option value="전체">전체</option>
-                                <option value="부분">부분</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
-                            <input id="totalDurationInput" type="text" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">부분 녹취 구간</label>
-                        <textarea id="partialRangeInput" rows="2" placeholder="예: 00:00:00 - 00:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수</label>
-                            <input id="speakerCountInput" type="number" min="1" max="5" value="1" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                        </div>
-                        <div>
-                            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자 이름</label>
-                            <input id="speakerNamesInput" type="text" placeholder="예: 홍길동,김철수" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 일시</label>
-                        <input id="recordingDateInput" type="datetime-local" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
-                    </div>
-
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">상세 정보</label>
-                        <textarea id="additionalInfoInput" rows="3" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical;"></textarea>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">

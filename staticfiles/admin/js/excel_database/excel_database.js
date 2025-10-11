@@ -1381,6 +1381,16 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
         // 기존 파일들과 새로 업로드된 파일들 합치기 (누적)
         const newUploadedFiles = results.filter(r => r.success);
+        
+        // duration 정보를 파일 객체에 추가
+        newUploadedFiles.forEach((fileData, index) => {
+            const originalFile = files[index];
+            if (originalFile && fileData.duration) {
+                fileData.duration = fileData.duration; // duration 정보 유지
+                console.log(`[DEBUG] duration 정보 연결 - 파일: ${fileData.original_name}, duration: ${fileData.duration}`);
+            }
+        });
+        
         uploadedFilesData = uploadedFilesData.concat(newUploadedFiles);
 
         // 업로드된 파일 목록 표시 (누적 방식)
@@ -1398,6 +1408,7 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         showNotification(`${uploadedFilesData.length}개 파일 업로드 완료`, 'success');
         
         // 파일 탭 생성 (전체 누적 파일 전달)
+        console.log(`[DEBUG] createFileSettingsTabs 호출 전 uploadedFilesData:`, uploadedFilesData);
         await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
         console.error('파일 업로드 오류:', error);
         showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
@@ -1408,11 +1419,25 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
 async function uploadOrderFile(file, index, progressContainer) {
     console.log(`[DEBUG] uploadFile 시작 - index: ${index}, 파일명: ${file.name}`);
+    
+    // 미디어 파일인 경우 길이 미리 추출
+    let duration = '00:00:00';
+    if (file.type && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
+        console.log(`[DEBUG] 미디어 파일 감지: ${file.name}, 타입: ${file.type}`);
+        try {
+            duration = await getMediaDuration(file);
+            console.log(`[DEBUG] 미디어 길이 추출 완료: ${duration}`);
+        } catch (error) {
+            console.error(`[DEBUG] 미디어 길이 추출 실패:`, error);
+            duration = '00:00:00';
+        }
+    }
+    
     // 프로그레스 바 생성
     const progressDiv = document.createElement('div');
     progressDiv.style.marginBottom = '12px';
     progressDiv.innerHTML = `
-        <p style="font-size: 13px; color: #374151; margin-bottom: 4px;">${file.name}</p>
+        <p style="font-size: 13px; color: #374151; margin-bottom: 4px;">${file.name} ${duration !== '00:00:00' ? `(${duration})` : ''}</p>
         <div style="background-color: #e5e7eb; border-radius: 9999px; height: 8px; overflow: hidden;">
             <div id="progress-${index}" style="background-color: #059669; height: 100%; width: 0%; transition: width 0.3s;"></div>
         </div>
@@ -1481,7 +1506,8 @@ async function uploadOrderFile(file, index, progressContainer) {
             file_key: presignedData.file_name,
             original_name: file.name,
             file_type: file.type,
-            file_size: file.size
+            file_size: file.size,
+            duration: duration  // 미디어 길이 정보 추가
         };
     } catch (error) {
         console.error(`[DEBUG ${index}] ❌ 파일 "${file.name}" 업로드 실패:`, error);
@@ -2611,13 +2637,18 @@ async function createFileSettingsTabs(files) {
         const orderId = document.getElementById('orderIdInput').value;
         const requestId = `${orderId}${String(i).padStart(2, '0')}`;
         
-        // 미디어 길이 추출
+        // 미디어 길이 추출 (업로드 전에 미리 저장된 길이 사용)
         let duration = '00:00:00';
-        if (file.type && (file.type.startsWith('audio/') || file.type.startsWith('video/'))) {
-            duration = await getMediaDuration(file);
+        if (file.file_type && (file.file_type.startsWith('audio/') || file.file_type.startsWith('video/'))) {
+            // 파일 객체에서 미리 계산된 duration이 있는지 확인
+            duration = file.duration || '00:00:00';
+            console.log(`[DEBUG] createFileSettingsTabs - 미디어 파일: ${file.original_name}, duration: ${duration}`);
+        } else {
+            console.log(`[DEBUG] createFileSettingsTabs - 일반 파일: ${file.original_name}, duration: 00:00:00 (기본값)`);
         }
         
         // 파일 탭 데이터 저장
+        console.log(`[DEBUG] fileTabsData 생성 - 파일: ${file.original_name}, duration: ${duration}`);
         fileTabsData.push({
             file: file,
             requestId: requestId,
@@ -2639,16 +2670,17 @@ async function createFileSettingsTabs(files) {
         // 파일명만 표시 (Request ID 제거하고 길이 제한)
         const fileName = file.original_name || file.name;
         // 동적 탭 너비 계산 (파일 개수에 따라 크롬 탭처럼 작아짐)
+        const containerWidth = 800; // 대략적인 컨테이너 너비
         const maxTabWidth = 250;
-        const minTabWidth = 120;
-        const tabWidth = Math.max(minTabWidth, Math.min(maxTabWidth, Math.floor(800 / files.length)));
+        const minTabWidth = 100;
+        const tabWidth = Math.max(minTabWidth, Math.min(maxTabWidth, Math.floor(containerWidth / files.length) - 4));
         
         const displayName = fileName.length > (tabWidth / 8) ? fileName.substring(0, Math.floor(tabWidth / 8) - 3) + '...' : fileName;
         
         tab.style.cssText = `
-            width: ${tabWidth}px;
+            flex: 0 1 ${tabWidth}px;
             min-width: ${minTabWidth}px;
-            max-width: ${tabWidth}px;
+            max-width: ${maxTabWidth}px;
             padding: 12px 8px;
             background-color: ${i === 0 ? '#ffffff' : '#f8f9fa'};
             color: ${i === 0 ? '#059669' : '#6b7280'};
@@ -2665,7 +2697,6 @@ async function createFileSettingsTabs(files) {
             margin-right: 2px;
             box-shadow: ${i === 0 ? '0 -2px 4px rgba(0,0,0,0.1)' : 'none'};
             z-index: ${i === 0 ? '2' : '1'};
-            flex-shrink: 0;
         `;
         
         tab.innerHTML = `
@@ -2755,6 +2786,8 @@ async function updateFileSettingsPanel(index) {
     
     if (!fileData) return;
     
+    console.log(`[DEBUG] updateFileSettingsPanel - index: ${index}, fileData.totalDuration: ${fileData.totalDuration}`);
+    
     const panel = document.createElement('div');
     panel.innerHTML = `
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
@@ -2793,8 +2826,8 @@ async function updateFileSettingsPanel(index) {
         </div>
         
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 일시</label>
-            <input id="recordingDate${index}" type="datetime-local" value="${fileData.recordingDate}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'recordingDate', this.value)">
+            <label for="recordingDate${index}" style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151; cursor: pointer;" onclick="document.getElementById('recordingDate${index}').focus(); document.getElementById('recordingDate${index}').showPicker()">녹음 일시</label>
+            <input id="recordingDate${index}" type="datetime-local" value="${fileData.recordingDate}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; cursor: pointer;" oninput="updateFileTabData(${index}, 'recordingDate', this.value)" onclick="this.showPicker()">
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -2916,13 +2949,31 @@ async function deleteFileTab(index, event) {
                 console.error('파일 삭제 중 오류:', error);
             }
         }
+        
+        // 현재 활성 탭 인덱스 조정
+        const currentActiveIndex = activeFileTabIndex;
+        
         fileTabsData.splice(index, 1);
         
         // 업로드된 파일 목록에서도 제거
         uploadedFilesData.splice(index, 1);
         
         // 탭 UI 재생성
-        createFileSettingsTabs(uploadedFilesData);
+        await createFileSettingsTabs(uploadedFilesData);
+        
+        // 활성 탭 인덱스 재조정
+        if (currentActiveIndex >= uploadedFilesData.length) {
+            activeFileTabIndex = uploadedFilesData.length - 1;
+        } else if (currentActiveIndex === index && index > 0) {
+            activeFileTabIndex = index - 1;
+        } else {
+            activeFileTabIndex = currentActiveIndex > index ? currentActiveIndex - 1 : currentActiveIndex;
+        }
+        
+        // 올바른 탭으로 전환
+        if (uploadedFilesData.length > 0) {
+            switchFileTab(activeFileTabIndex);
+        }
         
         showNotification('파일이 삭제되었습니다.', 'success');
     }
