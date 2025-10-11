@@ -1,5 +1,5 @@
 {% extends "admin/change_list.html" %}
-{% load i18n admin_urls static admin_list humanize %}
+{% load i18n admin_urls static admin_list humanize custom_filters %}
 
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/excel_database.css' %}">
@@ -322,9 +322,9 @@
                             <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">최종본 옵션</label>
                             <select id="finalOptionInput" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
                                 <option value="file">파일</option>
-                                <option value="file_post">파일 +등기 우편 (+5,000원)</option>
-                                <option value="file_post_cd">파일 +등기 우편 +CD (+6,000원)</option>
-                                <option value="file_post_usb">파일 +등기 우편 +USB (+10,000원)</option>
+                                <option value="file_usb">파일 + 등기 우편 (+5,000원)</option>
+                                <option value="file_usb_cd">파일 + 등기 우편 + CD (+6,000원)</option>
+                                <option value="file_usb_post">파일 + 등기 우편 + USB (+10,000원)</option>
                             </select>
                         </div>
                     </div>
@@ -633,7 +633,7 @@
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.get_draft_format_display|default:"HWP" }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.get_final_option_display|default:"기본" }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.name }}</td>
-                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.phone }}</td>
+                        <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.phone|format_phone }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.email }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell merged-cell" rowspan="{{ order_group.list|length }}">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>
@@ -698,7 +698,7 @@
                         <td class="excel-cell">{{ result.get_draft_format_display|default:"HWP" }}</td>
                         <td class="excel-cell">{{ result.get_final_option_display|default:"기본" }}</td>
                         <td class="excel-cell">{{ result.name }}</td>
-                        <td class="excel-cell">{{ result.phone }}</td>
+                        <td class="excel-cell">{{ result.phone|format_phone }}</td>
                         <td class="excel-cell">{{ result.email }}</td>
                         <td class="excel-cell">{{ result.address|default:"-" }}</td>
                         <td class="excel-cell">{% if result.estimated_price %}{{ result.estimated_price|floatformat:"0"|intcomma }}원{% else %}-{% endif %}</td>

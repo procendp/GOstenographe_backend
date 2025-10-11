@@ -38,9 +38,9 @@ class Request(models.Model):
     
     FINAL_OPTION_CHOICES = (
         ('file', _('파일')),
-        ('file_usb', _('파일+우편')),
-        ('file_usb_cd', _('파일+우편+CD')),
-        ('file_usb_post', _('파일+우편+USB')),
+        ('file_usb', _('파일 + 등기 우편 (+5,000원)')),
+        ('file_usb_cd', _('파일 + 등기 우편 + CD (+6,000원)')),
+        ('file_usb_post', _('파일 + 등기 우편 + USB (+10,000원)')),
     )
 
     # 기본 정보
