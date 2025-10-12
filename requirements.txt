@@ -8,4 +8,10 @@ celery>=5.3.6
 redis>=5.0.1
 sendgrid>=6.11.0
 requests==2.31.0
-django-unfold==0.65.0 
+django-unfold==0.65.0
+
+# Production server
+gunicorn>=21.2.0
+psycopg2-binary>=2.9.9
+whitenoise>=6.6.0
+dj-database-url>=2.1.0 

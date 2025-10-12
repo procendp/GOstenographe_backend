@@ -93,12 +93,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+import dj_database_url
+
+# 프로덕션 환경에서는 DATABASE_URL 사용, 개발 환경에서는 SQLite 사용
+if os.getenv('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -156,7 +168,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'core.User'
 
 # CORS 설정
-CORS_ALLOW_ALL_ORIGINS = True  # 개발 환경에서만 사용
+# 프로덕션 환경에서는 특정 도메인만 허용
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True  # 개발 환경에서만 사용
+else:
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework 설정 (모바일 최적화)
@@ -354,3 +370,24 @@ print('=== S3 ENV CHECK (settings.py) ===')
 print('AWS_S3_REGION_NAME:', AWS_S3_REGION_NAME)
 print('AWS_STORAGE_BUCKET_NAME:', AWS_STORAGE_BUCKET_NAME)
 print('AWS_ACCESS_KEY_ID:', AWS_ACCESS_KEY_ID)
+
+# 프로덕션 보안 설정
+if not DEBUG:
+    # HTTPS 강제
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # 보안 헤더
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    
+    # HSTS (HTTP Strict Transport Security)
+    SECURE_HSTS_SECONDS = 31536000  # 1년
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # WhiteNoise를 사용한 정적 파일 서빙
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
