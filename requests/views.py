@@ -169,6 +169,7 @@ class RequestViewSet(viewsets.ModelViewSet):
             request_data.update({
                 'order_id': order_id,
                 'recording_type': file_data.get('recordType', '전체'),
+                'recording_location': file_data.get('recordingLocation', '통화'),  # 녹취 위치 (통화/현장)
                 'partial_range': '\n'.join(file_data.get('timestamps', [])) if file_data.get('timestamps') else '',
                 'total_duration': file_data.get('duration', ''),
                 'speaker_count': file_data.get('speakerCount', 1),
