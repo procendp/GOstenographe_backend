@@ -223,7 +223,20 @@ LOGIN_REDIRECT_URL = '/admin/'
 SESSION_COOKIE_AGE = 1209600  # 2주
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_NAME = 'django_session'
+SESSION_COOKIE_DOMAIN = None
+SESSION_COOKIE_PATH = '/'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# CSRF 설정
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_COOKIE_DOMAIN = None
+CSRF_COOKIE_PATH = '/'
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_TRUSTED_ORIGINS = ['https://sokgijung-backend.onrender.com']
 
 # 로깅 설정
 LOGGING = {
@@ -244,7 +257,12 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': 'DEBUG',  # DEBUG로 변경하여 더 자세한 로그
+            'propagate': True,
+        },
+        'django.contrib.auth': {
+            'handlers': ['console'],
+            'level': 'DEBUG',  # 인증 관련 로그 추가
             'propagate': True,
         },
         'requests': {
