@@ -605,7 +605,7 @@
                         <td class="excel-cell merged-cell payment-section-start payment-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
-                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
+                                    {{ result.payment_status|yesno:"결제완료,미결제,미결제" }}
                                 </span>
                                 <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -670,7 +670,7 @@
                         <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
-                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
+                                    {{ result.payment_status|yesno:"결제완료,미결제,미결제" }}
                                 </span>
                                 <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
