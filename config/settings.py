@@ -218,6 +218,11 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 # 로그인/로그아웃 설정
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/admin/'
+
+# 세션 설정
+SESSION_COOKIE_AGE = 1209600  # 2주
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 LOGOUT_REDIRECT_URL = '/login/'
 
 # 로깅 설정
@@ -368,11 +373,11 @@ print('AWS_ACCESS_KEY_ID:', AWS_ACCESS_KEY_ID)
 
 # 프로덕션 보안 설정
 if not DEBUG:
-    # HTTPS 강제
-    SECURE_SSL_REDIRECT = True
-    # Render에서 HTTPS가 제대로 설정될 때까지 임시로 False
-    SESSION_COOKIE_SECURE = False  # 임시: HTTPS 설정 문제 해결까지
-    CSRF_COOKIE_SECURE = False     # 임시: HTTPS 설정 문제 해결까지
+    # Render 배포를 위한 보안 설정 완화
+    SECURE_SSL_REDIRECT = False  # HTTPS 리다이렉트 비활성화
+    SESSION_COOKIE_SECURE = False  # 세션 쿠키 보안 비활성화
+    CSRF_COOKIE_SECURE = False     # CSRF 쿠키 보안 비활성화
+    SECURE_HSTS_SECONDS = 0        # HSTS 비활성화
     
     # 보안 헤더
     SECURE_BROWSER_XSS_FILTER = True
