@@ -6,7 +6,7 @@
 <div class="p-6">
     <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-2">
-            <h1 class="text-2xl font-semibold text-gray-900">요청서 List</h1>
+            <h1 class="text-2xl font-semibold text-gray-900">{{ page_title|default:"요청서 List" }}</h1>
 
             <!-- 주문서 관리 전용 버튼들 (추가/삭제) -->
             {% if show_add_delete %}
@@ -381,11 +381,7 @@
                             <div class="resize-handle"></div>
                         </th>
                         <th class="resizable-th" style="min-width: 100px; position: relative;">
-                            <div class="th-content">녹음 위치</div>
-                            <div class="resize-handle"></div>
-                        </th>
-                        <th class="resizable-th" style="min-width: 100px; position: relative;">
-                            <div class="th-content">녹취 종류</div>
+                            <div class="th-content">녹취 타입</div>
                             <div class="resize-handle"></div>
                         </th>
                         <th class="resizable-th" style="min-width: 120px; position: relative;">
@@ -575,7 +571,6 @@
                                 -
                             {% endif %}
                         </td>
-                        <td class="excel-cell">{{ result.recording_location|default:"통화" }}</td>
                         <td class="excel-cell">{{ result.recording_type|default:"전체" }}</td>
                         <td class="excel-cell">
                             {% if result.recording_type == "전체" %}
@@ -605,7 +600,7 @@
                         <td class="excel-cell merged-cell payment-section-start payment-cell" rowspan="{{ order_group.list|length }}" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
-                                    {{ result.payment_status|yesno:"결제완료,미결제,미결제" }}
+                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
                                 </span>
                                 <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -670,7 +665,7 @@
                         <td class="excel-cell payment-section-start payment-cell" data-request-id="{{ result.request_id }}" data-current-payment="{{ result.payment_status }}">
                             <div class="payment-container">
                                 <span class="payment-badge payment-{{ result.payment_status }}">
-                                    {{ result.payment_status|yesno:"결제완료,미결제,미결제" }}
+                                    {{ result.payment_status|yesno:"결제 완료,미결제,미결제" }}
                                 </span>
                                 <button class="payment-edit-btn" onclick="editPayment('{{ result.request_id }}', '{{ result.payment_status }}')">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

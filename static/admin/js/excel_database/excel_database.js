@@ -230,7 +230,7 @@ function editPayment(requestId, currentPayment) {
     // 결제 상태 옵션
     const paymentOptions = [
         { value: false, name: '미결제', color: '#fee2e2', textColor: '#991b1b' },
-        { value: true, name: '결제완료', color: '#dcfce7', textColor: '#166534' }
+        { value: true, name: '결제 완료', color: '#dcfce7', textColor: '#166534' }
     ];
     
     // 모든 결제 상태 표시
@@ -294,7 +294,7 @@ function changePayment(requestId, paymentStatus) {
             const paymentCell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
             const badge = paymentCell.querySelector('.payment-badge');
             badge.className = `payment-badge payment-${paymentStatus}`;
-            badge.textContent = paymentStatus ? '결제완료' : '미결제';
+            badge.textContent = paymentStatus ? '결제 완료' : '미결제';
             // 배경색과 텍스트 색상 직접 설정
             badge.style.background = paymentStatus ? '#dcfce7' : '#fee2e2';
             badge.style.color = paymentStatus ? '#166534' : '#991b1b';
@@ -435,8 +435,8 @@ function sortOrderIDList(tbody, rows, column, direction) {
             comparison = valueA - valueB;
         } else if (column === 'payment_status') {
             // 결제 여부 정렬
-            const statusA = valueA === '결제완료' ? 1 : 0;
-            const statusB = valueB === '결제완료' ? 1 : 0;
+            const statusA = valueA === '결제 완료' ? 1 : 0;
+            const statusB = valueB === '결제 완료' ? 1 : 0;
             comparison = statusA - statusB;
         } else {
             // 문자열 정렬
@@ -483,8 +483,8 @@ function sortRegularTable(tbody, rows, column, direction) {
             comparison = valueA - valueB;
         } else if (column === 'payment_status') {
             // 결제 여부 정렬
-            const statusA = valueA === '결제완료' ? 1 : 0;
-            const statusB = valueB === '결제완료' ? 1 : 0;
+            const statusA = valueA === '결제 완료' ? 1 : 0;
+            const statusB = valueB === '결제 완료' ? 1 : 0;
             comparison = statusA - statusB;
         } else {
             // 문자열 정렬
@@ -540,108 +540,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 특별한 처리가 필요한 컬럼들 확인
-        const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');
-        const isSpeakerCountColumn = headerTh && headerTh.textContent.includes('화자수');
-        const isTotalLengthColumn = headerTh && headerTh.textContent.includes('총 길이');
-        const isSpeakerNamesColumn = headerTh && headerTh.textContent.includes('화자 이름');
-        
-        // 데이터 셀 너비 계산
+        // 첨부파일 컬럼인지 확인
+        const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');            // 데이터 셀 너비 계산
         for (let i = 1; i < rows.length; i++) {
             const measureCell = rows[i].cells[columnIndex];
             if (measureCell) {
-                // 특별한 처리가 필요한 컬럼들
-                if (isAttachmentColumn) {
-                    // 첨부 파일 컬럼: 실제 화면에 표시되는 텍스트 길이로 계산
-                    const content = measureCell.textContent.trim();
-                    if (content && content !== '-') {
-                        const tempSpan = document.createElement('span');
-                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                        tempSpan.textContent = content;
-                        document.body.appendChild(tempSpan);
-                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 40); // 다운로드 아이콘 + 패딩
-                        document.body.removeChild(tempSpan);
-                    }
-                } else if (isSpeakerCountColumn) {
-                    // 화자수 컬럼: 숫자만 들어가므로 최소한의 너비로 제한
-                    const content = measureCell.textContent.trim();
-                    if (content && content !== '-') {
-                        const tempSpan = document.createElement('span');
-                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                        tempSpan.textContent = content;
-                        document.body.appendChild(tempSpan);
-                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 20); // 최소 패딩
-                        document.body.removeChild(tempSpan);
-                    }
-                } else if (isTotalLengthColumn) {
-                    // 총 길이 컬럼: 시간 형식이므로 적절한 크기로 제한
-                    const content = measureCell.textContent.trim();
-                    if (content && content !== '-') {
-                        const tempSpan = document.createElement('span');
-                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                        tempSpan.textContent = content;
-                        document.body.appendChild(tempSpan);
-                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 25); // 적절한 패딩
-                        document.body.removeChild(tempSpan);
-                    }
-                } else if (isSpeakerNamesColumn) {
-                    // 화자 이름 컬럼: 이름들이 들어가므로 가변적이지만 적절한 제한
-                    const content = measureCell.textContent.trim();
-                    if (content && content !== '-') {
-                        const tempSpan = document.createElement('span');
-                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                        tempSpan.textContent = content;
-                        document.body.appendChild(tempSpan);
-                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 30); // 적절한 패딩
-                        document.body.removeChild(tempSpan);
-                    }
+                // 셀의 실제 콘텐츠 가져오기
+                let content = '';
+                const statusBadge = measureCell.querySelector('.status-badge');
+                const paymentBadge = measureCell.querySelector('.payment-badge');
+                const editableValue = measureCell.querySelector('.editable-value');
+                
+                if (statusBadge) {
+                    content = statusBadge.textContent.trim();
+                } else if (paymentBadge) {
+                    content = paymentBadge.textContent.trim();
+                } else if (editableValue) {
+                    content = editableValue.textContent.trim();
                 } else {
-                    // 다른 컬럼들의 기존 로직
-                    let content = '';
-                    const statusBadge = measureCell.querySelector('.status-badge');
-                    const paymentBadge = measureCell.querySelector('.payment-badge');
-                    const editableValue = measureCell.querySelector('.editable-value');
-                    
-                    if (statusBadge) {
-                        content = statusBadge.textContent.trim();
-                    } else if (paymentBadge) {
-                        content = paymentBadge.textContent.trim();
-                    } else if (editableValue) {
-                        content = editableValue.textContent.trim();
-                    } else {
-                        content = measureCell.textContent.trim();
-                    }
-                    
-                    // 임시 요소로 너비 측정
-                    const tempSpan = document.createElement('span');
-                    tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                    tempSpan.textContent = content;
-                    document.body.appendChild(tempSpan);
-                    
-                    // 상태/결제 컬럼은 버튼 공간도 고려
-                    let additionalWidth = 32; // 기본 패딩
-                    if (statusBadge || paymentBadge) {
-                        additionalWidth = 60; // 뱃지 패딩 + 편집 버튼 공간
-                    }
-                    
-                    maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + additionalWidth);
-                    document.body.removeChild(tempSpan);
+                    content = measureCell.textContent.trim();
                 }
+                
+                // 임시 요소로 너비 측정
+                const tempSpan = document.createElement('span');
+                tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                tempSpan.textContent = content;
+                document.body.appendChild(tempSpan);
+                
+                // 상태/결제 컬럼은 버튼 공간도 고려
+                let additionalWidth = 32; // 기본 패딩
+                if (statusBadge || paymentBadge) {
+                    additionalWidth = 60; // 뱃지 패딩 + 편집 버튼 공간
+                }
+                
+                maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + additionalWidth);
+                document.body.removeChild(tempSpan);
             }
         }
         
-        // 특별한 처리가 필요한 컬럼들에 대한 최대 너비 제한
-        if (isAttachmentColumn) {
-            return Math.min(maxWidth + 20, 250); // 첨부 파일 컬럼은 최대 250px로 제한
-        } else if (isSpeakerCountColumn) {
-            return Math.min(maxWidth + 10, 80); // 화자수 컬럼은 최대 80px로 제한
-        } else if (isTotalLengthColumn) {
-            return Math.min(maxWidth + 15, 120); // 총 길이 컬럼은 최대 120px로 제한
-        } else if (isSpeakerNamesColumn) {
-            return Math.min(maxWidth + 20, 200); // 화자 이름 컬럼은 최대 200px로 제한 (가변적)
-        }
-        
-        return Math.min(maxWidth + 10, 500); // 다른 컬럼들은 최대 500px로 제한
+        return Math.min(maxWidth + 10, 500); // 최대 500px로 제한
     }
 
     // 모든 리사이즈 핸들에 이벤트 리스너 추가
@@ -2760,7 +2697,6 @@ async function createFileSettingsTabs(files) {
             file: file,
             requestId: requestId,
             recordingType: '전체',
-            recordingLocation: '통화',  // 녹음 위치 기본값 추가
             totalDuration: duration,
             partialRange: '',
             speakerCount: 1,
@@ -2905,24 +2841,16 @@ async function updateFileSettingsPanel(index) {
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 위치</label>
-                <select id="recordingLocation${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingLocation', this.value)">
-                    <option value="통화" ${fileData.recordingLocation === '통화' ? 'selected' : ''}>통화 녹음</option>
-                    <option value="현장" ${fileData.recordingLocation === '현장' ? 'selected' : ''}>현장 녹음</option>
-                </select>
-            </div>
-            <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 종류</label>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
                 <select id="recordingType${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingType', this.value); togglePartialRange(${index})">
                     <option value="전체">전체</option>
                     <option value="부분">부분</option>
                 </select>
             </div>
-        </div>
-        
-        <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
-            <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
+                <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
+            </div>
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -3103,7 +3031,6 @@ function getFileSettingsData() {
         file_type: fileData.file.type || '',
         file_size: fileData.file.size || 0,
         recording_type: fileData.recordingType,
-        recording_location: fileData.recordingLocation || '통화',  // 녹음 위치 추가
         total_duration: fileData.totalDuration,
         partial_range: fileData.partialRange,
         speaker_count: fileData.speakerCount,

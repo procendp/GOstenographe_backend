@@ -230,7 +230,7 @@ function editPayment(requestId, currentPayment) {
     // 결제 상태 옵션
     const paymentOptions = [
         { value: false, name: '미결제', color: '#fee2e2', textColor: '#991b1b' },
-        { value: true, name: '결제완료', color: '#dcfce7', textColor: '#166534' }
+        { value: true, name: '결제 완료', color: '#dcfce7', textColor: '#166534' }
     ];
     
     // 모든 결제 상태 표시
@@ -294,7 +294,7 @@ function changePayment(requestId, paymentStatus) {
             const paymentCell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
             const badge = paymentCell.querySelector('.payment-badge');
             badge.className = `payment-badge payment-${paymentStatus}`;
-            badge.textContent = paymentStatus ? '결제완료' : '미결제';
+            badge.textContent = paymentStatus ? '결제 완료' : '미결제';
             // 배경색과 텍스트 색상 직접 설정
             badge.style.background = paymentStatus ? '#dcfce7' : '#fee2e2';
             badge.style.color = paymentStatus ? '#166534' : '#991b1b';
@@ -435,8 +435,8 @@ function sortOrderIDList(tbody, rows, column, direction) {
             comparison = valueA - valueB;
         } else if (column === 'payment_status') {
             // 결제 여부 정렬
-            const statusA = valueA === '결제완료' ? 1 : 0;
-            const statusB = valueB === '결제완료' ? 1 : 0;
+            const statusA = valueA === '결제 완료' ? 1 : 0;
+            const statusB = valueB === '결제 완료' ? 1 : 0;
             comparison = statusA - statusB;
         } else {
             // 문자열 정렬
@@ -483,8 +483,8 @@ function sortRegularTable(tbody, rows, column, direction) {
             comparison = valueA - valueB;
         } else if (column === 'payment_status') {
             // 결제 여부 정렬
-            const statusA = valueA === '결제완료' ? 1 : 0;
-            const statusB = valueB === '결제완료' ? 1 : 0;
+            const statusA = valueA === '결제 완료' ? 1 : 0;
+            const statusB = valueB === '결제 완료' ? 1 : 0;
             comparison = statusA - statusB;
         } else {
             // 문자열 정렬

@@ -22,7 +22,7 @@ function changePayment(requestId, paymentStatus) {
             const paymentCell = document.querySelector(`[data-request-id="${requestId}"][data-current-payment]`);
             const badge = paymentCell.querySelector('.payment-badge');
             badge.className = `payment-badge payment-${paymentStatus}`;
-            badge.textContent = paymentStatus ? '결제완료' : '미결제';
+            badge.textContent = paymentStatus ? '결제 완료' : '미결제';
             // 배경색과 텍스트 색상 직접 설정
             badge.style.background = paymentStatus ? '#dcfce7' : '#fee2e2';
             badge.style.color = paymentStatus ? '#166534' : '#991b1b';

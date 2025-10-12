@@ -927,37 +927,15 @@ def statistics_dashboard_view(request):
         revenue=Sum('payment_amount')
     ).order_by('year')
     
-    # 상태별 통계 (한글명 포함)
-    status_stats_raw = Request.objects.values('status').annotate(
+    # 상태별 통계
+    status_stats = Request.objects.values('status').annotate(
         count=Count('id')
     ).order_by('-count')
     
-    # 상태 한글명 매핑
-    status_dict = dict(Request.STATUS_CHOICES)
-    status_stats = [
-        {
-            'status': item['status'],
-            'name': status_dict.get(item['status'], item['status']),
-            'count': item['count']
-        }
-        for item in status_stats_raw
-    ]
-    
-    # 최종본 옵션 선호도 (한글명 포함)
-    final_option_stats_raw = Request.objects.values('final_option').annotate(
+    # 최종본 옵션 선호도
+    final_option_stats = Request.objects.values('final_option').annotate(
         count=Count('id')
     ).order_by('-count')
-    
-    # 최종본 옵션 한글명 매핑
-    final_option_dict = dict(Request.FINAL_OPTION_CHOICES)
-    final_option_stats = [
-        {
-            'final_option': item['final_option'],
-            'name': final_option_dict.get(item['final_option'], item['final_option']),
-            'count': item['count']
-        }
-        for item in final_option_stats_raw
-    ]
     
     # 취소 관련 통계
     cancelled_stats = Request.objects.filter(
@@ -979,8 +957,8 @@ def statistics_dashboard_view(request):
         'daily_stats': list(daily_stats),
         'monthly_stats': list(monthly_stats),
         'yearly_stats': list(yearly_stats),
-        'status_stats': status_stats,
-        'final_option_stats': final_option_stats,
+        'status_stats': list(status_stats),
+        'final_option_stats': list(final_option_stats),
         'cancelled_stats': list(cancelled_stats),
     }
     
@@ -1109,37 +1087,15 @@ def statistics_api_view(request):
             revenue_data.append(float(revenue_sum))
             labels.append(f"{year}년")
     
-    # 상태별 통계 (한글명 포함)
-    status_stats_raw = Request.objects.values('status').annotate(
+    # 상태별 통계
+    status_stats = Request.objects.values('status').annotate(
         count=Count('id')
     ).order_by('-count')
     
-    # 상태 한글명 매핑
-    status_dict = dict(Request.STATUS_CHOICES)
-    status_stats = [
-        {
-            'status': item['status'],
-            'name': status_dict.get(item['status'], item['status']),
-            'count': item['count']
-        }
-        for item in status_stats_raw
-    ]
-    
-    # 최종본 옵션 선호도 (한글명 포함)
-    final_option_stats_raw = Request.objects.values('final_option').annotate(
+    # 최종본 옵션 선호도
+    final_option_stats = Request.objects.values('final_option').annotate(
         count=Count('id')
     ).order_by('-count')
-    
-    # 최종본 옵션 한글명 매핑
-    final_option_dict = dict(Request.FINAL_OPTION_CHOICES)
-    final_option_stats = [
-        {
-            'final_option': item['final_option'],
-            'name': final_option_dict.get(item['final_option'], item['final_option']),
-            'count': item['count']
-        }
-        for item in final_option_stats_raw
-    ]
     
     # 취소 관련 통계
     cancelled_stats = Request.objects.filter(
@@ -1153,8 +1109,8 @@ def statistics_api_view(request):
         'total_files': total_files,
         'total_revenue': float(total_revenue) if total_revenue else 0,
         'average_order_amount': float(average_order_amount),
-        'status_stats': status_stats,
-        'final_option_stats': final_option_stats,
+        'status_stats': list(status_stats),
+        'final_option_stats': list(final_option_stats),
         'cancelled_stats': list(cancelled_stats),
         'trend_data': trend_data,
         'revenue_data': revenue_data,

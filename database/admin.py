@@ -18,6 +18,12 @@ class IntegratedViewAdmin(ModelAdmin):
 
     change_list_template = 'admin/excel_database.html'
 
+    def changelist_view(self, request, extra_context=None):
+        """통합 관리용 페이지 제목"""
+        extra_context = extra_context or {}
+        extra_context['page_title'] = '통합 관리 List'
+        return super().changelist_view(request, extra_context)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False)
@@ -36,6 +42,38 @@ class IntegratedViewAdmin(ModelAdmin):
             obj.get_status_display()
         )
     status_display.short_description = '상태'
+
+    def phone_display(self, obj):
+        """연락처 표시 형식 개선 (010-5590-7193 형태)"""
+        if not obj.phone:
+            return obj.phone
+        
+        import re
+        # 숫자만 추출
+        digits = re.sub(r'\D', '', obj.phone)
+        
+        # 010으로 시작하는 11자리 번호인 경우
+        if len(digits) == 11 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
+        
+        # 010으로 시작하는 10자리 번호인 경우 (중간 3자리)
+        if len(digits) == 10 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+        
+        # 다른 형식은 그대로 반환
+        return obj.phone
+    phone_display.short_description = '연락처'
+
+    def final_option_display(self, obj):
+        """최종본 옵션 표시 형식 개선"""
+        option_map = {
+            'file': '파일',
+            'file_post': '파일 + 등기 우편 (+5,000원)',
+            'file_post_cd': '파일 + 등기 우편 + CD (+6,000원)',
+            'file_post_usb': '파일 + 등기 우편 + USB (+10,000원)'
+        }
+        return option_map.get(obj.final_option, obj.final_option)
+    final_option_display.short_description = '최종본 옵션'
 
     def has_add_permission(self, request):
         return False
@@ -58,6 +96,7 @@ class OrderManagementAdmin(ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         """주문서 관리용 커스텀 템플릿 컨텍스트"""
         extra_context = extra_context or {}
+        extra_context['page_title'] = '주문서 관리 List'
         extra_context['hide_request_id'] = True  # Request ID 숨김
         extra_context['show_add_delete'] = True  # 추가/삭제 버튼 표시
         return super().changelist_view(request, extra_context)
@@ -163,8 +202,9 @@ class RequestManagementAdmin(ModelAdmin):
     )
     
     def changelist_view(self, request, extra_context=None):
-        """Option B용 커스텀 템플릿 컨텍스트"""
+        """요청서 관리용 커스텀 템플릿 컨텍스트"""
         extra_context = extra_context or {}
+        extra_context['page_title'] = '요청서 관리 List'
         extra_context['hide_order_id'] = True  # Option B에서만 Order ID 숨김
         return super().changelist_view(request, extra_context)
         
@@ -212,6 +252,38 @@ class RequestManagementAdmin(ModelAdmin):
             style, obj.get_status_display()
         )
     status_display.short_description = '상태'
+
+    def phone_display(self, obj):
+        """연락처 표시 형식 개선 (010-5590-7193 형태)"""
+        if not obj.phone:
+            return obj.phone
+        
+        import re
+        # 숫자만 추출
+        digits = re.sub(r'\D', '', obj.phone)
+        
+        # 010으로 시작하는 11자리 번호인 경우
+        if len(digits) == 11 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
+        
+        # 010으로 시작하는 10자리 번호인 경우 (중간 3자리)
+        if len(digits) == 10 and digits.startswith('010'):
+            return f"{digits[:3]}-{digits[3:6]}-{digits[6:]}"
+        
+        # 다른 형식은 그대로 반환
+        return obj.phone
+    phone_display.short_description = '연락처'
+
+    def final_option_display(self, obj):
+        """최종본 옵션 표시 형식 개선"""
+        option_map = {
+            'file': '파일',
+            'file_post': '파일 + 등기 우편 (+5,000원)',
+            'file_post_cd': '파일 + 등기 우편 + CD (+6,000원)',
+            'file_post_usb': '파일 + 등기 우편 + USB (+10,000원)'
+        }
+        return option_map.get(obj.final_option, obj.final_option)
+    final_option_display.short_description = '최종본 옵션'
     
     def has_add_permission(self, request):
         return False

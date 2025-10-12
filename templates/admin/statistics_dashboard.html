@@ -140,110 +140,81 @@
         color: #1a1a1a;
     }
     
-    /* CSS 수평 바 차트 (최종본 옵션용) */
-    .options-bar-chart {
+    /* CSS 바 차트 */
+    .bar-chart {
         display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px 0;
-    }
-    
-    .options-bar-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    
-    .options-bar-label {
-        min-width: 100px;
-        font-size: 11px;
-        font-weight: 600;
-        color: #333;
-        text-align: right;
-        line-height: 1.3;
-    }
-    
-    .options-bar-container {
-        flex: 1;
-        height: 28px;
-        background: #f5f5f5;
-        border-radius: 6px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .options-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        border-radius: 6px;
-        transition: width 0.3s ease;
-        display: flex;
-        align-items: center;
-        padding: 0 8px;
-        color: white;
-        font-size: 11px;
-        font-weight: 600;
-        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
-    }
-    
-    .options-bar-value {
-        min-width: 35px;
-        font-size: 12px;
-        font-weight: 600;
-        color: #764ba2;
-        text-align: right;
-    }
-    
-    /* 수평 바 차트 (주문 상태용) */
-    .horizontal-bar-chart {
-        display: flex;
-        flex-direction: column;
+        align-items: end;
+        height: 100px;
         gap: 12px;
-        padding: 10px 0;
-    }
-    
-    .horizontal-bar-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .horizontal-bar-label {
-        min-width: 80px;
-        font-size: 13px;
-        font-weight: 600;
-        color: #333;
-        text-align: right;
-    }
-    
-    .horizontal-bar-container {
-        flex: 1;
-        height: 32px;
-        background: #f5f5f5;
-        border-radius: 6px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .horizontal-bar-fill {
-        height: 100%;
-        border-radius: 6px;
-        transition: width 0.3s ease;
-        display: flex;
-        align-items: center;
+        margin: 15px 0;
         padding: 0 10px;
-        color: white;
-        font-size: 12px;
-        font-weight: 600;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
-    .horizontal-bar-value {
-        min-width: 45px;
-        font-size: 13px;
+    .bar {
+        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        border-radius: 6px 6px 0 0;
+        min-height: 10px;
+        min-width: 40px;
+        display: flex;
+        align-items: end;
+        justify-content: center;
+        color: white;
+        font-size: 11px;
         font-weight: 600;
-        color: #667eea;
-        text-align: right;
+        padding: 4px;
+        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+    }
+    
+    .bar-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        height: 100%;
+    }
+    
+    .bar-label {
+        font-size: 11px;
+        color: #666;
+        margin-top: 8px;
+        text-align: center;
+        font-weight: 500;
+    }
+    
+    /* CSS 도넛 차트 */
+    .donut-chart {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: conic-gradient(
+            #667eea 0deg 120deg,
+            #764ba2 120deg 240deg,
+            #f093fb 240deg 300deg,
+            #e0e0e0 300deg 360deg
+        );
+        position: relative;
+        margin: 20px auto;
+    }
+    
+    .donut-chart::before {
+        content: '';
+        position: absolute;
+        top: 25px;
+        left: 25px;
+        width: 70px;
+        height: 70px;
+        background: white;
+        border-radius: 50%;
+    }
+    
+    .donut-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
     }
     
     /* 범례 */
@@ -441,12 +412,7 @@
 {% block content %}
 <div class="stats-container">
     <div class="stats-header">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0;">📊 통계 대시보드</h1>
-            <button onclick="window.location.href='/admin/'" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;" onmouseover="this.style.background='#5568d3'" onmouseout="this.style.background='#667eea'">
-                ← 백오피스로 돌아가기
-            </button>
-        </div>
+        <h1>📊 통계 대시보드</h1>
         <div class="stats-subtitle">실시간 주문 및 매출 현황<span class="update-indicator"></span></div>
         <div class="last-updated" id="lastUpdated">마지막 업데이트: 로드 중...</div>
     </div>
@@ -501,16 +467,34 @@
     <div class="bottom-grid">
         <!-- 상태별 차트 -->
         <div class="small-chart-card">
-            <div class="small-chart-title">📋 주문 상태 (총 {{ total_requests|default:0 }}건)</div>
-            <div class="horizontal-bar-chart">
-                <!-- 동적으로 생성될 수평 바 차트 -->
+            <div class="small-chart-title">📋 주문 상태</div>
+            <div class="donut-chart">
+                <div class="donut-center">{{ total_requests|default:0 }}</div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #667eea"></div>
+                    <span>접수됨</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #764ba2"></div>
+                    <span>결제완료</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #f093fb"></div>
+                    <span>작업중</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #e0e0e0"></div>
+                    <span>기타</span>
+                </div>
             </div>
         </div>
         
         <div class="small-chart-card">
             <div class="small-chart-title">📦 최종본 옵션</div>
-            <div class="options-bar-chart">
-                <!-- 동적으로 생성될 옵션 바 차트 -->
+            <div class="bar-chart">
+                <!-- 동적으로 생성될 바 차트 -->
             </div>
         </div>
         
@@ -789,112 +773,136 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 수평 바 차트 생성 함수 (주문 상태용)
-    function createHorizontalBarChart(container, data, total) {
-        if (!container || !data || data.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">데이터가 없습니다</div>';
-            return;
-        }
+    // 도넛 차트 생성 함수
+    function createDonutChart(container, data, total) {
+        if (!container || !data || data.length === 0) return;
         
-        container.innerHTML = '';
+        const colors = ['#667eea', '#764ba2', '#f093fb', '#e0e0e0'];
         
-        const colors = ['#667eea', '#764ba2', '#f093fb', '#4ade80', '#fbbf24', '#e0e0e0'];
-        const maxValue = Math.max(...data.map(item => item.count), 1);
+        // 각도 계산
+        let currentAngle = 0;
+        const segments = data.map((item, index) => {
+            const percentage = total > 0 ? (item.count / total) : 0;
+            const angle = percentage * 360;
+            const segment = {
+                ...item,
+                percentage,
+                startAngle: currentAngle,
+                endAngle: currentAngle + angle,
+                color: colors[index] || colors[colors.length - 1]
+            };
+            currentAngle += angle;
+            return segment;
+        });
         
-        data.forEach((item, index) => {
-            const percentage = total > 0 ? (item.count / total * 100).toFixed(1) : 0;
-            const widthPercent = (item.count / maxValue * 100);
+        // CSS conic-gradient 생성
+        const gradientStops = segments.map(segment => 
+            `${segment.color} ${segment.startAngle}deg ${segment.endAngle}deg`
+        ).join(', ');
+        
+        container.style.background = `conic-gradient(${gradientStops})`;
+        container.style.cursor = 'pointer';
+        
+        // 기존 이벤트 리스너 제거
+        const newContainer = container.cloneNode(true);
+        container.parentNode.replaceChild(newContainer, container);
+        
+        // 호버 이벤트 추가
+        const tooltip = document.createElement('div');
+        tooltip.style.position = 'absolute';
+        tooltip.style.background = 'rgba(0,0,0,0.8)';
+        tooltip.style.color = 'white';
+        tooltip.style.padding = '8px 12px';
+        tooltip.style.borderRadius = '6px';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.zIndex = '1000';
+        tooltip.style.display = 'none';
+        tooltip.style.whiteSpace = 'nowrap';
+        
+        newContainer.addEventListener('mousemove', (e) => {
+            const rect = newContainer.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const x = e.clientX - rect.left - centerX;
+            const y = e.clientY - rect.top - centerY;
             
-            const barItem = document.createElement('div');
-            barItem.className = 'horizontal-bar-item';
+            // 도넛 차트 범위 내에 있는지 확인
+            const distance = Math.sqrt(x * x + y * y);
+            const outerRadius = Math.min(centerX, centerY);
+            const innerRadius = outerRadius * 0.6; // 도넛 내부 반지름
             
-            const label = document.createElement('div');
-            label.className = 'horizontal-bar-label';
-            label.textContent = item.name || item.status || '알 수 없음';
+            if (distance >= innerRadius && distance <= outerRadius) {
+                // 각도 계산 (0도는 우측, 시계방향)
+                let angle = Math.atan2(y, x) * 180 / Math.PI;
+                if (angle < 0) angle += 360;
+                
+                // 현재 마우스 위치에 해당하는 세그먼트 찾기
+                const currentSegment = segments.find(segment => 
+                    angle >= segment.startAngle && angle < segment.endAngle
+                );
+                
+                if (currentSegment) {
+                    tooltip.textContent = `${currentSegment.name}: ${currentSegment.count}건 (${(currentSegment.percentage * 100).toFixed(1)}%)`;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (e.pageX + 10) + 'px';
+                    tooltip.style.top = (e.pageY - 30) + 'px';
+                    document.body.appendChild(tooltip);
+                    return;
+                }
+            }
             
-            const barContainer = document.createElement('div');
-            barContainer.className = 'horizontal-bar-container';
-            
-            const barFill = document.createElement('div');
-            barFill.className = 'horizontal-bar-fill';
-            barFill.style.width = `${widthPercent}%`;
-            barFill.style.background = colors[index] || colors[colors.length - 1];
-            barFill.textContent = `${item.count}건 (${percentage}%)`;
-            
-            const value = document.createElement('div');
-            value.className = 'horizontal-bar-value';
-            value.textContent = `${item.count}건`;
-            
-            barContainer.appendChild(barFill);
-            barItem.appendChild(label);
-            barItem.appendChild(barContainer);
-            barItem.appendChild(value);
-            container.appendChild(barItem);
+            // 범위 밖이면 툴팁 숨기기
+            tooltip.style.display = 'none';
+        });
+        
+        newContainer.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+            if (tooltip.parentNode) {
+                document.body.removeChild(tooltip);
+            }
         });
     }
     
-    // 옵션 바 차트 생성 함수 (최종본 옵션용)
-    function createOptionsBarChart(container, data) {
-        console.log('옵션 바 차트 생성 시작:', { container, data });
+    // 바 차트 생성 함수
+    function createBarChart(container, data) {
+        console.log('바 차트 생성 시작:', { container, data });
         if (!container || !data || data.length === 0) {
-            container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">데이터가 없습니다</div>';
-            console.log('옵션 바 차트 생성 실패: 컨테이너나 데이터 없음');
+            console.log('바 차트 생성 실패: 컨테이너나 데이터 없음');
             return;
         }
         
         container.innerHTML = '';
         
         const maxValue = Math.max(...data.map(item => item.count), 1);
-        const totalCount = data.reduce((sum, item) => sum + item.count, 0);
-        console.log('옵션 바 차트 최대값:', maxValue);
+        console.log('바 차트 최대값:', maxValue);
         
-        data.forEach((item, index) => {
-            const percentage = totalCount > 0 ? (item.count / totalCount * 100).toFixed(1) : 0;
-            const widthPercent = (item.count / maxValue * 100);
+        data.forEach(item => {
+            const barWrapper = document.createElement('div');
+            barWrapper.className = 'bar-wrapper';
             
-            const barItem = document.createElement('div');
-            barItem.className = 'options-bar-item';
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            const height = (item.count / maxValue) * 100;
+            bar.style.height = `${Math.max(height, 15)}%`;
+            bar.title = `${item.name}: ${item.count}건`;
+            
+            if (height > 25) {
+                bar.textContent = item.count;
+            }
             
             const label = document.createElement('div');
-            label.className = 'options-bar-label';
-            const displayName = item.name || item.final_option || '옵션';
-            // 긴 텍스트 줄바꿈 처리
-            if (displayName.length > 15) {
-                const parts = displayName.split('(');
-                if (parts.length > 1) {
-                    label.innerHTML = parts[0].trim() + '<br>(' + parts[1];
-                } else {
-                    label.textContent = displayName;
-                }
-            } else {
-                label.textContent = displayName;
-            }
+            label.className = 'bar-label';
+            label.textContent = item.name;
             
-            const barContainer = document.createElement('div');
-            barContainer.className = 'options-bar-container';
+            barWrapper.appendChild(bar);
+            barWrapper.appendChild(label);
+            container.appendChild(barWrapper);
             
-            const barFill = document.createElement('div');
-            barFill.className = 'options-bar-fill';
-            barFill.style.width = `${widthPercent}%`;
-            if (widthPercent > 30) {
-                barFill.textContent = `${item.count}건 (${percentage}%)`;
-            }
-            barFill.title = `${displayName}: ${item.count}건 (${percentage}%)`;
-            
-            const value = document.createElement('div');
-            value.className = 'options-bar-value';
-            value.textContent = `${item.count}건`;
-            
-            barContainer.appendChild(barFill);
-            barItem.appendChild(label);
-            barItem.appendChild(barContainer);
-            barItem.appendChild(value);
-            container.appendChild(barItem);
-            
-            console.log('옵션 바 생성:', displayName, widthPercent + '%');
+            console.log('바 생성:', item.name, height + '%');
         });
         
-        console.log('옵션 바 차트 생성 완료');
+        console.log('바 차트 생성 완료');
     }
     
     // 현재 차트 상태
@@ -969,16 +977,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 매출 요약 값 업데이트 (제거됨)
                 
-                // 수평 바 차트 업데이트 (주문 상태)
-                const horizontalBarChart = document.querySelector('.horizontal-bar-chart');
-                if (horizontalBarChart && data.status_stats) {
-                    createHorizontalBarChart(horizontalBarChart, data.status_stats, data.total_requests);
+                // 도넛 차트 업데이트 (주문 상태)
+                const donutCenter = document.querySelector('.donut-center');
+                if (donutCenter) donutCenter.textContent = data.total_requests;
+                
+                const donutChart = document.querySelector('.donut-chart');
+                if (donutChart && data.status_stats) {
+                    createDonutChart(donutChart, data.status_stats, data.total_requests);
                 }
                 
-                // 옵션 바 차트 업데이트 (최종본 옵션)
-                const optionsBarChart = document.querySelector('.options-bar-chart');
-                if (optionsBarChart && data.final_option_stats) {
-                    createOptionsBarChart(optionsBarChart, data.final_option_stats);
+                // 바 차트 업데이트 (최종본 옵션)
+                const barChart = document.querySelector('.bar-chart');
+                if (barChart && data.final_option_stats) {
+                    createBarChart(barChart, data.final_option_stats);
                 }
                 
                 // 총 매출 업데이트
