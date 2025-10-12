@@ -370,8 +370,9 @@ print('AWS_ACCESS_KEY_ID:', AWS_ACCESS_KEY_ID)
 if not DEBUG:
     # HTTPS 강제
     SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Render에서 HTTPS가 제대로 설정될 때까지 임시로 False
+    SESSION_COOKIE_SECURE = False  # 임시: HTTPS 설정 문제 해결까지
+    CSRF_COOKIE_SECURE = False     # 임시: HTTPS 설정 문제 해결까지
     
     # 보안 헤더
     SECURE_BROWSER_XSS_FILTER = True
