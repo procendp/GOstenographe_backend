@@ -693,12 +693,22 @@ function openFileDialog(requestId, fieldName) {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.style.display = 'none';
-    fileInput.accept = '.pdf,.doc,.docx,.txt';
+    fileInput.accept = '.txt,.hwp,.doc,.docx,.pdf';  // 텍스트 파일만 (hwp 추가)
     
     // 파일 선택 이벤트
     fileInput.onchange = function() {
         if (this.files.length > 0) {
-            uploadTranscriptFile(requestId, fieldName, this.files[0]);
+            const file = this.files[0];
+            const ext = file.name.split('.').pop()?.toLowerCase();
+            const allowedExts = ['txt', 'hwp', 'doc', 'docx', 'pdf'];
+            
+            if (!ext || !allowedExts.includes(ext)) {
+                showNotification(`텍스트 파일만 업로드 가능합니다.\n허용 형식: txt, hwp, doc, docx, pdf`, 'error');
+                document.body.removeChild(fileInput);
+                return;
+            }
+            
+            uploadTranscriptFile(requestId, fieldName, file);
         }
         // 사용 후 요소 제거
         document.body.removeChild(fileInput);
@@ -1398,6 +1408,26 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
     if (files.length === 0) return;
 
+    // 영상/음성 파일만 허용
+    const ALLOWED_EXTENSIONS = [
+        'mp3', 'wav', 'm4a', 'cda', 'mod', 'ogg', 'wma', 'flac', 'asf',
+        'avi', 'mp4', 'wmv', 'm2v', 'mpeg', 'dpg', 'mts', 'webm', 'divx', 'amv'
+    ];
+
+    const invalidFiles = files.filter(file => {
+        const ext = file.name.split('.').pop()?.toLowerCase();
+        return !ext || !ALLOWED_EXTENSIONS.includes(ext);
+    });
+
+    if (invalidFiles.length > 0) {
+        const fileNames = invalidFiles.map(f => f.name).join('\n');
+        showNotification(
+            `⚠️ 데이터 일관성을 위해 영상/음성 파일만 업로드해 주세요.\n\n허용되지 않는 파일:\n${fileNames}\n\n허용 형식:\n- 음성: mp3, wav, m4a, cda, mod, ogg, wma, flac, asf\n- 영상: avi, mp4, wmv, m2v, mpeg, dpg, mts, webm, divx, amv`,
+            'error'
+        );
+        e.target.value = '';
+        return;
+    }
 
     // 3GB 제한 검증
     const maxSize = 3 * 1024 * 1024 * 1024;  // 3GB
