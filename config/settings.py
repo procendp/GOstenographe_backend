@@ -98,10 +98,10 @@ import dj_database_url
 # 프로덕션 환경에서는 DATABASE_URL 사용, 개발 환경에서는 SQLite 사용
 if os.getenv('DATABASE_URL'):
     DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
+        "default": dj_database_url.config(
+            default=os.environ.get("DATABASE_URL"),
+            conn_max_age=0,  # ✅ Pooler에서는 반드시 0 권장
+            ssl_require=True
         )
     }
 else:
