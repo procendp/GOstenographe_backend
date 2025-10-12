@@ -1339,6 +1339,9 @@ async function openAddModal() {
 
     // 모달 열기
     document.getElementById('addOrderModal').style.display = 'flex';
+    
+    // 모달 밖 클릭 시 확인 후 닫기 (이벤트 리스너 등록)
+    setupModalCloseHandlers();
 }
 
 async function closeAddModal() {
@@ -1362,6 +1365,43 @@ async function closeAddModal() {
     document.getElementById('uploadStatusContainer').style.display = 'none';
     document.getElementById('uploadStatusContainer').innerHTML = '';
     document.getElementById('fileUploadProgress').style.display = 'none';
+    
+    // 이벤트 리스너 정리
+    removeModalCloseHandlers();
+}
+
+// 모달 닫기 이벤트 핸들러 등록
+function setupModalCloseHandlers() {
+    const modal = document.getElementById('addOrderModal');
+    
+    // 모달 밖 클릭 시 (backdrop 클릭)
+    modal.addEventListener('click', handleModalBackdropClick);
+    
+    // ESC 키 누를 시
+    document.addEventListener('keydown', handleModalEscKey);
+}
+
+// 모달 닫기 이벤트 핸들러 제거
+function removeModalCloseHandlers() {
+    const modal = document.getElementById('addOrderModal');
+    modal.removeEventListener('click', handleModalBackdropClick);
+    document.removeEventListener('keydown', handleModalEscKey);
+}
+
+// 모달 배경 클릭 핸들러
+function handleModalBackdropClick(e) {
+    // 모달 자체를 클릭한 경우만 (내부 콘텐츠 클릭은 제외)
+    if (e.target === e.currentTarget) {
+        confirmCloseAddModal();
+    }
+}
+
+// ESC 키 핸들러
+function handleModalEscKey(e) {
+    const modal = document.getElementById('addOrderModal');
+    if (e.key === 'Escape' && modal.style.display === 'flex') {
+        confirmCloseAddModal();
+    }
 }
 async function confirmCloseAddModal() {
     console.log(`[CLOSE MODAL] confirmCloseAddModal 호출`);
@@ -1483,11 +1523,18 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         
         // 파일 탭 생성 (전체 누적 파일 전달)
         console.log(`[DEBUG] createFileSettingsTabs 호출 전 uploadedFilesData:`, uploadedFilesData);
-        await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
+        await createFileSettingsTabs(uploadedFilesData);
+        
+        // 같은 파일을 다시 선택할 수 있도록 input value 초기화
+        e.target.value = '';
+    } catch (error) {
         console.error('파일 업로드 오류:', error);
         showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
         saveBtn.disabled = false;
         saveBtn.innerHTML = '저장';
+        
+        // 오류 발생 시에도 input value 초기화
+        e.target.value = '';
     }
 });
 
@@ -2863,10 +2910,21 @@ async function updateFileSettingsPanel(index) {
     console.log(`[DEBUG] updateFileSettingsPanel - index: ${index}, fileData.totalDuration: ${fileData.totalDuration}`);
     
     const panel = document.createElement('div');
+    
+    // 파일 용량 계산
+    const fileSizeMB = fileData.file.file_size ? (fileData.file.file_size / (1024 * 1024)).toFixed(2) : '0.00';
+    
+    // 총 길이 표시 (이미 HH:MM:SS 형식으로 저장되어 있음)
+    const durationDisplay = fileData.totalDuration || '00:00:00';
+    
     panel.innerHTML = `
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
             <div style="font-weight: 600; color: #374151; margin-bottom: 8px;">📄 ${fileData.file.original_name || fileData.file.name}</div>
-            <div style="font-size: 13px; color: #6b7280;">Request ID: ${fileData.requestId}</div>
+            <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Request ID: ${fileData.requestId}</div>
+            <div style="font-size: 13px; color: #6b7280; display: flex; gap: 16px;">
+                <span>용량: ${fileSizeMB} MB</span>
+                <span>총 길이: ${durationDisplay}</span>
+            </div>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
@@ -3068,5 +3126,140 @@ function getFileSettingsData() {
         recording_date: fileData.recordingDate || null,
         additional_info: fileData.additionalInfo
     }));
+}
+
+// 백오피스 페이지 이탈 시 경고 (주문서 추가 모달이 열려 있고 파일이 업로드된 경우)
+window.addEventListener('beforeunload', function(e) {
+    const modal = document.getElementById('addOrderModal');
+    const modalOpen = modal && modal.style.display === 'flex';
+    
+    if (modalOpen && uploadedFilesData && uploadedFilesData.length > 0) {
+        e.preventDefault();
+        e.returnValue = ''; // Chrome에서는 빈 문자열 필요
+        return ''; // 일부 브라우저용
+    }
+});
+
+// 백오피스 내부 네비게이션 차단 (주문서 추가 모달이 열려 있고 파일이 업로드된 경우)
+let pendingNavigationUrl = null;
+
+function setupNavigationInterception() {
+    // 페이지의 모든 링크에 이벤트 리스너 추가
+    document.addEventListener('click', function(e) {
+        // a 태그 클릭인지 확인 (상위 요소 포함)
+        const link = e.target.closest('a');
+        if (!link) return;
+        
+        const modal = document.getElementById('addOrderModal');
+        const modalOpen = modal && modal.style.display === 'flex';
+        
+        // 모달이 열려있고 파일이 업로드된 경우에만 차단
+        if (modalOpen && uploadedFilesData && uploadedFilesData.length > 0) {
+            // 링크가 외부 링크거나 특수 링크(#, javascript:)가 아닌 경우
+            const href = link.getAttribute('href');
+            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+                e.preventDefault();
+                e.stopPropagation();
+                pendingNavigationUrl = href;
+                showNavigationExitModal();
+            }
+        }
+    }, true); // capture phase에서 처리하여 다른 이벤트보다 먼저 실행
+}
+
+function showNavigationExitModal() {
+    const existingModal = document.getElementById('navigationExitModal');
+    if (existingModal) {
+        existingModal.style.display = 'flex';
+        return;
+    }
+
+    const modalHTML = `
+        <div id="navigationExitModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; justify-content: center; align-items: center;">
+            <div style="background-color: white; border-radius: 16px; padding: 32px; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: #fef3c7; border-radius: 50%; margin-bottom: 16px;">
+                        <svg style="width: 32px; height: 32px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 12px;">
+                        페이지를 떠나시겠습니까?
+                    </h3>
+                    <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">
+                        업로드된 파일이 있습니다.<br>
+                        페이지를 떠나면 업로드한 파일이 모두 삭제됩니다.
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 12px;">
+                    <button onclick="handleCancelNavigation()" style="flex: 1; padding: 12px 24px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
+                        취소
+                    </button>
+                    <button onclick="handleConfirmNavigation()" style="flex: 1; padding: 12px 24px; background-color: #ef4444; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'">
+                        떠나기
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function hideNavigationExitModal() {
+    const modal = document.getElementById('navigationExitModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function handleCancelNavigation() {
+    hideNavigationExitModal();
+    pendingNavigationUrl = null;
+}
+
+async function handleConfirmNavigation() {
+    // 업로드된 파일 삭제
+    if (uploadedFilesData && uploadedFilesData.length > 0) {
+        try {
+            const s3Keys = uploadedFilesData.map(f => f.s3Key);
+            const response = await fetch('/api/database/delete-uploaded-files/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ s3_keys: s3Keys })
+            });
+
+            if (!response.ok) {
+                console.error('파일 삭제 실패');
+            }
+        } catch (error) {
+            console.error('파일 삭제 중 오류:', error);
+        }
+    }
+
+    hideNavigationExitModal();
+    
+    // 페이지 이동
+    if (pendingNavigationUrl) {
+        window.location.href = pendingNavigationUrl;
+    }
+}
+
+// 페이지 로드 시 네비게이션 차단 설정
+document.addEventListener('DOMContentLoaded', function() {
+    setupNavigationInterception();
+});
+
+// 이미 DOMContentLoaded가 발생한 경우를 위한 처리
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setupNavigationInterception();
+    });
+} else {
+    setupNavigationInterception();
 }
 
