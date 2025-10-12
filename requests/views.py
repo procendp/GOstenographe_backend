@@ -169,7 +169,6 @@ class RequestViewSet(viewsets.ModelViewSet):
             request_data.update({
                 'order_id': order_id,
                 'recording_type': file_data.get('recordType', '전체'),
-                'recording_location': file_data.get('recordingLocation', '통화'),  # 녹취 위치 (통화/현장)
                 'partial_range': '\n'.join(file_data.get('timestamps', [])) if file_data.get('timestamps') else '',
                 'total_duration': file_data.get('duration', ''),
                 'speaker_count': file_data.get('speakerCount', 1),
@@ -412,22 +411,13 @@ class RequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def upload_transcript(self, request, request_id=None):
-        """속기록 파일 업로드 API (텍스트 파일만)"""
+        """속기록 파일 업로드 API"""
         try:
             request_instance = self.get_object()
             file = request.FILES.get('file')
             
             if not file:
                 return Response({'error': '파일이 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # 파일 형식 검증 (텍스트 파일만)
-            ALLOWED_TRANSCRIPT_EXTENSIONS = ['txt', 'hwp', 'doc', 'docx', 'pdf']
-            file_extension = file.name.split('.')[-1].lower() if '.' in file.name else ''
-            
-            if file_extension not in ALLOWED_TRANSCRIPT_EXTENSIONS:
-                return Response({
-                    'error': f'텍스트 파일만 업로드 가능합니다. ({file_extension})\n허용 형식: txt, hwp, doc, docx, pdf'
-                }, status=status.HTTP_400_BAD_REQUEST)
             
             # S3 클라이언트 생성
             s3_client = boto3.client(
@@ -670,23 +660,17 @@ class SendLogViewSet(viewsets.ModelViewSet):
 class S3PresignedURLView(APIView):
     permission_classes = [AllowAny]
 
-    # 허용 확장자 및 MIME 타입 목록 (영상/음성 파일만 - 주문서용)
+    # 허용 확장자 및 MIME 타입 목록
     ALLOWED_EXTENSIONS = {
-        # 음성 파일
-        'mp3', 'wav', 'm4a', 'cda', 'mod', 'ogg', 'wma', 'flac', 'asf',
-        # 영상 파일
-        'avi', 'mp4', 'wmv', 'm2v', 'mpeg', 'dpg', 'mts', 'webm', 'divx', 'amv',
-        # 추가 영상 형식
-        'm4v', 'mov'
+        'txt', 'hwp', 'doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx',
+        'mp3', 'mp4', 'asf', 'm4v', 'mov', 'wmv', 'avi', 'wav', 'zip'
     }
     ALLOWED_MIME_TYPES = {
-        # 음성 MIME
-        'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/mp4', 'audio/x-m4a', 
-        'audio/ogg', 'audio/x-ms-wma', 'audio/flac', 'audio/x-flac',
-        # 영상 MIME
-        'video/mp4', 'video/x-ms-asf', 'video/x-m4v', 'video/quicktime',
-        'video/x-ms-wmv', 'video/x-msvideo', 'video/mpeg', 'video/webm',
-        'video/x-matroska', 'application/octet-stream'
+        'text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/zip', 'audio/mpeg', 'audio/wav', 'video/mp4', 'video/x-ms-asf', 'video/x-m4v', 'video/quicktime',
+        'video/x-ms-wmv', 'video/x-msvideo', 'application/x-hwp',
     }
     MAX_FILE_SIZE = 3 * 1024 * 1024 * 1024  # 3GB
 
@@ -702,18 +686,18 @@ class S3PresignedURLView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # 확장자 체크 (영상/음성 파일만)
+            # 확장자 체크
             ext = file_name.split('.')[-1].lower()
             if ext not in self.ALLOWED_EXTENSIONS:
                 return Response(
-                    {'error': f'영상/음성 파일만 업로드 가능합니다. ({ext})\n허용 형식: mp3, wav, m4a, avi, mp4, wmv 등'},
+                    {'error': f'허용되지 않은 파일 확장자입니다. ({ext})'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # MIME 타입 체크 (영상/음성만)
+            # MIME 타입 체크
             if file_type not in self.ALLOWED_MIME_TYPES:
                 return Response(
-                    {'error': f'영상/음성 파일만 업로드 가능합니다. (파일 타입: {file_type})'},
+                    {'error': f'허용되지 않은 파일 타입입니다. ({file_type})'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
@@ -728,14 +712,12 @@ class S3PresignedURLView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성 (Signature V4 강제)
-            from botocore.config import Config
+            # S3 클라이언트 생성
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME,
-                config=Config(signature_version='s3v4')
+                region_name=settings.AWS_S3_REGION_NAME
             )
 
             unique_file_name = f"{uuid.uuid4()}_{file_name}"
@@ -757,12 +739,6 @@ class S3PresignedURLView(APIView):
                 Fields=fields,
                 Conditions=conditions,
                 ExpiresIn=3600
-            )
-
-            # 리전별 엔드포인트로 URL 수정
-            presigned_post['url'] = presigned_post['url'].replace(
-                'https://go-stenographe-web.s3.amazonaws.com/',
-                f'https://go-stenographe-web.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/'
             )
 
             return Response({

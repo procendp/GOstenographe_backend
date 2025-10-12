@@ -540,45 +540,108 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // 첨부파일 컬럼인지 확인
-        const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');            // 데이터 셀 너비 계산
+        // 특별한 처리가 필요한 컬럼들 확인
+        const isAttachmentColumn = headerTh && headerTh.textContent.includes('첨부 파일');
+        const isSpeakerCountColumn = headerTh && headerTh.textContent.includes('화자수');
+        const isTotalLengthColumn = headerTh && headerTh.textContent.includes('총 길이');
+        const isSpeakerNamesColumn = headerTh && headerTh.textContent.includes('화자 이름');
+        
+        // 데이터 셀 너비 계산
         for (let i = 1; i < rows.length; i++) {
             const measureCell = rows[i].cells[columnIndex];
             if (measureCell) {
-                // 셀의 실제 콘텐츠 가져오기
-                let content = '';
-                const statusBadge = measureCell.querySelector('.status-badge');
-                const paymentBadge = measureCell.querySelector('.payment-badge');
-                const editableValue = measureCell.querySelector('.editable-value');
-                
-                if (statusBadge) {
-                    content = statusBadge.textContent.trim();
-                } else if (paymentBadge) {
-                    content = paymentBadge.textContent.trim();
-                } else if (editableValue) {
-                    content = editableValue.textContent.trim();
+                // 특별한 처리가 필요한 컬럼들
+                if (isAttachmentColumn) {
+                    // 첨부 파일 컬럼: 실제 화면에 표시되는 텍스트 길이로 계산
+                    const content = measureCell.textContent.trim();
+                    if (content && content !== '-') {
+                        const tempSpan = document.createElement('span');
+                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                        tempSpan.textContent = content;
+                        document.body.appendChild(tempSpan);
+                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 40); // 다운로드 아이콘 + 패딩
+                        document.body.removeChild(tempSpan);
+                    }
+                } else if (isSpeakerCountColumn) {
+                    // 화자수 컬럼: 숫자만 들어가므로 최소한의 너비로 제한
+                    const content = measureCell.textContent.trim();
+                    if (content && content !== '-') {
+                        const tempSpan = document.createElement('span');
+                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                        tempSpan.textContent = content;
+                        document.body.appendChild(tempSpan);
+                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 20); // 최소 패딩
+                        document.body.removeChild(tempSpan);
+                    }
+                } else if (isTotalLengthColumn) {
+                    // 총 길이 컬럼: 시간 형식이므로 적절한 크기로 제한
+                    const content = measureCell.textContent.trim();
+                    if (content && content !== '-') {
+                        const tempSpan = document.createElement('span');
+                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                        tempSpan.textContent = content;
+                        document.body.appendChild(tempSpan);
+                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 25); // 적절한 패딩
+                        document.body.removeChild(tempSpan);
+                    }
+                } else if (isSpeakerNamesColumn) {
+                    // 화자 이름 컬럼: 이름들이 들어가므로 가변적이지만 적절한 제한
+                    const content = measureCell.textContent.trim();
+                    if (content && content !== '-') {
+                        const tempSpan = document.createElement('span');
+                        tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                        tempSpan.textContent = content;
+                        document.body.appendChild(tempSpan);
+                        maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + 30); // 적절한 패딩
+                        document.body.removeChild(tempSpan);
+                    }
                 } else {
-                    content = measureCell.textContent.trim();
+                    // 다른 컬럼들의 기존 로직
+                    let content = '';
+                    const statusBadge = measureCell.querySelector('.status-badge');
+                    const paymentBadge = measureCell.querySelector('.payment-badge');
+                    const editableValue = measureCell.querySelector('.editable-value');
+                    
+                    if (statusBadge) {
+                        content = statusBadge.textContent.trim();
+                    } else if (paymentBadge) {
+                        content = paymentBadge.textContent.trim();
+                    } else if (editableValue) {
+                        content = editableValue.textContent.trim();
+                    } else {
+                        content = measureCell.textContent.trim();
+                    }
+                    
+                    // 임시 요소로 너비 측정
+                    const tempSpan = document.createElement('span');
+                    tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
+                    tempSpan.textContent = content;
+                    document.body.appendChild(tempSpan);
+                    
+                    // 상태/결제 컬럼은 버튼 공간도 고려
+                    let additionalWidth = 32; // 기본 패딩
+                    if (statusBadge || paymentBadge) {
+                        additionalWidth = 60; // 뱃지 패딩 + 편집 버튼 공간
+                    }
+                    
+                    maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + additionalWidth);
+                    document.body.removeChild(tempSpan);
                 }
-                
-                // 임시 요소로 너비 측정
-                const tempSpan = document.createElement('span');
-                tempSpan.style.cssText = 'position: absolute; visibility: hidden; white-space: nowrap; font-size: 13px;';
-                tempSpan.textContent = content;
-                document.body.appendChild(tempSpan);
-                
-                // 상태/결제 컬럼은 버튼 공간도 고려
-                let additionalWidth = 32; // 기본 패딩
-                if (statusBadge || paymentBadge) {
-                    additionalWidth = 60; // 뱃지 패딩 + 편집 버튼 공간
-                }
-                
-                maxWidth = Math.max(maxWidth, tempSpan.offsetWidth + additionalWidth);
-                document.body.removeChild(tempSpan);
             }
         }
         
-        return Math.min(maxWidth + 10, 500); // 최대 500px로 제한
+        // 특별한 처리가 필요한 컬럼들에 대한 최대 너비 제한
+        if (isAttachmentColumn) {
+            return Math.min(maxWidth + 20, 250); // 첨부 파일 컬럼은 최대 250px로 제한
+        } else if (isSpeakerCountColumn) {
+            return Math.min(maxWidth + 10, 80); // 화자수 컬럼은 최대 80px로 제한
+        } else if (isTotalLengthColumn) {
+            return Math.min(maxWidth + 15, 120); // 총 길이 컬럼은 최대 120px로 제한
+        } else if (isSpeakerNamesColumn) {
+            return Math.min(maxWidth + 20, 200); // 화자 이름 컬럼은 최대 200px로 제한 (가변적)
+        }
+        
+        return Math.min(maxWidth + 10, 500); // 다른 컬럼들은 최대 500px로 제한
     }
 
     // 모든 리사이즈 핸들에 이벤트 리스너 추가
@@ -693,22 +756,12 @@ function openFileDialog(requestId, fieldName) {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.style.display = 'none';
-    fileInput.accept = '.txt,.hwp,.doc,.docx,.pdf';  // 텍스트 파일만 (hwp 추가)
+    fileInput.accept = '.pdf,.doc,.docx,.txt';
     
     // 파일 선택 이벤트
     fileInput.onchange = function() {
         if (this.files.length > 0) {
-            const file = this.files[0];
-            const ext = file.name.split('.').pop()?.toLowerCase();
-            const allowedExts = ['txt', 'hwp', 'doc', 'docx', 'pdf'];
-            
-            if (!ext || !allowedExts.includes(ext)) {
-                showNotification(`텍스트 파일만 업로드 가능합니다.\n허용 형식: txt, hwp, doc, docx, pdf`, 'error');
-                document.body.removeChild(fileInput);
-                return;
-            }
-            
-            uploadTranscriptFile(requestId, fieldName, file);
+            uploadTranscriptFile(requestId, fieldName, this.files[0]);
         }
         // 사용 후 요소 제거
         document.body.removeChild(fileInput);
@@ -1339,9 +1392,6 @@ async function openAddModal() {
 
     // 모달 열기
     document.getElementById('addOrderModal').style.display = 'flex';
-    
-    // 모달 밖 클릭 시 확인 후 닫기 (이벤트 리스너 등록)
-    setupModalCloseHandlers();
 }
 
 async function closeAddModal() {
@@ -1365,43 +1415,6 @@ async function closeAddModal() {
     document.getElementById('uploadStatusContainer').style.display = 'none';
     document.getElementById('uploadStatusContainer').innerHTML = '';
     document.getElementById('fileUploadProgress').style.display = 'none';
-    
-    // 이벤트 리스너 정리
-    removeModalCloseHandlers();
-}
-
-// 모달 닫기 이벤트 핸들러 등록
-function setupModalCloseHandlers() {
-    const modal = document.getElementById('addOrderModal');
-    
-    // 모달 밖 클릭 시 (backdrop 클릭)
-    modal.addEventListener('click', handleModalBackdropClick);
-    
-    // ESC 키 누를 시
-    document.addEventListener('keydown', handleModalEscKey);
-}
-
-// 모달 닫기 이벤트 핸들러 제거
-function removeModalCloseHandlers() {
-    const modal = document.getElementById('addOrderModal');
-    modal.removeEventListener('click', handleModalBackdropClick);
-    document.removeEventListener('keydown', handleModalEscKey);
-}
-
-// 모달 배경 클릭 핸들러
-function handleModalBackdropClick(e) {
-    // 모달 자체를 클릭한 경우만 (내부 콘텐츠 클릭은 제외)
-    if (e.target === e.currentTarget) {
-        confirmCloseAddModal();
-    }
-}
-
-// ESC 키 핸들러
-function handleModalEscKey(e) {
-    const modal = document.getElementById('addOrderModal');
-    if (e.key === 'Escape' && modal.style.display === 'flex') {
-        confirmCloseAddModal();
-    }
 }
 async function confirmCloseAddModal() {
     console.log(`[CLOSE MODAL] confirmCloseAddModal 호출`);
@@ -1448,26 +1461,6 @@ document.getElementById('fileInput').addEventListener('change', async function(e
 
     if (files.length === 0) return;
 
-    // 영상/음성 파일만 허용
-    const ALLOWED_EXTENSIONS = [
-        'mp3', 'wav', 'm4a', 'cda', 'mod', 'ogg', 'wma', 'flac', 'asf',
-        'avi', 'mp4', 'wmv', 'm2v', 'mpeg', 'dpg', 'mts', 'webm', 'divx', 'amv'
-    ];
-
-    const invalidFiles = files.filter(file => {
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        return !ext || !ALLOWED_EXTENSIONS.includes(ext);
-    });
-
-    if (invalidFiles.length > 0) {
-        const fileNames = invalidFiles.map(f => f.name).join('\n');
-        showNotification(
-            `⚠️ 데이터 일관성을 위해 영상/음성 파일만 업로드해 주세요.\n\n허용되지 않는 파일:\n${fileNames}\n\n허용 형식:\n- 음성: mp3, wav, m4a, cda, mod, ogg, wma, flac, asf\n- 영상: avi, mp4, wmv, m2v, mpeg, dpg, mts, webm, divx, amv`,
-            'error'
-        );
-        e.target.value = '';
-        return;
-    }
 
     // 3GB 제한 검증
     const maxSize = 3 * 1024 * 1024 * 1024;  // 3GB
@@ -1523,18 +1516,11 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         
         // 파일 탭 생성 (전체 누적 파일 전달)
         console.log(`[DEBUG] createFileSettingsTabs 호출 전 uploadedFilesData:`, uploadedFilesData);
-        await createFileSettingsTabs(uploadedFilesData);
-        
-        // 같은 파일을 다시 선택할 수 있도록 input value 초기화
-        e.target.value = '';
-    } catch (error) {
+        await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
         console.error('파일 업로드 오류:', error);
         showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
         saveBtn.disabled = false;
         saveBtn.innerHTML = '저장';
-        
-        // 오류 발생 시에도 input value 초기화
-        e.target.value = '';
     }
 });
 
@@ -2774,6 +2760,7 @@ async function createFileSettingsTabs(files) {
             file: file,
             requestId: requestId,
             recordingType: '전체',
+            recordingLocation: '통화',  // 녹음 위치 기본값 추가
             totalDuration: duration,
             partialRange: '',
             speakerCount: 1,
@@ -2910,35 +2897,32 @@ async function updateFileSettingsPanel(index) {
     console.log(`[DEBUG] updateFileSettingsPanel - index: ${index}, fileData.totalDuration: ${fileData.totalDuration}`);
     
     const panel = document.createElement('div');
-    
-    // 파일 용량 계산
-    const fileSizeMB = fileData.file.file_size ? (fileData.file.file_size / (1024 * 1024)).toFixed(2) : '0.00';
-    
-    // 총 길이 표시 (이미 HH:MM:SS 형식으로 저장되어 있음)
-    const durationDisplay = fileData.totalDuration || '00:00:00';
-    
     panel.innerHTML = `
         <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
             <div style="font-weight: 600; color: #374151; margin-bottom: 8px;">📄 ${fileData.file.original_name || fileData.file.name}</div>
-            <div style="font-size: 13px; color: #6b7280; margin-bottom: 4px;">Request ID: ${fileData.requestId}</div>
-            <div style="font-size: 13px; color: #6b7280; display: flex; gap: 16px;">
-                <span>용량: ${fileSizeMB} MB</span>
-                <span>총 길이: ${durationDisplay}</span>
-            </div>
+            <div style="font-size: 13px; color: #6b7280;">Request ID: ${fileData.requestId}</div>
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 위치</label>
+                <select id="recordingLocation${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingLocation', this.value)">
+                    <option value="통화" ${fileData.recordingLocation === '통화' ? 'selected' : ''}>통화 녹음</option>
+                    <option value="현장" ${fileData.recordingLocation === '현장' ? 'selected' : ''}>현장 녹음</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 종류</label>
                 <select id="recordingType${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingType', this.value); togglePartialRange(${index})">
                     <option value="전체">전체</option>
                     <option value="부분">부분</option>
                 </select>
             </div>
-            <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
-                <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
-            </div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">총 길이</label>
+            <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
         </div>
         
         <div style="margin-bottom: 16px;">
@@ -3119,6 +3103,7 @@ function getFileSettingsData() {
         file_type: fileData.file.type || '',
         file_size: fileData.file.size || 0,
         recording_type: fileData.recordingType,
+        recording_location: fileData.recordingLocation || '통화',  // 녹음 위치 추가
         total_duration: fileData.totalDuration,
         partial_range: fileData.partialRange,
         speaker_count: fileData.speakerCount,
@@ -3126,140 +3111,5 @@ function getFileSettingsData() {
         recording_date: fileData.recordingDate || null,
         additional_info: fileData.additionalInfo
     }));
-}
-
-// 백오피스 페이지 이탈 시 경고 (주문서 추가 모달이 열려 있고 파일이 업로드된 경우)
-window.addEventListener('beforeunload', function(e) {
-    const modal = document.getElementById('addOrderModal');
-    const modalOpen = modal && modal.style.display === 'flex';
-    
-    if (modalOpen && uploadedFilesData && uploadedFilesData.length > 0) {
-        e.preventDefault();
-        e.returnValue = ''; // Chrome에서는 빈 문자열 필요
-        return ''; // 일부 브라우저용
-    }
-});
-
-// 백오피스 내부 네비게이션 차단 (주문서 추가 모달이 열려 있고 파일이 업로드된 경우)
-let pendingNavigationUrl = null;
-
-function setupNavigationInterception() {
-    // 페이지의 모든 링크에 이벤트 리스너 추가
-    document.addEventListener('click', function(e) {
-        // a 태그 클릭인지 확인 (상위 요소 포함)
-        const link = e.target.closest('a');
-        if (!link) return;
-        
-        const modal = document.getElementById('addOrderModal');
-        const modalOpen = modal && modal.style.display === 'flex';
-        
-        // 모달이 열려있고 파일이 업로드된 경우에만 차단
-        if (modalOpen && uploadedFilesData && uploadedFilesData.length > 0) {
-            // 링크가 외부 링크거나 특수 링크(#, javascript:)가 아닌 경우
-            const href = link.getAttribute('href');
-            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
-                e.preventDefault();
-                e.stopPropagation();
-                pendingNavigationUrl = href;
-                showNavigationExitModal();
-            }
-        }
-    }, true); // capture phase에서 처리하여 다른 이벤트보다 먼저 실행
-}
-
-function showNavigationExitModal() {
-    const existingModal = document.getElementById('navigationExitModal');
-    if (existingModal) {
-        existingModal.style.display = 'flex';
-        return;
-    }
-
-    const modalHTML = `
-        <div id="navigationExitModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 10000; justify-content: center; align-items: center;">
-            <div style="background-color: white; border-radius: 16px; padding: 32px; max-width: 480px; width: 90%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
-                <div style="text-align: center; margin-bottom: 24px;">
-                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; background-color: #fef3c7; border-radius: 50%; margin-bottom: 16px;">
-                        <svg style="width: 32px; height: 32px; color: #f59e0b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                    </div>
-                    <h3 style="font-size: 20px; font-weight: 600; color: #111827; margin-bottom: 12px;">
-                        페이지를 떠나시겠습니까?
-                    </h3>
-                    <p style="font-size: 14px; color: #6b7280; line-height: 1.6;">
-                        업로드된 파일이 있습니다.<br>
-                        페이지를 떠나면 업로드한 파일이 모두 삭제됩니다.
-                    </p>
-                </div>
-
-                <div style="display: flex; gap: 12px;">
-                    <button onclick="handleCancelNavigation()" style="flex: 1; padding: 12px 24px; background-color: #e5e7eb; color: #374151; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#d1d5db'" onmouseout="this.style.backgroundColor='#e5e7eb'">
-                        취소
-                    </button>
-                    <button onclick="handleConfirmNavigation()" style="flex: 1; padding: 12px 24px; background-color: #ef4444; color: white; border-radius: 8px; font-weight: 500; cursor: pointer; border: none; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ef4444'">
-                        떠나기
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-function hideNavigationExitModal() {
-    const modal = document.getElementById('navigationExitModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function handleCancelNavigation() {
-    hideNavigationExitModal();
-    pendingNavigationUrl = null;
-}
-
-async function handleConfirmNavigation() {
-    // 업로드된 파일 삭제
-    if (uploadedFilesData && uploadedFilesData.length > 0) {
-        try {
-            const s3Keys = uploadedFilesData.map(f => f.s3Key);
-            const response = await fetch('/api/database/delete-uploaded-files/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCSRFToken()
-                },
-                body: JSON.stringify({ s3_keys: s3Keys })
-            });
-
-            if (!response.ok) {
-                console.error('파일 삭제 실패');
-            }
-        } catch (error) {
-            console.error('파일 삭제 중 오류:', error);
-        }
-    }
-
-    hideNavigationExitModal();
-    
-    // 페이지 이동
-    if (pendingNavigationUrl) {
-        window.location.href = pendingNavigationUrl;
-    }
-}
-
-// 페이지 로드 시 네비게이션 차단 설정
-document.addEventListener('DOMContentLoaded', function() {
-    setupNavigationInterception();
-});
-
-// 이미 DOMContentLoaded가 발생한 경우를 위한 처리
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        setupNavigationInterception();
-    });
-} else {
-    setupNavigationInterception();
 }
 
