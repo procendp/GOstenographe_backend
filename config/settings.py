@@ -172,7 +172,7 @@ AUTH_USER_MODEL = 'core.User'
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True  # 개발 환경에서만 사용
 else:
-    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://sokgijung-backend.onrender.com,https://gostenographe.com').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework 설정 (모바일 최적화)
@@ -217,11 +217,7 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 # 로그인/로그아웃 설정
 LOGIN_URL = '/login/'
-# 환경에 따라 다른 리다이렉트 URL 설정
-if DEBUG:
-    LOGIN_REDIRECT_URL = '/admin/'  # 개발 환경: 절대 경로
-else:
-    LOGIN_REDIRECT_URL = 'admin:index'  # 배포 환경: Django 네임스페이스
+LOGIN_REDIRECT_URL = '/admin/'  # 모든 환경에서 절대 경로 사용
 
 # 세션 설정
 SESSION_COOKIE_AGE = 1209600  # 2주
