@@ -63,9 +63,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class CustomLoginView(LoginView):
     template_name = 'admin/login.html'
-    redirect_authenticated_user = True
-    next_page = 'admin:index'
+    redirect_authenticated_user = False  # 무한 루프 방지
+    next_page = '/admin/'
 
     def form_invalid(self, form):
         messages.error(self.request, '아이디 또는 비밀번호가 올바르지 않습니다.')
         return super().form_invalid(form)
+    
+    def get_success_url(self):
+        """로그인 성공 후 리다이렉트 URL"""
+        return self.get_next_page() or self.next_page
