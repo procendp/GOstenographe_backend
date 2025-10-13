@@ -14,13 +14,13 @@ class IntegratedViewAdmin(ModelAdmin):
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
     search_fields = ('name', 'email', 'phone', 'recording_location')
-    list_per_page = 50
+    list_per_page = 25  # 성능 향상을 위해 줄임
 
     change_list_template = 'admin/excel_database.html'
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        return qs.filter(is_temporary=False)
+        return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
@@ -95,7 +95,7 @@ class OrderManagementAdmin(ModelAdmin):
         return super().changelist_view(request, extra_context)
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('order_id', 'name', 'email', 'phone')
-    list_per_page = 50
+    list_per_page = 25  # 성능 향상을 위해 줄임
     ordering = ['order_id', '-created_at']
     
     change_list_template = 'admin/excel_database.html'
@@ -202,7 +202,7 @@ class RequestManagementAdmin(ModelAdmin):
         
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('request_id', 'order_id', 'name', 'email', 'phone')
-    list_per_page = 50
+    list_per_page = 25  # 성능 향상을 위해 줄임
     ordering = ['-created_at']
     
     change_list_template = 'admin/excel_database.html'
@@ -210,7 +210,7 @@ class RequestManagementAdmin(ModelAdmin):
     def get_queryset(self, request):
         """모든 Request ID 표시"""
         qs = super().get_queryset(request)
-        return qs.filter(is_temporary=False)
+        return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""

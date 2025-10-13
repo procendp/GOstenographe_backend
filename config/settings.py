@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'sokgijung-backend.onrender.com,*.onrender.com').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'sokgijungbackoffice.com,*.onrender.com').split(',')
 
 
 # Application definition
@@ -172,7 +172,7 @@ AUTH_USER_MODEL = 'core.User'
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True  # 개발 환경에서만 사용
 else:
-    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://sokgijung-backend.onrender.com,https://gostenographe.com').split(',')
+        CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://sokgijung.com,https://sokgijungbackoffice.com').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
 # REST Framework 설정 (모바일 최적화)
@@ -236,7 +236,7 @@ CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_PATH = '/'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = ['https://sokgijung-backend.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://sokgijungbackoffice.com']
 
 # 로깅 설정
 LOGGING = {
@@ -294,7 +294,7 @@ ADMIN_INDEX_TITLE = "녹취 서비스 관리"
 UNFOLD = {
     "SITE_TITLE": "속기사무소 정",
     "SITE_HEADER": "속기사무소 정 관리자",
-    "SITE_URL": "http://localhost:3000" if DEBUG else "https://gostenographe.com",
+    "SITE_URL": "http://localhost:3000" if DEBUG else "https://sokgijung.com",
     "SITE_SYMBOL": "record_voice_over",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
