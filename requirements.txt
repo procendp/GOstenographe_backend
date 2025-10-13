@@ -10,4 +10,5 @@ sendgrid>=6.11.0
 requests==2.31.0
 django-unfold==0.65.0
 gunicorn>=21.2.0
-dj-database-url>=2.1.0 
+dj-database-url>=2.1.0
+psycopg2-binary>=2.9.0 
