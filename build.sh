@@ -16,4 +16,8 @@ python manage.py collectstatic --noinput
 echo "데이터베이스 마이그레이션 중..."
 python manage.py migrate --noinput
 
+# 배포 환경에 admin 계정 생성
+echo "admin 계정 생성 중..."
+python create_admin.py
+
 echo "=== 빌드 완료 ==="
