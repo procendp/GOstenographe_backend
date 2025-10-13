@@ -72,4 +72,4 @@ class CustomLoginView(LoginView):
     
     def get_success_url(self):
         """로그인 성공 후 리다이렉트 URL"""
-        return self.get_next_page() or '/admin/'
+        return self.get_redirect_url() or '/admin/'
