@@ -72,4 +72,12 @@ class CustomLoginView(LoginView):
     
     def get_success_url(self):
         """로그인 성공 후 리다이렉트 URL"""
-        return self.get_next_page() or self.next_page
+        from django.conf import settings
+        
+        # 환경에 따라 다른 리다이렉트 처리
+        if settings.DEBUG:
+            # 개발 환경: 절대 경로 사용
+            return self.get_next_page() or '/admin/'
+        else:
+            # 배포 환경: Django 네임스페이스 사용
+            return self.get_next_page() or 'admin:index'

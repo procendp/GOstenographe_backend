@@ -217,7 +217,11 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 # 로그인/로그아웃 설정
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/admin/'
+# 환경에 따라 다른 리다이렉트 URL 설정
+if DEBUG:
+    LOGIN_REDIRECT_URL = '/admin/'  # 개발 환경: 절대 경로
+else:
+    LOGIN_REDIRECT_URL = 'admin:index'  # 배포 환경: Django 네임스페이스
 
 # 세션 설정
 SESSION_COOKIE_AGE = 1209600  # 2주
@@ -294,7 +298,7 @@ ADMIN_INDEX_TITLE = "녹취 서비스 관리"
 UNFOLD = {
     "SITE_TITLE": "속기사무소 정",
     "SITE_HEADER": "속기사무소 정 관리자",
-    "SITE_URL": "http://localhost:3000",
+    "SITE_URL": "http://localhost:3000" if DEBUG else "https://gostenographe.com",
     "SITE_SYMBOL": "record_voice_over",
     "SHOW_HISTORY": True,
     "SHOW_VIEW_ON_SITE": True,
@@ -379,7 +383,10 @@ UNFOLD = {
 }
 
 def environment_callback(request):
-    return ["개발 환경", "success"]
+    if DEBUG:
+        return ["개발 환경", "success"]
+    else:
+        return ["배포 환경", "info"]
 
 def dashboard_callback(request, context):
     return context
