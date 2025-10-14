@@ -893,97 +893,97 @@ def statistics_dashboard_view(request):
         ).aggregate(
             total=Sum('payment_amount')
         )['total'] or 0
-    
-    # 일별 접수량 (최근 30일) - 데이터베이스 호환성 개선
-    thirty_days_ago = timezone.now() - timedelta(days=30)
-    try:
-        daily_stats = Request.objects.filter(
-            created_at__gte=thirty_days_ago
-        ).extra(
-            select={'date': "DATE(requests_request.created_at)"}
-        ).values('date').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('date')
-    except Exception:
-        # PostgreSQL 호환성을 위한 대체 쿼리
-        daily_stats = Request.objects.filter(
-            created_at__gte=thirty_days_ago
-        ).extra(
-            select={'date': "DATE(created_at)"}
-        ).values('date').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('date')
-    
-    # 월별 통계 (최근 12개월) - 데이터베이스 호환성 개선
-    twelve_months_ago = timezone.now() - timedelta(days=365)
-    try:
-        monthly_stats = Request.objects.filter(
-            created_at__gte=twelve_months_ago
-        ).extra(
-            select={
-                'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
-            }
-        ).values('month').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('month')
-    except Exception:
-        # PostgreSQL 호환성을 위한 대체 쿼리
-        monthly_stats = Request.objects.filter(
-            created_at__gte=twelve_months_ago
-        ).extra(
-            select={
-                'month': "strftime('%%Y-%%m-01', created_at)"
-            }
-        ).values('month').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('month')
-    
-    # 연도별 통계 - 데이터베이스 호환성 개선
-    try:
-        yearly_stats = Request.objects.extra(
-            select={
-                'year': "strftime('%%Y-01-01', requests_request.created_at)"
-            }
-        ).values('year').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('year')
-    except Exception:
-        # PostgreSQL 호환성을 위한 대체 쿼리
-        yearly_stats = Request.objects.extra(
-            select={
-                'year': "strftime('%%Y-01-01', created_at)"
-            }
-        ).values('year').annotate(
-            count=Count('id'),
-            revenue=Sum('payment_amount')
-        ).order_by('year')
-    
-    # 상태별 통계
-    status_stats = Request.objects.values('status').annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    # 최종본 옵션 선호도
-    final_option_stats = Request.objects.values('final_option').annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    # 취소 관련 통계
-    cancelled_stats = Request.objects.filter(
-        status__in=['cancelled', 'refunded', 'impossible']
-    ).values('status').annotate(
-        count=Count('id')
-    )
-    
-    # 평균 주문금액 계산
-    average_order_amount = 0
-    if total_requests > 0 and total_revenue:
-        average_order_amount = total_revenue / total_requests
+        
+        # 일별 접수량 (최근 30일) - 데이터베이스 호환성 개선
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+        try:
+            daily_stats = Request.objects.filter(
+                created_at__gte=thirty_days_ago
+            ).extra(
+                select={'date': "DATE(requests_request.created_at)"}
+            ).values('date').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('date')
+        except Exception:
+            # PostgreSQL 호환성을 위한 대체 쿼리
+            daily_stats = Request.objects.filter(
+                created_at__gte=thirty_days_ago
+            ).extra(
+                select={'date': "DATE(created_at)"}
+            ).values('date').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('date')
+        
+        # 월별 통계 (최근 12개월) - 데이터베이스 호환성 개선
+        twelve_months_ago = timezone.now() - timedelta(days=365)
+        try:
+            monthly_stats = Request.objects.filter(
+                created_at__gte=twelve_months_ago
+            ).extra(
+                select={
+                    'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
+                }
+            ).values('month').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('month')
+        except Exception:
+            # PostgreSQL 호환성을 위한 대체 쿼리
+            monthly_stats = Request.objects.filter(
+                created_at__gte=twelve_months_ago
+            ).extra(
+                select={
+                    'month': "strftime('%%Y-%%m-01', created_at)"
+                }
+            ).values('month').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('month')
+        
+        # 연도별 통계 - 데이터베이스 호환성 개선
+        try:
+            yearly_stats = Request.objects.extra(
+                select={
+                    'year': "strftime('%%Y-01-01', requests_request.created_at)"
+                }
+            ).values('year').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('year')
+        except Exception:
+            # PostgreSQL 호환성을 위한 대체 쿼리
+            yearly_stats = Request.objects.extra(
+                select={
+                    'year': "strftime('%%Y-01-01', created_at)"
+                }
+            ).values('year').annotate(
+                count=Count('id'),
+                revenue=Sum('payment_amount')
+            ).order_by('year')
+        
+        # 상태별 통계
+        status_stats = Request.objects.values('status').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # 최종본 옵션 선호도
+        final_option_stats = Request.objects.values('final_option').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # 취소 관련 통계
+        cancelled_stats = Request.objects.filter(
+            status__in=['cancelled', 'refunded', 'impossible']
+        ).values('status').annotate(
+            count=Count('id')
+        )
+        
+        # 평균 주문금액 계산
+        average_order_amount = 0
+        if total_requests > 0 and total_revenue:
+            average_order_amount = total_revenue / total_requests
     
         context = {
             'total_requests': total_requests,
