@@ -31,7 +31,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'sokgijungbackoffice.com,www.sokgijungbackoffice.com,*.onrender.com').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'sokgijungbackoffice.com,www.sokgijungbackoffice.com,sokgijung-backend.onrender.com,*.onrender.com').split(',')
 
 
 # Application definition
@@ -236,7 +236,11 @@ CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_PATH = '/'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = ['https://sokgijungbackoffice.com', 'https://www.sokgijungbackoffice.com']
+CSRF_TRUSTED_ORIGINS = [
+    'https://sokgijungbackoffice.com', 
+    'https://www.sokgijungbackoffice.com',
+    'https://sokgijung-backend.onrender.com'
+]
 
 # 로깅 설정
 LOGGING = {

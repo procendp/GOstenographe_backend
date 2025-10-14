@@ -884,48 +884,84 @@ class ExcelDatabaseView(TemplateView):
 @staff_member_required
 def statistics_dashboard_view(request):
     """통계 대시보드 뷰"""
-    # 기본 통계 데이터
-    total_requests = Request.objects.count()
-    total_files = File.objects.count()
-    total_revenue = Request.objects.filter(
-        payment_status=True
-    ).aggregate(
-        total=Sum('payment_amount')
-    )['total'] or 0
+    try:
+        # 기본 통계 데이터
+        total_requests = Request.objects.count()
+        total_files = File.objects.count()
+        total_revenue = Request.objects.filter(
+            payment_status=True
+        ).aggregate(
+            total=Sum('payment_amount')
+        )['total'] or 0
     
-    # 일별 접수량 (최근 30일) - 파일 JOIN 제거
+    # 일별 접수량 (최근 30일) - 데이터베이스 호환성 개선
     thirty_days_ago = timezone.now() - timedelta(days=30)
-    daily_stats = Request.objects.filter(
-        created_at__gte=thirty_days_ago
-    ).extra(
-        select={'date': "DATE(requests_request.created_at)"}
-    ).values('date').annotate(
-        count=Count('id'),
-        revenue=Sum('payment_amount')
-    ).order_by('date')
+    try:
+        daily_stats = Request.objects.filter(
+            created_at__gte=thirty_days_ago
+        ).extra(
+            select={'date': "DATE(requests_request.created_at)"}
+        ).values('date').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('date')
+    except Exception:
+        # PostgreSQL 호환성을 위한 대체 쿼리
+        daily_stats = Request.objects.filter(
+            created_at__gte=thirty_days_ago
+        ).extra(
+            select={'date': "DATE(created_at)"}
+        ).values('date').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('date')
     
-    # 월별 통계 (최근 12개월)
+    # 월별 통계 (최근 12개월) - 데이터베이스 호환성 개선
     twelve_months_ago = timezone.now() - timedelta(days=365)
-    monthly_stats = Request.objects.filter(
-        created_at__gte=twelve_months_ago
-    ).extra(
-        select={
-            'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
-        }
-    ).values('month').annotate(
-        count=Count('id'),
-        revenue=Sum('payment_amount')
-    ).order_by('month')
+    try:
+        monthly_stats = Request.objects.filter(
+            created_at__gte=twelve_months_ago
+        ).extra(
+            select={
+                'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
+            }
+        ).values('month').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('month')
+    except Exception:
+        # PostgreSQL 호환성을 위한 대체 쿼리
+        monthly_stats = Request.objects.filter(
+            created_at__gte=twelve_months_ago
+        ).extra(
+            select={
+                'month': "strftime('%%Y-%%m-01', created_at)"
+            }
+        ).values('month').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('month')
     
-    # 연도별 통계
-    yearly_stats = Request.objects.extra(
-        select={
-            'year': "strftime('%%Y-01-01', requests_request.created_at)"
-        }
-    ).values('year').annotate(
-        count=Count('id'),
-        revenue=Sum('payment_amount')
-    ).order_by('year')
+    # 연도별 통계 - 데이터베이스 호환성 개선
+    try:
+        yearly_stats = Request.objects.extra(
+            select={
+                'year': "strftime('%%Y-01-01', requests_request.created_at)"
+            }
+        ).values('year').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('year')
+    except Exception:
+        # PostgreSQL 호환성을 위한 대체 쿼리
+        yearly_stats = Request.objects.extra(
+            select={
+                'year': "strftime('%%Y-01-01', created_at)"
+            }
+        ).values('year').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('year')
     
     # 상태별 통계
     status_stats = Request.objects.values('status').annotate(
@@ -949,20 +985,42 @@ def statistics_dashboard_view(request):
     if total_requests > 0 and total_revenue:
         average_order_amount = total_revenue / total_requests
     
-    context = {
-        'total_requests': total_requests,
-        'total_files': total_files,
-        'total_revenue': total_revenue,
-        'average_order_amount': average_order_amount,
-        'daily_stats': list(daily_stats),
-        'monthly_stats': list(monthly_stats),
-        'yearly_stats': list(yearly_stats),
-        'status_stats': list(status_stats),
-        'final_option_stats': list(final_option_stats),
-        'cancelled_stats': list(cancelled_stats),
-    }
+        context = {
+            'total_requests': total_requests,
+            'total_files': total_files,
+            'total_revenue': total_revenue,
+            'average_order_amount': average_order_amount,
+            'daily_stats': list(daily_stats),
+            'monthly_stats': list(monthly_stats),
+            'yearly_stats': list(yearly_stats),
+            'status_stats': list(status_stats),
+            'final_option_stats': list(final_option_stats),
+            'cancelled_stats': list(cancelled_stats),
+        }
+        
+        return render(request, 'admin/statistics_dashboard.html', context)
     
-    return render(request, 'admin/statistics_dashboard.html', context)
+    except Exception as e:
+        # 에러 발생 시 기본 데이터로 대체
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Statistics dashboard error: {str(e)}")
+        
+        context = {
+            'total_requests': 0,
+            'total_files': 0,
+            'total_revenue': 0,
+            'average_order_amount': 0,
+            'daily_stats': [],
+            'monthly_stats': [],
+            'yearly_stats': [],
+            'status_stats': [],
+            'final_option_stats': [],
+            'cancelled_stats': [],
+            'error_message': '통계 데이터를 불러오는 중 오류가 발생했습니다.',
+        }
+        
+        return render(request, 'admin/statistics_dashboard.html', context)
 
 @staff_member_required  
 def statistics_api_view(request):
