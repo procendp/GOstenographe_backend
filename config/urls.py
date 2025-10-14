@@ -59,7 +59,7 @@ def check_admin(request):
 urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('admin/logout/', custom_logout, name='admin_logout'),
-    path('manage/dashboard/', statistics_dashboard_view, name='statistics-dashboard'),
+    path('dashboard/', statistics_dashboard_view, name='statistics-dashboard'),
     path('api/statistics/', statistics_api_view, name='statistics-api'),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),

@@ -363,13 +363,13 @@ UNFOLD = {
                     {
                         "title": "사이트",
                         "icon": "launch",
-                        "link": "http://localhost:3000",
+                        "link": os.getenv('FRONTEND_URL', 'http://localhost:3000'),
                         "badge": "new_window",
                     },
                     {
                         "title": "통계",
                         "icon": "analytics",
-                        "link": "/manage/dashboard/",
+                        "link": "/dashboard/",
                         "badge": "",
                     },
                 ],
