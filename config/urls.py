@@ -35,16 +35,16 @@ def custom_logout(request):
     messages.info(request, '로그아웃되었습니다.')
     return redirect('/login')
 
-# 기존 AdminSite를 상속받아 커스텀 기능 추가
-admin.site.__class__ = type('CustomAdminSite', (admin.site.__class__,), {
-    'has_permission': lambda self, request: (
-        False if not request.user.is_authenticated 
-        and request.path.startswith('/admin/') 
-        and not request.path.startswith('/admin/login/') 
-        and messages.warning(request, '관리자 페이지에 접근하기 위해서는 로그인이 필요합니다.')
-        else super(admin.site.__class__, self).has_permission(request)
-    )
-})
+# 기존 AdminSite를 상속받아 커스텀 기능 추가 (임시 비활성화)
+# admin.site.__class__ = type('CustomAdminSite', (admin.site.__class__,), {
+#     'has_permission': lambda self, request: (
+#         False if not request.user.is_authenticated 
+#         and request.path.startswith('/admin/') 
+#         and not request.path.startswith('/admin/login/') 
+#         and messages.warning(request, '관리자 페이지에 접근하기 위해서는 로그인이 필요합니다.')
+#         else super(admin.site.__class__, self).has_permission(request)
+#     )
+# })
 
 router = DefaultRouter()
 router.register(r'requests', RequestViewSet)
