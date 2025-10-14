@@ -1,4 +1,23 @@
 {% extends "admin/change_list.html" %}
+
+{% comment %}
+⚠️ 중요: 이 템플릿은 견적 시스템과 연결되어 있습니다 ⚠️
+
+🔗 연결 관계:
+- "녹음 장소" 컬럼 (403-406번 라인): recording_location 필드와 연결
+- "예상 견적" 컬럼 (447-453번 라인): estimated_price 필드와 연결  
+- colspan 값 (762번 라인): 컬럼 수와 일치해야 함 (현재: 26개)
+
+📋 동기화 체크리스트:
+1. 프론트엔드: apply/page.tsx의 견적 계산 로직과 동기화
+2. 백엔드: admin.py의 list_display와 동기화
+3. 데이터베이스: Request 모델의 recording_location, estimated_price 필드
+
+🛠️ 수정 시 주의사항:
+- 컬럼 추가/삭제 시 colspan 값도 함께 수정
+- admin.py의 list_display도 동일하게 업데이트
+- 프론트엔드 견적 계산 로직도 함께 검토
+{% endcomment %}
 {% load i18n admin_urls static admin_list humanize custom_filters %}
 
 {% block content %}
@@ -400,6 +419,10 @@
                             <div class="th-content">화자 이름</div>
                             <div class="resize-handle"></div>
                         </th>
+                        <th class="resizable-th" style="min-width: 100px; position: relative;">
+                            <div class="th-content">녹음 장소</div>
+                            <div class="resize-handle"></div>
+                        </th>
                         <th class="resizable-th" style="min-width: 120px; position: relative;">
                             <div class="th-content">녹음 일시</div>
                             <div class="resize-handle"></div>
@@ -586,6 +609,7 @@
                         <td class="excel-cell">{{ result.total_duration|default:"-" }}</td>
                         <td class="excel-cell">{{ result.speaker_count|default:"1" }}</td>
                         <td class="excel-cell">{{ result.speaker_names|default:"-" }}</td>
+                        <td class="excel-cell">{{ result.recording_location|default:"-" }}</td>
                         <td class="excel-cell">{{ result.recording_date|date:"Y-m-d H:i"|default:"-" }}</td>
                         <td class="excel-cell">{{ result.additional_info|default:"-" }}</td>
                         {% comment %} 주문 관련 정보 - 병합 대상 {% endcomment %}
@@ -754,7 +778,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="25" class="text-center py-8 text-gray-500">
+                        <td colspan="27" class="text-center py-8 text-gray-500">
                             데이터가 없습니다.
                         </td>
                     </tr>

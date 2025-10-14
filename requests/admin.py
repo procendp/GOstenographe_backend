@@ -56,7 +56,7 @@ class RequestAdmin(ModelAdmin):
     list_display = (
         'id', 'name', 'email', 'phone', 'status', 
         'recording_date', 'recording_location', 'speaker_count',
-        'draft_format', 'final_option', 'created_at', 'file_count'
+        'estimated_price', 'draft_format', 'final_option', 'created_at', 'file_count'
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
     search_fields = ('name', 'email', 'phone', 'recording_location')
@@ -71,7 +71,7 @@ class RequestAdmin(ModelAdmin):
             'fields': ('name', 'email', 'phone', 'address')
         }),
         ('녹음 정보', {
-            'fields': ('recording_date', 'recording_location', 'speaker_count', 'speaker_info', 'has_detail', 'detail_info')
+            'fields': ('recording_date', 'recording_location', 'speaker_count', 'speaker_info', 'has_detail', 'detail_info', 'estimated_price')
         }),
         ('기타 정보', {
             'fields': ('status', 'agreement', 'created_at', 'updated_at')
@@ -149,14 +149,14 @@ class RequestAdmin(ModelAdmin):
         writer = csv.writer(response)
         writer.writerow([
             'ID', '이름', '이메일', '전화번호', '상태', '녹음일시', 
-            '녹음장소', '화자수', '원고형식', '최종옵션', '생성일'
+            '녹음장소', '화자수', '예상견적', '원고형식', '최종옵션', '생성일'
         ])
         
         for obj in queryset:
             writer.writerow([
                 obj.id, obj.name, obj.email, obj.phone, obj.get_status_display(),
                 obj.recording_date, obj.recording_location, obj.speaker_count,
-                obj.get_draft_format_display(), obj.get_final_option_display(),
+                obj.estimated_price, obj.get_draft_format_display(), obj.get_final_option_display(),
                 obj.created_at.strftime('%Y-%m-%d %H:%M')
             ])
         
@@ -184,7 +184,7 @@ class ExcelDatabaseAdmin(ModelAdmin):
     list_display = (
         'id', 'name', 'email', 'phone', 'status_display', 
         'recording_date', 'recording_location', 'speaker_count',
-        'draft_format', 'final_option', 'created_at'
+        'estimated_price', 'draft_format', 'final_option', 'created_at'
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
     search_fields = ('name', 'email', 'phone', 'recording_location')

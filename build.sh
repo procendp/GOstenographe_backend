@@ -20,4 +20,8 @@ python manage.py migrate --noinput
 echo "admin 계정 생성 중..."
 python create_admin.py
 
+# 템플릿 동기화 검증
+echo "템플릿 동기화 검증 중..."
+python manage.py check_template_sync
+
 echo "=== 빌드 완료 ==="
