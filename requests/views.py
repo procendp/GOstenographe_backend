@@ -660,17 +660,20 @@ class SendLogViewSet(viewsets.ModelViewSet):
 class S3PresignedURLView(APIView):
     permission_classes = [AllowAny]
 
-    # 허용 확장자 및 MIME 타입 목록
+    # 허용 확장자 및 MIME 타입 목록 (음성/영상 파일만)
     ALLOWED_EXTENSIONS = {
-        'txt', 'hwp', 'doc', 'docx', 'pdf', 'ppt', 'pptx', 'xls', 'xlsx',
-        'mp3', 'mp4', 'asf', 'm4v', 'mov', 'wmv', 'avi', 'wav', 'zip'
+        # 음성 파일
+        'mp3', 'wav', 'm4a', 'cda', 'mod', 'ogg', 'wma', 'flac', 'asf',
+        # 영상 파일
+        'avi', 'mp4', 'wmv', 'm2v', 'mpeg', 'dpg', 'mts', 'webm', 'divx', 'amv'
     }
     ALLOWED_MIME_TYPES = {
-        'text/plain', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/zip', 'audio/mpeg', 'audio/wav', 'video/mp4', 'video/x-ms-asf', 'video/x-m4v', 'video/quicktime',
-        'video/x-ms-wmv', 'video/x-msvideo', 'application/x-hwp',
+        # 음성 파일 MIME 타입
+        'audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/mod', 'audio/ogg', 
+        'audio/x-ms-wma', 'audio/flac', 'audio/x-ms-asf',
+        # 영상 파일 MIME 타입
+        'video/x-msvideo', 'video/mp4', 'video/x-ms-wmv', 'video/mpeg', 'video/x-ms-asf', 
+        'video/webm', 'video/quicktime', 'video/x-divx', 'video/avi'
     }
     MAX_FILE_SIZE = 3 * 1024 * 1024 * 1024  # 3GB
 
