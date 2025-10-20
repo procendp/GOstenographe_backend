@@ -390,3 +390,49 @@ def delete_uploaded_files(request):
     except Exception as e:
         logger.error(f'[delete_uploaded_files] 오류 발생: {str(e)}')
         return JsonResponse({'error': '파일 삭제 중 오류가 발생했습니다.'}, status=500)
+
+
+# 공개 엔드포인트: apply 페이지에서 업로드 임시 파일 정리용 (S3 + DB 동시 삭제)
+# 주의: 민감 데이터가 없고, file_key만으로 제한. 필요 시 추가 토큰 검증 가능
+@require_POST
+@csrf_exempt
+def public_delete_uploaded_files(request):
+    try:
+        data = json.loads(request.body)
+        file_keys = data.get('file_keys', [])
+
+        if not file_keys:
+            return JsonResponse({'error': '삭제할 파일이 없습니다.'}, status=400)
+
+        deleted_files = []
+        failed_files = []
+
+        for file_key in file_keys:
+            try:
+                # S3에서 파일 삭제
+                s3_client = boto3.client('s3', region_name=settings.AWS_S3_REGION_NAME)
+                s3_client.delete_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=file_key
+                )
+
+                # DB에서 파일 정보 삭제 (아직 Request에 연결되지 않은 임시 파일만 안전 삭제)
+                File.objects.filter(file=file_key, request__isnull=True).delete()
+
+                deleted_files.append(file_key)
+                logger.info(f'[public_delete_uploaded_files] 파일 삭제 완료: {file_key}')
+
+            except Exception as e:
+                failed_files.append({'file_key': file_key, 'error': str(e)})
+                logger.error(f'[public_delete_uploaded_files] 파일 삭제 실패: {file_key}, 오류: {str(e)}')
+
+        return JsonResponse({
+            'success': True,
+            'deleted_files': deleted_files,
+            'failed_files': failed_files,
+            'message': f'{len(deleted_files)}개 파일이 삭제되었습니다.'
+        })
+
+    except Exception as e:
+        logger.error(f'[public_delete_uploaded_files] 오류 발생: {str(e)}')
+        return JsonResponse({'error': '파일 삭제 중 오류가 발생했습니다.'}, status=500)
