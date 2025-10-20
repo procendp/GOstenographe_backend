@@ -757,9 +757,29 @@ class S3PresignedURLView(APIView):
 
 class S3DeleteView(APIView):
     def delete(self, request):
+        return self._delete_file(request)
+    
+    def post(self, request):
+        """sendBeacon 요청을 위한 POST 메서드 추가"""
+        return self._delete_file(request)
+    
+    def _delete_file(self, request):
+        """실제 파일 삭제 로직"""
         try:
-            file_key = request.data.get('file_key')
+            # request.data와 request.body 모두 처리
+            if hasattr(request, 'data') and request.data:
+                file_key = request.data.get('file_key')
+            else:
+                # sendBeacon의 경우 request.body에서 직접 파싱
+                try:
+                    import json
+                    body_data = json.loads(request.body)
+                    file_key = body_data.get('file_key')
+                except (json.JSONDecodeError, AttributeError):
+                    file_key = None
+            
             if not file_key:
+                logger.error('[ERROR] file_key가 제공되지 않음')
                 return Response({'error': 'file_key is required'}, status=status.HTTP_400_BAD_REQUEST)
 
             logger.debug(f'[DEBUG] S3 파일 삭제 시도: {file_key}')
