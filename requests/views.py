@@ -18,6 +18,7 @@ from django.utils import timezone
 import logging
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 from django.db.models import Q, Count, Sum, Avg
 from django.db.models.functions import TruncDate, TruncMonth, TruncYear
@@ -657,6 +658,7 @@ class SendLogViewSet(viewsets.ModelViewSet):
     serializer_class = SendLogSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+@method_decorator(csrf_exempt, name='dispatch')
 class S3PresignedURLView(APIView):
     permission_classes = [AllowAny]
 
@@ -755,6 +757,7 @@ class S3PresignedURLView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+@method_decorator(csrf_exempt, name='dispatch')
 class S3DeleteView(APIView):
     def delete(self, request):
         return self._delete_file(request)
