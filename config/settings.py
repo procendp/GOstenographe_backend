@@ -230,18 +230,20 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 LOGOUT_REDIRECT_URL = '/login/'
 
-# CSRF 설정
-CSRF_USE_SESSIONS = True  # 세션에 CSRF 토큰 저장 (브라우저 호환성 개선)
+# CSRF 설정 (쿠키 방식 - Render 환경에서 안정적)
+CSRF_USE_SESSIONS = False  # 쿠키 방식 사용 (세션보다 안정적)
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_PATH = '/'
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_HTTPONLY = False  # JavaScript 접근 허용
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_TRUSTED_ORIGINS = [
     'https://sokgijungbackoffice.com', 
     'https://www.sokgijungbackoffice.com',
     'https://sokgijung-backend.onrender.com'
 ]
+# CSRF 실패 시 더 나은 디버깅
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
 
 # 로깅 설정
 LOGGING = {
