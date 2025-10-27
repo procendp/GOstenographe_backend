@@ -658,9 +658,9 @@ class SendLogViewSet(viewsets.ModelViewSet):
     serializer_class = SendLogSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-@method_decorator(csrf_exempt, name='dispatch')
 class S3PresignedURLView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []  # CSRF 검증 제외 (DRF용)
 
     # 허용 확장자 및 MIME 타입 목록 (음성/영상 파일만)
     ALLOWED_EXTENSIONS = {
@@ -757,8 +757,10 @@ class S3PresignedURLView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-@method_decorator(csrf_exempt, name='dispatch')
 class S3DeleteView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []  # CSRF 검증 제외 (DRF용)
+    
     def delete(self, request):
         return self._delete_file(request)
     
