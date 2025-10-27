@@ -231,6 +231,7 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 LOGOUT_REDIRECT_URL = '/login/'
 
 # CSRF 설정
+CSRF_USE_SESSIONS = True  # 세션에 CSRF 토큰 저장 (브라우저 호환성 개선)
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_COOKIE_DOMAIN = None
 CSRF_COOKIE_PATH = '/'
