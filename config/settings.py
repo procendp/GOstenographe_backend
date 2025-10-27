@@ -399,6 +399,9 @@ print('AWS_ACCESS_KEY_ID:', AWS_ACCESS_KEY_ID)
 
 # 프로덕션 보안 설정
 if not DEBUG:
+    # Render 프록시 HTTPS 인식 설정 (핵심!)
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    
     # HTTPS 보안 설정 (Render가 SSL/TLS 처리)
     SECURE_SSL_REDIRECT = False  # Render에서 이미 HTTPS 리다이렉트 처리
     SESSION_COOKIE_SECURE = True  # HTTPS에서만 세션 쿠키 전송
