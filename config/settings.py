@@ -399,11 +399,10 @@ print('AWS_ACCESS_KEY_ID:', AWS_ACCESS_KEY_ID)
 
 # 프로덕션 보안 설정
 if not DEBUG:
-    # Render 배포를 위한 보안 설정 완화
-    SECURE_SSL_REDIRECT = False  # HTTPS 리다이렉트 비활성화
-    SESSION_COOKIE_SECURE = False  # 세션 쿠키 보안 비활성화
-    CSRF_COOKIE_SECURE = False     # CSRF 쿠키 보안 비활성화
-    SECURE_HSTS_SECONDS = 0        # HSTS 비활성화
+    # HTTPS 보안 설정 (Render가 SSL/TLS 처리)
+    SECURE_SSL_REDIRECT = False  # Render에서 이미 HTTPS 리다이렉트 처리
+    SESSION_COOKIE_SECURE = True  # HTTPS에서만 세션 쿠키 전송
+    CSRF_COOKIE_SECURE = True     # HTTPS에서만 CSRF 쿠키 전송
     
     # 보안 헤더
     SECURE_BROWSER_XSS_FILTER = True
