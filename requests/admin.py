@@ -73,7 +73,7 @@ class RequestAdmin(ModelAdmin):
         ('녹음 정보', {
             'fields': ('recording_date', 'recording_location', 'speaker_count', 'speaker_info', 'has_detail', 'detail_info', 'estimated_price')
         }),
-        ('기타 정보', {
+        ('상세 정보', {
             'fields': ('status', 'agreement', 'created_at', 'updated_at')
         })
     )

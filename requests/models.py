@@ -102,7 +102,7 @@ class Request(models.Model):
     cancel_reason = models.TextField(_('취소 사유'), blank=True)
     impossible_reason = models.TextField(_('작업불가 사유'), blank=True)
     transcript_file = models.ForeignKey('File', on_delete=models.SET_NULL, null=True, blank=True, related_name='transcript_requests', verbose_name=_('속기록 파일'))
-    notes = models.TextField(_('기타 정보'), blank=True)
+    notes = models.TextField(_('상세 정보'), blank=True)
 
     class Meta:
         verbose_name = _('요청서')
