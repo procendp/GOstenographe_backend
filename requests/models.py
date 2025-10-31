@@ -51,7 +51,7 @@ class Request(models.Model):
     
     # 녹음 정보
     recording_date = models.DateTimeField(_('녹음 일시'), null=True, blank=True)
-    recording_location = models.CharField(_('녹음 장소'), max_length=200, blank=True)
+    recording_location = models.CharField(_('녹음 종류'), max_length=200, blank=True)
     speaker_count = models.IntegerField(
         _('화자 수'),
         default=1,
