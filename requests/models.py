@@ -57,7 +57,7 @@ class Request(models.Model):
         default=1,
         validators=[
             MinValueValidator(1, message='화자 수는 최소 1명 이상이어야 합니다.'),
-            MaxValueValidator(5, message='화자 수는 최대 5명까지 가능합니다.')
+            MaxValueValidator(10, message='화자 수는 최대 10명까지 가능합니다.')
         ]
     )
     speaker_info = models.JSONField(_('화자 정보'), default=list, blank=True)
