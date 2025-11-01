@@ -2861,7 +2861,7 @@ async function updateFileSettingsPanel(index) {
         <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
             <div>
                 <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수</label>
-                <input id="speakerCount${index}" type="number" min="1" max="5" value="${fileData.speakerCount}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'speakerCount', this.value)">
+                <input id="speakerCount${index}" type="number" min="1" max="10" value="${fileData.speakerCount}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'speakerCount', this.value)">
             </div>
             <div>
                 <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자 이름</label>
