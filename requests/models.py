@@ -96,7 +96,14 @@ class Request(models.Model):
     additional_info = models.TextField(_('상세 정보'), blank=True)
     estimated_price = models.DecimalField(_('예상 견적'), max_digits=10, decimal_places=0, null=True, blank=True)
     payment_status = models.BooleanField(_('결제 여부'), default=False)
-    payment_amount = models.DecimalField(_('결제 금액'), max_digits=10, decimal_places=0, null=True, blank=True)
+    payment_amount = models.DecimalField(
+        _('결제 금액'),
+        max_digits=10,
+        decimal_places=0,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0, message='결제 금액은 0 이상이어야 합니다.')]
+    )
     price_change_reason = models.TextField(_('결제금액 변동 사유'), blank=True)
     refund_amount = models.DecimalField(_('환불 금액'), max_digits=10, decimal_places=0, null=True, blank=True)
     cancel_reason = models.TextField(_('취소 사유'), blank=True)

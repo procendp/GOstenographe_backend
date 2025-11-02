@@ -315,7 +315,7 @@
                         </div>
                         <div>
                             <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">결제 금액</label>
-                            <input id="paymentAmountInput" type="number" min="0" placeholder="예: 50000" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;">
+                            <input id="paymentAmountInput" type="number" min="0" step="1" placeholder="예: 50000" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="if(this.value < 0) this.value = 0;">
                         </div>
                     </div>
 

@@ -1593,7 +1593,7 @@ async function saveOrder() {
             draft_format: document.getElementById('draftFormatInput').value,
             final_option: document.getElementById('finalOptionInput').value,
             payment_status: document.getElementById('paymentStatusInput').checked,
-            payment_amount: document.getElementById('paymentAmountInput').value ? parseInt(document.getElementById('paymentAmountInput').value) : null,
+            payment_amount: document.getElementById('paymentAmountInput').value ? Math.max(0, parseInt(document.getElementById('paymentAmountInput').value)) : null,
             notes: document.getElementById('notesInput').value.trim(),
             files_data: filesData
         };
