@@ -1589,7 +1589,7 @@ def send_draft_guide(request):
             # 템플릿 기반 발송
             result = bulk_service.send_sending_drafts_guide(
                 requests=valid_requests,
-                email_subject='속기록 초안/수정안 발송'
+                email_subject='[속기사무소 정] 완성된 녹취록을 확인해 주세요.'
             )
             
             success_count = result['success_count']
@@ -1667,7 +1667,7 @@ def send_final_draft_guide(request):
             # 템플릿 기반 발송
             result = bulk_service.send_final_draft_guide(
                 requests=valid_requests,
-                email_subject='속기록 최종안 발송'
+                email_subject='[속기사무소 정] 녹취록 최종안을 확인해 주세요.'
             )
             
             success_count = result['success_count']
