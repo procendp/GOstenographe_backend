@@ -216,7 +216,7 @@ class BulkEmailService:
         
         return context
     
-    def send_service_completion_guide(self, requests, email_subject='서비스 신청 완료 안내'):
+    def send_service_completion_guide(self, requests, email_subject='[속기사무소 정] 서비스 신청 완료 안내'):
         """
         서비스 신청 완료 안내 이메일 발송 (첨부파일 없음)
         
@@ -570,12 +570,12 @@ class BulkEmailService:
         }
     
     # 개별 템플릿 전용 함수들
-    def send_quotation_and_deposit_guide(self, requests, email_subject='견적 및 입금 안내'):
+    def send_quotation_and_deposit_guide(self, requests, email_subject='[속기사무소 정] 견적 및 입금 안내'):
         """견적 및 입금 안내 발송"""
         template_name = 'email_templates/Quotation and Deposit Guide/email template_Quotation and Deposit Guide/ 견적 변동 시에도 활용/index.html'
         return self.send_template_without_attachments(requests, template_name, email_subject)
     
-    def send_payment_completion_guide(self, requests, email_subject='결제 완료 안내'):
+    def send_payment_completion_guide(self, requests, email_subject='[속기사무소 정] 결제 완료 안내'):
         """결제 완료 안내 발송"""
         template_name = 'email_templates/Payment completion Guide/email template_Payment completion Guide/index.html'
         return self.send_template_without_attachments(requests, template_name, email_subject)
