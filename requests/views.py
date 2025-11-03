@@ -944,52 +944,24 @@ def statistics_dashboard_view(request):
                 revenue=Sum('payment_amount')
             ).order_by('date')
         
-        # 월별 통계 (최근 12개월) - 데이터베이스 호환성 개선
+        # 월별 통계 (최근 12개월) - PostgreSQL/SQLite 호환
         twelve_months_ago = timezone.now() - timedelta(days=365)
-        try:
-            monthly_stats = Request.objects.filter(
-                created_at__gte=twelve_months_ago
-            ).extra(
-                select={
-                    'month': "strftime('%%Y-%%m-01', requests_request.created_at)"
-                }
-            ).values('month').annotate(
-                count=Count('id'),
-                revenue=Sum('payment_amount')
-            ).order_by('month')
-        except Exception:
-            # PostgreSQL 호환성을 위한 대체 쿼리
-            monthly_stats = Request.objects.filter(
-                created_at__gte=twelve_months_ago
-            ).extra(
-                select={
-                    'month': "strftime('%%Y-%%m-01', created_at)"
-                }
-            ).values('month').annotate(
-                count=Count('id'),
-                revenue=Sum('payment_amount')
-            ).order_by('month')
+        monthly_stats = Request.objects.filter(
+            created_at__gte=twelve_months_ago
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('month')
         
-        # 연도별 통계 - 데이터베이스 호환성 개선
-        try:
-            yearly_stats = Request.objects.extra(
-                select={
-                    'year': "strftime('%%Y-01-01', requests_request.created_at)"
-                }
-            ).values('year').annotate(
-                count=Count('id'),
-                revenue=Sum('payment_amount')
-            ).order_by('year')
-        except Exception:
-            # PostgreSQL 호환성을 위한 대체 쿼리
-            yearly_stats = Request.objects.extra(
-                select={
-                    'year': "strftime('%%Y-01-01', created_at)"
-                }
-            ).values('year').annotate(
-                count=Count('id'),
-                revenue=Sum('payment_amount')
-            ).order_by('year')
+        # 연도별 통계 - PostgreSQL/SQLite 호환
+        yearly_stats = Request.objects.annotate(
+            year=TruncYear('created_at')
+        ).values('year').annotate(
+            count=Count('id'),
+            revenue=Sum('payment_amount')
+        ).order_by('year')
         
         # 상태별 통계
         status_stats = Request.objects.values('status').annotate(

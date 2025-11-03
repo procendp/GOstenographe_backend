@@ -100,7 +100,8 @@ if os.getenv('DATABASE_URL'):
     DATABASES = {
         "default": dj_database_url.config(
             default=os.environ.get("DATABASE_URL"),
-            conn_max_age=0,  # ✅ Pooler에서는 반드시 0 권장
+            conn_max_age=600,  # ✅ Render PostgreSQL 최적화 (10분 재사용)
+            conn_health_checks=True,  # ✅ Django 4.1+ 연결 건강 체크
             ssl_require=True
         )
     }
