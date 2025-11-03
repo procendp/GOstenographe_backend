@@ -371,14 +371,12 @@ UNFOLD = {
                     {
                         "title": "사이트",
                         "icon": "launch",
-                        "link": os.getenv('FRONTEND_URL', 'http://localhost:3000'),
-                        "badge": "new_window",
+                        "link": "https://sokgijung.com",
                     },
                     {
                         "title": "통계",
                         "icon": "analytics",
                         "link": "/dashboard/",
-                        "badge": "",
                     },
                 ],
             },
