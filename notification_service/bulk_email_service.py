@@ -24,21 +24,31 @@ class BulkEmailService:
         self.template_config = self.load_template_config()
     
     def load_template_config(self):
-        """이메일 템플릿 공용 설정을 JSON 파일에서 로드"""
+        """이메일 템플릿 공용 설정을 JSON 파일에서 로드 (환경 변수 우선)"""
         try:
             current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             file_path = os.path.join(current_dir, 'email_template_config.json')
-            
+
             with open(file_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                config = json.load(f)
+
+            # 환경 변수가 있으면 덮어쓰기 (민감 정보 보호)
+            if hasattr(settings, 'BANK_NAME') and settings.BANK_NAME:
+                config['bank_account']['bank_name'] = settings.BANK_NAME
+            if hasattr(settings, 'BANK_ACCOUNT') and settings.BANK_ACCOUNT:
+                config['bank_account']['bank_account'] = settings.BANK_ACCOUNT
+            if hasattr(settings, 'BANK_ACCOUNT_HOLDER') and settings.BANK_ACCOUNT_HOLDER:
+                config['bank_account']['bank_account_holder'] = settings.BANK_ACCOUNT_HOLDER
+
+            return config
         except Exception as e:
             print(f"[BulkEmailService] 템플릿 설정 로드 실패: {e}")
-            # 기본값 반환
+            # 환경 변수에서 직접 로드
             return {
                 "bank_account": {
-                    "bank_name": "신한은행",
-                    "bank_account": "100-000-000000", 
-                    "bank_account_holder": "속기사무소 정"
+                    "bank_name": getattr(settings, 'BANK_NAME', '신한은행'),
+                    "bank_account": getattr(settings, 'BANK_ACCOUNT', '110-597-729308'),
+                    "bank_account_holder": getattr(settings, 'BANK_ACCOUNT_HOLDER', '고민정')
                 },
                 "company_info": {
                     "company_name": "속기사무소 정",

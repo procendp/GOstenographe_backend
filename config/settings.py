@@ -293,6 +293,11 @@ SENDGRID_FROM_EMAIL = os.getenv('SENDGRID_FROM_EMAIL', 'procendp@gmail.com')
 SENDGRID_FROM_NAME = os.getenv('SENDGRID_FROM_NAME', '속기사무소 정')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@example.com')
 
+# 계좌 정보 (환경 변수에서 로드)
+BANK_NAME = os.getenv('BANK_NAME', '신한은행')
+BANK_ACCOUNT = os.getenv('BANK_ACCOUNT', '110-597-729308')
+BANK_ACCOUNT_HOLDER = os.getenv('BANK_ACCOUNT_HOLDER', '고민정')
+
 # Admin 사이트 설정
 ADMIN_SITE_HEADER = "녹취 서비스 관리자"
 ADMIN_SITE_TITLE = "녹취 서비스 관리자"
