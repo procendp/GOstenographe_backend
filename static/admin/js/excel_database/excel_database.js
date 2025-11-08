@@ -741,6 +741,25 @@ function openFieldEditModal(requestId, fieldName, fieldType, currentValue, field
     if (fieldType === 'number') {
         input.min = '0';
         input.step = '1';
+
+        // 음수 입력 방지 (키보드 입력 차단)
+        input.addEventListener('keydown', function(e) {
+            // 마이너스 키(-) 입력 차단
+            if (e.key === '-' || e.key === 'Subtract') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // 붙여넣기 시 음수 방지
+        input.addEventListener('paste', function(e) {
+            setTimeout(() => {
+                const val = parseInt(input.value);
+                if (isNaN(val) || val < 0) {
+                    input.value = '';
+                }
+            }, 10);
+        });
     } else {
         input.removeAttribute('min');
         input.removeAttribute('step');
@@ -766,7 +785,17 @@ function openFieldEditModal(requestId, fieldName, fieldType, currentValue, field
 
 function saveFieldFromModal() {
     const input = document.getElementById('fieldEditInput');
-    const value = input.value;
+    let value = input.value;
+
+    // 숫자 필드인 경우 음수 방지
+    if (input.type === 'number') {
+        const numValue = parseInt(value);
+        if (isNaN(numValue) || numValue < 0) {
+            alert('결제 금액은 0 이상의 숫자만 입력 가능합니다.');
+            return;
+        }
+        value = numValue.toString();
+    }
 
     // 값 저장
     saveFieldValue(currentEditRequestId, currentEditFieldName, value);
