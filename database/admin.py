@@ -211,13 +211,13 @@ class RequestManagementAdmin(ModelAdmin):
             request.session['toggle_sidebar'] = True
 
         extra_context = extra_context or {}
-        extra_context['hide_order_id'] = True  # Option B에서만 Order ID 숨김
+        extra_context['hide_order_id'] = False  # Order ID 표시
         return super().changelist_view(request, extra_context)
-        
+
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('request_id', 'order_id', 'name', 'email', 'phone')
     list_per_page = 25  # 성능 향상을 위해 줄임
-    ordering = ['-created_at']
+    ordering = ['-order_id', '-created_at']  # 주문서 관리와 동일한 정렬 순서
     
     change_list_template = 'admin/excel_database.html'
     
