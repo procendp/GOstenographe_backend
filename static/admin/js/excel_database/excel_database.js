@@ -1611,10 +1611,10 @@ async function saveOrder() {
 
     try {
         const filesData = getFileSettingsData();
-        
-        
-        
-        
+
+        console.log('[DEBUG] saveOrder - filesData:', filesData);
+        console.log('[DEBUG] saveOrder - fileTabsData:', fileTabsData);
+
         const formData = {
             name: name,
             email: email,
@@ -1627,8 +1627,8 @@ async function saveOrder() {
             notes: document.getElementById('notesInput').value.trim(),
             files_data: filesData
         };
-        
-        
+
+        console.log('[DEBUG] saveOrder - formData:', JSON.stringify(formData, null, 2));
 
         const response = await fetch('/api/database/create-db-order/', {
             method: 'POST',
