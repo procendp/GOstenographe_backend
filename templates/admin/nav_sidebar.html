@@ -1,0 +1,25 @@
+{% load i18n unfold %}
+
+<div class="relative z-50">
+    {# 데스크탑 전용 사이드바 - 모바일 처리 제거, 데스크탑 반응형 유지 #}
+    {# sidebarDesktopOpen이 true일 때만 표시, 브라우저 크기 변경 시 자동 열림/닫힘 없음 #}
+    <div class="w-[288px] {% element_classes 'navigation_wrapper' %}"
+         x-show="sidebarDesktopOpen"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="-translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="-translate-x-full"
+         style="flex-shrink: 0;">
+        <div class="bg-gray-50 relative z-30 dark:bg-gray-900">
+            <div id="nav-sidebar" class="bg-base-50 border-r border-base-200 bottom-0 fixed max-h-screen top-0 w-[288px] dark:border-base-800 dark:bg-base-900 {% element_classes 'navigation' %}">
+                {% if templates.navigation %}
+                    {% include templates.navigation %}
+                {% else %}
+                    {% include "unfold/helpers/navigation.html" %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
