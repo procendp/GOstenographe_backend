@@ -1275,7 +1275,7 @@ def send_quotation_guide(request):
                 bulk_service = BulkEmailService()
                 result = bulk_service.send_quotation_and_deposit_guide(
                     requests=list(same_order_requests),
-                    email_subject='견적 및 입금 안내'
+                    email_subject='[속기사무소 정] 견적 및 입금 안내'
                 )
                 
                 if result['success_count'] > 0:
@@ -1403,7 +1403,7 @@ def send_payment_completion_guide(request):
                 bulk_service = BulkEmailService()
                 result = bulk_service.send_payment_completion_guide(
                     requests=list(same_order_requests),
-                    email_subject='결제 완료 안내'
+                    email_subject='[속기사무소 정] 결제 완료 안내'
                 )
                 
                 if result['success_count'] > 0:
