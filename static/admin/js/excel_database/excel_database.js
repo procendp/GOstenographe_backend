@@ -1479,10 +1479,11 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         saveBtn.innerHTML = '저장';
 
         showNotification(`${uploadedFilesData.length}개 파일 업로드 완료`, 'success');
-        
+
         // 파일 탭 생성 (전체 누적 파일 전달)
         console.log(`[DEBUG] createFileSettingsTabs 호출 전 uploadedFilesData:`, uploadedFilesData);
-        await createFileSettingsTabs(uploadedFilesData);        } catch (error) {
+        await createFileSettingsTabs(uploadedFilesData);
+    } catch (error) {
         console.error('파일 업로드 오류:', error);
         showNotification('파일 업로드 중 오류가 발생했습니다.', 'error');
         saveBtn.disabled = false;
