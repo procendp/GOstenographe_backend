@@ -1641,6 +1641,9 @@ async function saveOrder() {
 
         const data = await response.json();
 
+        console.log('[DEBUG] saveOrder - response status:', response.status);
+        console.log('[DEBUG] saveOrder - response data:', data);
+
         if (response.ok && data.success) {
             showNotification(data.message, 'success');
             closeAddModal();
@@ -1649,6 +1652,7 @@ async function saveOrder() {
                 window.location.reload();
             }, 1500);
         } else {
+            console.error('[ERROR] saveOrder failed:', data);
             showNotification(data.error || '저장 실패', 'error');
             saveBtn.disabled = false;
             saveBtn.innerHTML = '저장';
