@@ -96,7 +96,7 @@ class OrderManagementAdmin(ModelAdmin):
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('order_id', 'name', 'email', 'phone')
     list_per_page = 25  # 성능 향상을 위해 줄임
-    ordering = ['order_id', '-created_at']
+    ordering = ['-order_id', '-created_at']
     
     change_list_template = 'admin/excel_database.html'
     
