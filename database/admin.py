@@ -18,6 +18,12 @@ class IntegratedViewAdmin(ModelAdmin):
 
     change_list_template = 'admin/excel_database.html'
 
+    def changelist_view(self, request, extra_context=None):
+        """사이드바 상태 유지"""
+        if 'toggle_sidebar' not in request.session:
+            request.session['toggle_sidebar'] = True
+        return super().changelist_view(request, extra_context)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
@@ -89,6 +95,10 @@ class OrderManagementAdmin(ModelAdmin):
     
     def changelist_view(self, request, extra_context=None):
         """주문서 관리용 커스텀 템플릿 컨텍스트"""
+        # 사이드바 상태 초기화 (세션에 없으면 기본값 True로 설정)
+        if 'toggle_sidebar' not in request.session:
+            request.session['toggle_sidebar'] = True
+
         extra_context = extra_context or {}
         extra_context['hide_request_id'] = True  # Request ID 숨김
         extra_context['show_add_delete'] = True  # 추가/삭제 버튼 표시
@@ -196,6 +206,10 @@ class RequestManagementAdmin(ModelAdmin):
     
     def changelist_view(self, request, extra_context=None):
         """Option B용 커스텀 템플릿 컨텍스트"""
+        # 사이드바 상태 초기화
+        if 'toggle_sidebar' not in request.session:
+            request.session['toggle_sidebar'] = True
+
         extra_context = extra_context or {}
         extra_context['hide_order_id'] = True  # Option B에서만 Order ID 숨김
         return super().changelist_view(request, extra_context)
