@@ -3056,10 +3056,10 @@ async function deleteFileTab(index, event) {
 // 파일 설정 데이터 수집
 function getFileSettingsData() {
     return fileTabsData.map(fileData => ({
-        file_key: fileData.file.file_key || fileData.file.key,
-        original_name: fileData.file.original_name || fileData.file.name,
-        file_type: fileData.file.type || '',
-        file_size: fileData.file.size || 0,
+        file_key: fileData.file.file_key,
+        original_name: fileData.file.original_name,
+        file_type: fileData.file.file_type,
+        file_size: fileData.file.file_size,
         recording_type: fileData.recordingType,
         total_duration: fileData.totalDuration,
         partial_range: fileData.partialRange,
