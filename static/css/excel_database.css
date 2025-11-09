@@ -580,3 +580,21 @@ tbody tr.merged-row-hover.order-group-odd .merged-cell {
     background-color: #e9ecef !important;
 }
 
+
+/* Order ID 기준 교차 배경색 (요청서 관리 페이지용) */
+tbody tr.order-group-even {
+    background-color: #ffffff;
+}
+
+tbody tr.order-group-odd {
+    background-color: #f9fafb;
+}
+
+/* 호버 시 배경색 유지 */
+tbody tr.order-group-even:hover {
+    background-color: #f3f4f6 !important;
+}
+
+tbody tr.order-group-odd:hover {
+    background-color: #e5e7eb !important;
+}

@@ -199,7 +199,7 @@ class OrderManagementAdmin(ModelAdmin):
 class RequestManagementAdmin(ModelAdmin):
     """Request ID List - Request ID 기준으로 모든 레코드 표시"""
     list_display = (
-        'request_id', 'order_id', 'attachment_files', 'name', 'email', 'phone_display', 'status_display',
+        'order_id', 'request_id', 'attachment_files', 'name', 'email', 'phone_display', 'status_display',
         'recording_date', 'recording_location', 'speaker_count', 'estimated_price', 'payment_amount',
         'draft_format', 'final_option_display', 'created_at'
     )
