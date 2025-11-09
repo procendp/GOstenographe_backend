@@ -22,6 +22,8 @@ class IntegratedViewAdmin(ModelAdmin):
         """사이드바 상태 유지"""
         if 'toggle_sidebar' not in request.session:
             request.session['toggle_sidebar'] = True
+        extra_context = extra_context or {}
+        extra_context['page_title'] = '통합 List'
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request):
@@ -100,6 +102,7 @@ class OrderManagementAdmin(ModelAdmin):
             request.session['toggle_sidebar'] = True
 
         extra_context = extra_context or {}
+        extra_context['page_title'] = '주문서 List'
         extra_context['hide_request_id'] = True  # Request ID 숨김
         extra_context['show_add_delete'] = True  # 추가/삭제 버튼 표시
         return super().changelist_view(request, extra_context)
@@ -211,6 +214,7 @@ class RequestManagementAdmin(ModelAdmin):
             request.session['toggle_sidebar'] = True
 
         extra_context = extra_context or {}
+        extra_context['page_title'] = '요청서 List'
         extra_context['hide_order_id'] = False  # Order ID 표시
         return super().changelist_view(request, extra_context)
 
