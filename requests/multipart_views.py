@@ -3,6 +3,7 @@ S3 Multipart Upload API Views
 대용량 파일을 효율적으로 업로드하기 위한 Multipart Upload 엔드포인트
 """
 import boto3
+from botocore.config import Config
 import uuid
 import logging
 from rest_framework.views import APIView
@@ -62,12 +63,16 @@ class MultipartUploadInitView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (regional endpoint 사용)
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
             )
 
             # 고유 파일명 생성
@@ -114,12 +119,16 @@ class MultipartUploadPartView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (regional endpoint 사용)
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
             )
 
             # Part 업로드용 Presigned URL 생성
@@ -164,12 +173,16 @@ class MultipartUploadCompleteView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (regional endpoint 사용)
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
             )
 
             # Multipart Upload 완료
@@ -212,12 +225,16 @@ class MultipartUploadAbortView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (regional endpoint 사용)
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
             )
 
             # Multipart Upload 취소

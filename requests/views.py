@@ -10,6 +10,7 @@ from .serializers import RequestSerializer, TemplateSerializer, SendLogSerialize
 from .tasks import send_notification
 from .utils import generate_presigned_url, validate_file_size
 import boto3
+from botocore.config import Config
 from django.conf import settings
 from rest_framework.views import APIView
 import uuid
@@ -717,12 +718,16 @@ class S3PresignedURLView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # S3 클라이언트 생성
+            # S3 클라이언트 생성 (regional endpoint 사용)
             s3_client = boto3.client(
                 's3',
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
+                region_name=settings.AWS_S3_REGION_NAME,
+                config=Config(
+                    signature_version='s3v4',
+                    s3={'addressing_style': 'virtual'}
+                )
             )
 
             unique_file_name = f"{uuid.uuid4()}_{file_name}"
