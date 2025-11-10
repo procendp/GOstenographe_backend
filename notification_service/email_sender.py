@@ -17,9 +17,10 @@ class SendGridEmail:
     
     def __init__(self):
         self.api_key = getattr(settings, 'SENDGRID_API_KEY', os.getenv('SENDGRID_API_KEY'))
-        self.from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', os.getenv('SENDGRID_FROM_EMAIL', 'procendp@gmail.com'))
+        self.from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', os.getenv('SENDGRID_FROM_EMAIL', 'contact@sokgijung.com'))
+        self.reply_to_email = getattr(settings, 'SENDGRID_REPLY_TO_EMAIL', os.getenv('SENDGRID_REPLY_TO_EMAIL', 'sokgijung@gmail.com'))
         self.from_name = getattr(settings, 'SENDGRID_FROM_NAME', os.getenv('SENDGRID_FROM_NAME', '속기사무소 정'))
-        
+
         if not self.api_key:
             logger.warning("SendGrid API 키가 설정되지 않았습니다. .env 파일을 확인하세요.")
     
@@ -52,7 +53,10 @@ class SendGridEmail:
                 plain_text_content=Content("text/plain", content) if content_type == 'text/plain' else None,
                 html_content=Content("text/html", content) if content_type == 'text/html' else None
             )
-            
+
+            # Reply-To 헤더 추가
+            message.reply_to = Email(self.reply_to_email)
+
             # 첨부파일 추가
             if attachments:
                 for attachment_data in attachments:
@@ -130,7 +134,10 @@ class SendGridEmail:
                 plain_text_content=Content("text/plain", text_content),
                 html_content=Content("text/html", html_content)
             )
-            
+
+            # Reply-To 헤더 추가
+            message.reply_to = Email(self.reply_to_email)
+
             # 첨부파일 추가
             if attachments:
                 for attachment_data in attachments:
