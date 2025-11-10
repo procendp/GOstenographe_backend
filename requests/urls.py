@@ -1,6 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import RequestViewSet, TemplateViewSet, SendLogViewSet, S3PresignedURLView, S3DeleteView
+from .multipart_views import (
+    MultipartUploadInitView,
+    MultipartUploadPartView,
+    MultipartUploadCompleteView,
+    MultipartUploadAbortView
+)
 from . import views
 
 router = DefaultRouter()
@@ -12,6 +18,11 @@ urlpatterns = [
     path('', include(router.urls)),
     path('s3/presigned-url/', S3PresignedURLView.as_view(), name='s3-presigned-url'),
     path('s3/delete/', S3DeleteView.as_view(), name='s3-delete'),
+    # Multipart Upload endpoints
+    path('s3/multipart/init/', MultipartUploadInitView.as_view(), name='multipart-upload-init'),
+    path('s3/multipart/upload-part/', MultipartUploadPartView.as_view(), name='multipart-upload-part'),
+    path('s3/multipart/complete/', MultipartUploadCompleteView.as_view(), name='multipart-upload-complete'),
+    path('s3/multipart/abort/', MultipartUploadAbortView.as_view(), name='multipart-upload-abort'),
     path('send/validate-quotation/', views.validate_quotation_orders, name='validate-quotation'),
     path('send/quotation-guide/', views.send_quotation_guide, name='send-quotation-guide'),
     path('send/validate-payment-completion/', views.validate_payment_completion_orders, name='validate-payment-completion'),
