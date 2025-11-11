@@ -20,6 +20,10 @@ python manage.py migrate --noinput
 echo "admin 계정 생성 중..."
 python create_admin.py
 
+# sokgijung 최고 권한 계정 생성
+echo "sokgijung 관리자 계정 생성 중..."
+python create_sokgijung_admin.py
+
 # 템플릿 동기화 검증
 echo "템플릿 동기화 검증 중..."
 python manage.py check_template_sync
