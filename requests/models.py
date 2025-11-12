@@ -280,7 +280,7 @@ class Request(models.Model):
             bulk_service = BulkEmailService()
             result = bulk_service.send_service_completion_guide(
                 requests=list(same_email_requests),
-                email_subject='서비스 신청 완료 안내'
+                email_subject='[속기사무소 정] 서비스 신청 완료 안내'
             )
             
             if result['success_count'] > 0:

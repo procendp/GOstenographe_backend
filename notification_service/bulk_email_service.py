@@ -590,12 +590,12 @@ class BulkEmailService:
         template_name = 'email_templates/Payment completion Guide/email template_Payment completion Guide/index.html'
         return self.send_template_without_attachments(requests, template_name, email_subject)
     
-    def send_sending_drafts_guide(self, requests, email_subject='속기록 초안/수정안 발송'):
+    def send_sending_drafts_guide(self, requests, email_subject='[속기사무소 정] 속기록 초안/수정안 발송'):
         """속기록 초안/수정안 발송"""
         template_name = 'email_templates/Sending drafts Guide/email template_Sending drafts Guide/수정안 발송/index.html'
         return self.send_template_with_transcript_files(requests, template_name, email_subject)
-    
-    def send_final_draft_guide(self, requests, email_subject='속기록 최종안 발송'):
+
+    def send_final_draft_guide(self, requests, email_subject='[속기사무소 정] 속기록 최종안 발송'):
         """속기록 최종안 발송"""
         template_name = 'email_templates/Final draft Guide/email template_Final draft Guide/index.html'
         return self.send_template_with_transcript_files(requests, template_name, email_subject)
