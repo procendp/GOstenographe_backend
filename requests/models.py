@@ -87,7 +87,7 @@ class Request(models.Model):
     is_temporary = models.BooleanField('임시 신청서 여부', default=True)
     
     # 추가 필드들 (엑셀 데이터베이스용)
-    order_id = models.CharField(_('Order ID'), max_length=20, null=True, blank=True)  # YYMMDD+00~99 형식 또는 DB+YYMMDD+0000~9999 형식
+    order_id = models.CharField(_('Order ID'), max_length=20, null=True, blank=True)  # YYMMDD+00~99 (8자리) 또는 DB+YYMMDD+0000~9999 (12자리)
     request_id = models.CharField(_('Request ID'), max_length=50, unique=True, blank=True)  # OrderID+00~99 형식
     recording_type = models.CharField(_('녹취 타입'), max_length=20, default='전체')
     partial_range = models.CharField(_('부분 녹취 구간'), max_length=100, blank=True)
