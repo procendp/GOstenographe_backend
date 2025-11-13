@@ -17,7 +17,7 @@ class SendGridEmail:
     
     def __init__(self):
         self.api_key = getattr(settings, 'SENDGRID_API_KEY', os.getenv('SENDGRID_API_KEY'))
-        self.from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', os.getenv('SENDGRID_FROM_EMAIL', 'contact@sokgijung.com'))
+        self.from_email = getattr(settings, 'SENDGRID_FROM_EMAIL', os.getenv('SENDGRID_FROM_EMAIL', 'info@sokgijung.com'))
         self.reply_to_email = getattr(settings, 'SENDGRID_REPLY_TO_EMAIL', os.getenv('SENDGRID_REPLY_TO_EMAIL', 'sokgijung@gmail.com'))
         self.from_name = getattr(settings, 'SENDGRID_FROM_NAME', os.getenv('SENDGRID_FROM_NAME', '속기사무소 정'))
 
