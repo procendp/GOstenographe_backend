@@ -24,6 +24,7 @@ class IntegratedViewAdmin(ModelAdmin):
             request.session['toggle_sidebar'] = True
         extra_context = extra_context or {}
         extra_context['page_title'] = '통합 List'
+        extra_context['hide_draft_buttons'] = True  # 속기록 버튼 숨김
         return super().changelist_view(request, extra_context)
 
     def get_queryset(self, request):

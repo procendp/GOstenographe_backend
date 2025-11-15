@@ -72,7 +72,7 @@
             {% endif %}
 
             <!-- 요청서 관리 전용 버튼들 (Request ID가 표시되는 페이지에서만) -->
-            {% if not hide_request_id %}
+            {% if not hide_request_id and not hide_draft_buttons %}
             <button onclick="sendDraftGuide()" style="padding: 0.5rem 1rem; background-color: #fef3c7; color: #92400e; border-radius: 9999px; border: 1px solid #fcd34d; font-size: 0.875rem; font-weight: 500; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; white-space: nowrap;" onmouseover="this.style.backgroundColor='#fde68a'" onmouseout="this.style.backgroundColor='#fef3c7'">
                 <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
