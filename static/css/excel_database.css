@@ -2,6 +2,11 @@
    Excel Database - Admin Page Styles
    ============================================ */
 
+/* 테이블 하단 여백 확보 (드롭다운 공간) */
+.p-6 {
+    padding-bottom: 200px !important;
+}
+
 /* 모바일 환경에서만 버튼 크기 축소 */
 @media (max-width: 768px) {
     button {
