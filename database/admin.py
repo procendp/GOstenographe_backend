@@ -13,7 +13,13 @@ class IntegratedViewAdmin(ModelAdmin):
         'draft_format', 'final_option_display', 'created_at'
     )
     list_filter = ('status', 'created_at', 'draft_format', 'final_option', 'speaker_count')
-    search_fields = ('name', 'email', 'phone', 'recording_location')
+    search_fields = (
+        'order_id', 'request_id',
+        'name', 'email', 'phone', 'address',
+        'recording_location', 'additional_info', 'speaker_names',
+        'files__original_name', 'transcript_file__original_name',
+        'price_change_reason', 'cancel_reason'
+    )
     list_per_page = 25  # 성능 향상을 위해 줄임
 
     change_list_template = 'admin/excel_database.html'
@@ -138,7 +144,13 @@ class OrderManagementAdmin(ModelAdmin):
 
         return response
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
-    search_fields = ('order_id', 'name', 'email', 'phone')
+    search_fields = (
+        'order_id', 'request_id',
+        'name', 'email', 'phone', 'address',
+        'recording_location', 'additional_info', 'speaker_names',
+        'files__original_name', 'transcript_file__original_name',
+        'price_change_reason', 'cancel_reason'
+    )
     list_per_page = 25  # 성능 향상을 위해 줄임
     ordering = ['-order_id', '-created_at']
     
@@ -265,7 +277,13 @@ class RequestManagementAdmin(ModelAdmin):
         return response
 
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
-    search_fields = ('request_id', 'order_id', 'name', 'email', 'phone')
+    search_fields = (
+        'order_id', 'request_id',
+        'name', 'email', 'phone', 'address',
+        'recording_location', 'additional_info', 'speaker_names',
+        'files__original_name', 'transcript_file__original_name',
+        'price_change_reason', 'cancel_reason'
+    )
     list_per_page = 25  # 성능 향상을 위해 줄임
     ordering = ['-order_id', '-created_at']  # 주문서 관리와 동일한 정렬 순서
     
