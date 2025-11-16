@@ -19,13 +19,28 @@ class IntegratedViewAdmin(ModelAdmin):
     change_list_template = 'admin/excel_database.html'
 
     def changelist_view(self, request, extra_context=None):
-        """사이드바 상태 유지"""
+        """사이드바 상태 유지 및 검색 정보 전달"""
         if 'toggle_sidebar' not in request.session:
             request.session['toggle_sidebar'] = True
         extra_context = extra_context or {}
         extra_context['page_title'] = '통합 List'
         extra_context['hide_draft_buttons'] = True  # 속기록 버튼 숨김
-        return super().changelist_view(request, extra_context)
+
+        # 검색어 전달
+        search_query = request.GET.get('q', '')
+        if search_query:
+            extra_context['search_query'] = search_query
+
+        response = super().changelist_view(request, extra_context)
+
+        # 검색 결과 개수 전달
+        if search_query and hasattr(response, 'context_data'):
+            cl = response.context_data.get('cl')
+            if cl:
+                extra_context['result_count'] = cl.result_count
+                response.context_data.update(extra_context)
+
+        return response
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -97,7 +112,7 @@ class OrderManagementAdmin(ModelAdmin):
     )
     
     def changelist_view(self, request, extra_context=None):
-        """주문서 관리용 커스텀 템플릿 컨텍스트"""
+        """주문서 관리용 커스텀 템플릿 컨텍스트 및 검색 정보 전달"""
         # 사이드바 상태 초기화 (세션에 없으면 기본값 True로 설정)
         if 'toggle_sidebar' not in request.session:
             request.session['toggle_sidebar'] = True
@@ -106,7 +121,22 @@ class OrderManagementAdmin(ModelAdmin):
         extra_context['page_title'] = '주문서 List'
         extra_context['hide_request_id'] = True  # Request ID 숨김
         extra_context['show_add_delete'] = True  # 추가/삭제 버튼 표시
-        return super().changelist_view(request, extra_context)
+
+        # 검색어 전달
+        search_query = request.GET.get('q', '')
+        if search_query:
+            extra_context['search_query'] = search_query
+
+        response = super().changelist_view(request, extra_context)
+
+        # 검색 결과 개수 전달
+        if search_query and hasattr(response, 'context_data'):
+            cl = response.context_data.get('cl')
+            if cl:
+                extra_context['result_count'] = cl.result_count
+                response.context_data.update(extra_context)
+
+        return response
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('order_id', 'name', 'email', 'phone')
     list_per_page = 25  # 성능 향상을 위해 줄임
@@ -209,7 +239,7 @@ class RequestManagementAdmin(ModelAdmin):
     )
     
     def changelist_view(self, request, extra_context=None):
-        """Option B용 커스텀 템플릿 컨텍스트"""
+        """Option B용 커스텀 템플릿 컨텍스트 및 검색 정보 전달"""
         # 사이드바 상태 초기화
         if 'toggle_sidebar' not in request.session:
             request.session['toggle_sidebar'] = True
@@ -217,7 +247,22 @@ class RequestManagementAdmin(ModelAdmin):
         extra_context = extra_context or {}
         extra_context['page_title'] = '요청서 List'
         extra_context['hide_order_id'] = False  # Order ID 표시
-        return super().changelist_view(request, extra_context)
+
+        # 검색어 전달
+        search_query = request.GET.get('q', '')
+        if search_query:
+            extra_context['search_query'] = search_query
+
+        response = super().changelist_view(request, extra_context)
+
+        # 검색 결과 개수 전달
+        if search_query and hasattr(response, 'context_data'):
+            cl = response.context_data.get('cl')
+            if cl:
+                extra_context['result_count'] = cl.result_count
+                response.context_data.update(extra_context)
+
+        return response
 
     list_filter = ('status', 'created_at', 'draft_format', 'final_option')
     search_fields = ('request_id', 'order_id', 'name', 'email', 'phone')
