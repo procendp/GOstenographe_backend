@@ -65,6 +65,13 @@ class IntegratedViewAdmin(ModelAdmin):
             try:
                 logger.warning(f"[{self.__class__.__name__}] Entering file search block")
 
+                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
+                all_files_sample = File.objects.filter(
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values('id', 'original_name', 'request__id')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
+
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
                     original_name__icontains=search_term,
@@ -252,6 +259,13 @@ class OrderManagementAdmin(ModelAdmin):
             try:
                 logger.warning(f"[{self.__class__.__name__}] Entering file search block")
 
+                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
+                all_files_sample = File.objects.filter(
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values('id', 'original_name', 'request__id')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
+
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
                     original_name__icontains=search_term,
@@ -396,6 +410,13 @@ class RequestManagementAdmin(ModelAdmin):
         if search_term:
             try:
                 logger.warning(f"[{self.__class__.__name__}] Entering file search block")
+
+                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
+                all_files_sample = File.objects.filter(
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values('id', 'original_name', 'request__id')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
 
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
