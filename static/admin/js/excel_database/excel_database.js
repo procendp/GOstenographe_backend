@@ -1593,15 +1593,82 @@ async function uploadOrderFile(file, index, progressContainer) {
 }
 
 async function saveOrder() {
-    
-    
+
+
     // 폼 검증
     const name = document.getElementById('nameInput').value.trim();
     const email = document.getElementById('emailInput').value.trim();
     const phone = document.getElementById('phoneInput').value.trim();
 
-    if (!name || !email || !phone) {
-        showNotification('필수 항목을 모두 입력해주세요.', 'error');
+    const errors = [];
+
+    // 1. 주문자명 검증
+    if (!name) {
+        errors.push('주문자명을 입력해주세요.');
+    }
+
+    // 2. 연락처 검증 (10-11자리 숫자)
+    if (!phone) {
+        errors.push('연락처를 입력해주세요.');
+    } else {
+        const phoneDigits = phone.replace(/[^\d]/g, '');
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+            errors.push('연락처는 10~11자리 숫자여야 합니다.');
+        }
+    }
+
+    // 3. 이메일 검증
+    if (!email) {
+        errors.push('이메일을 입력해주세요.');
+    } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            errors.push('올바른 이메일 형식이 아닙니다.');
+        }
+    }
+
+    // 4. 파일 업로드 검증
+    if (!fileTabsData || fileTabsData.length === 0) {
+        errors.push('최소 1개 이상의 파일을 업로드해주세요.');
+    }
+
+    // 5. 파일별 설정 검증
+    if (fileTabsData && fileTabsData.length > 0) {
+        for (let i = 0; i < fileTabsData.length; i++) {
+            const fileData = fileTabsData[i];
+            const fileNum = i + 1;
+
+            // 녹취 타입 검증
+            if (!fileData.recordingType || (fileData.recordingType !== '전체' && fileData.recordingType !== '부분')) {
+                errors.push(`파일 ${fileNum}: 녹취 타입을 선택해주세요.`);
+            }
+
+            // 부분 녹취 선택 시 구간 검증
+            if (fileData.recordingType === '부분') {
+                const partialRange = fileData.partialRange?.trim();
+                if (!partialRange) {
+                    errors.push(`파일 ${fileNum}: 부분 녹취 구간을 입력해주세요.`);
+                } else {
+                    // 형식 검증
+                    const validation = validatePartialRange(partialRange);
+                    if (!validation.valid) {
+                        errors.push(`파일 ${fileNum}: ${validation.error}`);
+                    }
+                }
+            }
+
+            // 화자수 검증
+            const speakerCount = parseInt(fileData.speakerCount);
+            if (!speakerCount || speakerCount < 1 || speakerCount > 10) {
+                errors.push(`파일 ${fileNum}: 화자수는 1~10명 사이여야 합니다.`);
+            }
+        }
+    }
+
+    // 에러가 있으면 알림 표시 후 중단
+    if (errors.length > 0) {
+        const errorMessage = errors.join('\n');
+        showNotification(errorMessage, 'error');
         return;
     }
 
@@ -2875,7 +2942,7 @@ async function updateFileSettingsPanel(index) {
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입</label>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입 <span style="color: #dc2626;">*</span></label>
                 <select id="recordingType${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingType', this.value); togglePartialRange(${index})">
                     <option value="전체">전체</option>
                     <option value="부분">부분</option>
@@ -2886,15 +2953,16 @@ async function updateFileSettingsPanel(index) {
                 <input id="totalDuration${index}" type="text" value="${fileData.totalDuration}" placeholder="예: 01:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'totalDuration', this.value)">
             </div>
         </div>
-        
+
         <div style="margin-bottom: 16px;">
-            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">부분 녹취 구간</label>
-            <textarea id="partialRange${index}" rows="2" placeholder="예: 00:00:00 - 00:30:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; background-color: #f3f4f6; color: #9ca3af;" disabled oninput="updateFileTabData(${index}, 'partialRange', this.value)"></textarea>
+            <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">부분 녹취 구간 <span id="partialRangeRequired${index}" style="color: #dc2626; display: none;">*</span></label>
+            <textarea id="partialRange${index}" rows="2" placeholder="예: 00:00:00-00:30:00 또는 00:00:00-00:30:00, 00:45:00-01:00:00" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box; resize: vertical; background-color: #f3f4f6; color: #9ca3af;" disabled oninput="updateFileTabData(${index}, 'partialRange', this.value)"></textarea>
+            <div id="partialRangeError${index}" style="color: #dc2626; font-size: 12px; margin-top: 4px; display: none;"></div>
         </div>
-        
+
         <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
             <div>
-                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수</label>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">화자수 <span style="color: #dc2626;">*</span></label>
                 <input id="speakerCount${index}" type="number" min="1" max="10" value="${fileData.speakerCount}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" oninput="updateFileTabData(${index}, 'speakerCount', this.value)">
             </div>
             <div>
@@ -2973,18 +3041,82 @@ function updateFileTabData(index, field, value) {
 function togglePartialRange(index) {
     const recordingType = document.getElementById(`recordingType${index}`).value;
     const partialRange = document.getElementById(`partialRange${index}`);
-    
+    const requiredMark = document.getElementById(`partialRangeRequired${index}`);
+    const errorDiv = document.getElementById(`partialRangeError${index}`);
+
     if (recordingType === '전체') {
         partialRange.disabled = true;
         partialRange.style.backgroundColor = '#f3f4f6';
         partialRange.style.color = '#9ca3af';
         partialRange.value = '';
         updateFileTabData(index, 'partialRange', '');
+        if (requiredMark) requiredMark.style.display = 'none';
+        if (errorDiv) errorDiv.style.display = 'none';
     } else {
         partialRange.disabled = false;
         partialRange.style.backgroundColor = '#ffffff';
         partialRange.style.color = '#374151';
+        if (requiredMark) requiredMark.style.display = 'inline';
     }
+}
+
+// 부분 녹취 구간 형식 검증 (HH:MM:SS-HH:MM:SS 또는 다중 구간)
+function validatePartialRange(rangeText) {
+    if (!rangeText || rangeText.trim() === '') {
+        return { valid: false, error: '부분 녹취 구간을 입력해주세요.' };
+    }
+
+    // 쉼표로 구간 분리 (다중 구간 지원)
+    const ranges = rangeText.split(',').map(r => r.trim()).filter(r => r.length > 0);
+
+    if (ranges.length === 0) {
+        return { valid: false, error: '부분 녹취 구간을 입력해주세요.' };
+    }
+
+    // HH:MM:SS 형식 정규식
+    const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$/;
+
+    for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i];
+
+        // 구간은 "HH:MM:SS-HH:MM:SS" 또는 "HH:MM:SS - HH:MM:SS" 형식
+        const parts = range.split('-').map(p => p.trim());
+
+        if (parts.length !== 2) {
+            return { valid: false, error: `구간 ${i + 1}: 시작-종료 형식이 아닙니다. (예: 00:00:00-00:30:00)` };
+        }
+
+        const [startTime, endTime] = parts;
+
+        // 시작 시간 형식 검증
+        if (!timeRegex.test(startTime)) {
+            return { valid: false, error: `구간 ${i + 1}: 시작 시간이 HH:MM:SS 형식이 아닙니다. (${startTime})` };
+        }
+
+        // 종료 시간 형식 검증
+        if (!timeRegex.test(endTime)) {
+            return { valid: false, error: `구간 ${i + 1}: 종료 시간이 HH:MM:SS 형식이 아닙니다. (${endTime})` };
+        }
+
+        // 시작 시간 < 종료 시간 검증
+        const startSeconds = timeToSeconds(startTime);
+        const endSeconds = timeToSeconds(endTime);
+
+        if (startSeconds >= endSeconds) {
+            return { valid: false, error: `구간 ${i + 1}: 시작 시간이 종료 시간보다 크거나 같습니다. (${startTime} >= ${endTime})` };
+        }
+    }
+
+    return { valid: true, error: null };
+}
+
+// HH:MM:SS를 초로 변환
+function timeToSeconds(timeStr) {
+    const parts = timeStr.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
+    const seconds = parseInt(parts[2], 10);
+    return hours * 3600 + minutes * 60 + seconds;
 }
 
 // 파일 탭 삭제
