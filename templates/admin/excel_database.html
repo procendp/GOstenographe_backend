@@ -828,5 +828,84 @@
     </div>
 
     <script src="{% static 'admin/js/excel_database/excel_database.js' %}"></script>
+
+    <script>
+    // Search term highlighting
+    (function() {
+        const searchQuery = "{{ search_query|escapejs }}";
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            // Unicode normalization functions
+            function normalizeNFC(str) {
+                return str.normalize('NFC');
+            }
+
+            function normalizeNFD(str) {
+                return str.normalize('NFD');
+            }
+
+            // Create both normalized versions of search term
+            const searchNFC = normalizeNFC(searchQuery.trim());
+            const searchNFD = normalizeNFD(searchQuery.trim());
+
+            // Highlight function
+            function highlightText(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    const textNFC = normalizeNFC(text);
+                    const textNFD = normalizeNFD(text);
+
+                    // Check if either normalized form contains the search term
+                    const indexNFC = textNFC.toLowerCase().indexOf(searchNFC.toLowerCase());
+                    const indexNFD = textNFD.toLowerCase().indexOf(searchNFD.toLowerCase());
+
+                    if (indexNFC !== -1 || indexNFD !== -1) {
+                        const index = indexNFC !== -1 ? indexNFC : indexNFD;
+                        const searchLen = searchQuery.length;
+
+                        // Create highlighted version
+                        const before = text.substring(0, index);
+                        const match = text.substring(index, index + searchLen);
+                        const after = text.substring(index + searchLen);
+
+                        const span = document.createElement('span');
+                        span.innerHTML = before +
+                            '<mark style="background-color: yellow; padding: 2px 0;">' + match + '</mark>' +
+                            after;
+
+                        node.parentNode.replaceChild(span, node);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            // Apply highlighting to table cells
+            const tableCells = document.querySelectorAll('.excel-table tbody td');
+            tableCells.forEach(cell => {
+                // Skip cells with buttons or input elements
+                if (cell.querySelector('button') || cell.querySelector('input')) {
+                    return;
+                }
+
+                // Walk through text nodes
+                const walker = document.createTreeWalker(
+                    cell,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+
+                const nodes = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    nodes.push(node);
+                }
+
+                nodes.forEach(highlightText);
+            });
+        }
+    })();
+    </script>
 </div>
 {% endblock %}
