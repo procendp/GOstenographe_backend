@@ -62,34 +62,39 @@ class IntegratedViewAdmin(ModelAdmin):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            # 파일명으로 검색 (업로드 파일)
-            file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                request__isnull=False,
-                request__is_temporary=False
-            ).values_list('request__id', flat=True)
+            try:
+                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
 
-            # 속기록 파일명으로 검색
-            transcript_file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                transcript_requests__isnull=False,
-                transcript_requests__is_temporary=False
-            ).values_list('transcript_requests__id', flat=True)
+                # 파일명으로 검색 (업로드 파일)
+                file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values_list('request__id', flat=True)
 
-            logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-            logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
+                # 속기록 파일명으로 검색
+                transcript_file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    transcript_requests__isnull=False,
+                    transcript_requests__is_temporary=False
+                ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches or transcript_file_matches:
-                matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
+                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
 
-                if matched_ids:
-                    before_count = queryset.count()
-                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                    after_count = queryset.count()
-                    logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                    use_distinct = True
+                # 파일명 검색 결과를 기존 queryset에 추가
+                if file_matches or transcript_file_matches:
+                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+
+                    if matched_ids:
+                        before_count = queryset.count()
+                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                        after_count = queryset.count()
+                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
+                        use_distinct = True
+            except Exception as e:
+                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
@@ -244,34 +249,39 @@ class OrderManagementAdmin(ModelAdmin):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            # 파일명으로 검색 (업로드 파일)
-            file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                request__isnull=False,
-                request__is_temporary=False
-            ).values_list('request__id', flat=True)
+            try:
+                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
 
-            # 속기록 파일명으로 검색
-            transcript_file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                transcript_requests__isnull=False,
-                transcript_requests__is_temporary=False
-            ).values_list('transcript_requests__id', flat=True)
+                # 파일명으로 검색 (업로드 파일)
+                file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values_list('request__id', flat=True)
 
-            logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-            logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
+                # 속기록 파일명으로 검색
+                transcript_file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    transcript_requests__isnull=False,
+                    transcript_requests__is_temporary=False
+                ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches or transcript_file_matches:
-                matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
+                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
 
-                if matched_ids:
-                    before_count = queryset.count()
-                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                    after_count = queryset.count()
-                    logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                    use_distinct = True
+                # 파일명 검색 결과를 기존 queryset에 추가
+                if file_matches or transcript_file_matches:
+                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+
+                    if matched_ids:
+                        before_count = queryset.count()
+                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                        after_count = queryset.count()
+                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
+                        use_distinct = True
+            except Exception as e:
+                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
@@ -384,34 +394,39 @@ class RequestManagementAdmin(ModelAdmin):
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            # 파일명으로 검색 (업로드 파일)
-            file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                request__isnull=False,
-                request__is_temporary=False
-            ).values_list('request__id', flat=True)
+            try:
+                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
 
-            # 속기록 파일명으로 검색
-            transcript_file_matches = File.objects.filter(
-                original_name__icontains=search_term,
-                transcript_requests__isnull=False,
-                transcript_requests__is_temporary=False
-            ).values_list('transcript_requests__id', flat=True)
+                # 파일명으로 검색 (업로드 파일)
+                file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False,
+                    request__is_temporary=False
+                ).values_list('request__id', flat=True)
 
-            logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-            logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
+                # 속기록 파일명으로 검색
+                transcript_file_matches = File.objects.filter(
+                    original_name__icontains=search_term,
+                    transcript_requests__isnull=False,
+                    transcript_requests__is_temporary=False
+                ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches or transcript_file_matches:
-                matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
+                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
 
-                if matched_ids:
-                    before_count = queryset.count()
-                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                    after_count = queryset.count()
-                    logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                    use_distinct = True
+                # 파일명 검색 결과를 기존 queryset에 추가
+                if file_matches or transcript_file_matches:
+                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
+
+                    if matched_ids:
+                        before_count = queryset.count()
+                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                        after_count = queryset.count()
+                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
+                        use_distinct = True
+            except Exception as e:
+                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
