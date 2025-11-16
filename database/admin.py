@@ -69,8 +69,15 @@ class IntegratedViewAdmin(ModelAdmin):
                 all_files_sample = File.objects.filter(
                     request__isnull=False,
                     request__is_temporary=False
-                ).values('id', 'original_name', 'request__id')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+
+                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
+                matching_files_any = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
 
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
@@ -263,8 +270,15 @@ class OrderManagementAdmin(ModelAdmin):
                 all_files_sample = File.objects.filter(
                     request__isnull=False,
                     request__is_temporary=False
-                ).values('id', 'original_name', 'request__id')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+
+                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
+                matching_files_any = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
 
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
@@ -415,8 +429,15 @@ class RequestManagementAdmin(ModelAdmin):
                 all_files_sample = File.objects.filter(
                     request__isnull=False,
                     request__is_temporary=False
-                ).values('id', 'original_name', 'request__id')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플 (10개): {list(all_files_sample)}")
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+
+                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
+                matching_files_any = File.objects.filter(
+                    original_name__icontains=search_term,
+                    request__isnull=False
+                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
+                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
 
                 # 파일명으로 검색 (업로드 파일)
                 file_matches = File.objects.filter(
