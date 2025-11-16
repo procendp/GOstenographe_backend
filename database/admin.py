@@ -72,14 +72,13 @@ class IntegratedViewAdmin(ModelAdmin):
             ).values_list('transcript_requests__id', flat=True)
 
             # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches.exists() or transcript_file_matches.exists():
-                matched_ids = set(file_matches) | set(transcript_file_matches)
-                file_q = Q(id__in=matched_ids)
-                # distinct()를 사용하여 중복 제거
-                queryset = (queryset | self.model.objects.filter(is_temporary=False).filter(file_q)).distinct()
-                use_distinct = True
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
-        return queryset, use_distinct
+        return queryset.distinct() if use_distinct else queryset, use_distinct
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
@@ -242,14 +241,13 @@ class OrderManagementAdmin(ModelAdmin):
             ).values_list('transcript_requests__id', flat=True)
 
             # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches.exists() or transcript_file_matches.exists():
-                matched_ids = set(file_matches) | set(transcript_file_matches)
-                file_q = Q(id__in=matched_ids)
-                # distinct()를 사용하여 중복 제거
-                queryset = (queryset | self.model.objects.filter(is_temporary=False).filter(file_q)).distinct()
-                use_distinct = True
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
-        return queryset, use_distinct
+        return queryset.distinct() if use_distinct else queryset, use_distinct
 
     def order_id_with_requests(self, obj):
         """Order ID만 표시 (Request ID는 숨김)"""
@@ -370,14 +368,13 @@ class RequestManagementAdmin(ModelAdmin):
             ).values_list('transcript_requests__id', flat=True)
 
             # 파일명 검색 결과를 기존 queryset에 추가
-            if file_matches.exists() or transcript_file_matches.exists():
-                matched_ids = set(file_matches) | set(transcript_file_matches)
-                file_q = Q(id__in=matched_ids)
-                # distinct()를 사용하여 중복 제거
-                queryset = (queryset | self.model.objects.filter(is_temporary=False).filter(file_q)).distinct()
-                use_distinct = True
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
-        return queryset, use_distinct
+        return queryset.distinct() if use_distinct else queryset, use_distinct
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
