@@ -298,7 +298,7 @@ class RequestManagementAdmin(ModelAdmin):
         'recording_date', 'recording_location', 'speaker_count', 'estimated_price', 'payment_amount',
         'draft_format', 'final_option_display', 'created_at'
     )
-    
+
     def changelist_view(self, request, extra_context=None):
         """Option B용 커스텀 템플릿 컨텍스트 및 검색 정보 전달"""
         # 사이드바 상태 초기화
@@ -359,11 +359,22 @@ class RequestManagementAdmin(ModelAdmin):
                 Q(transcript_requests__isnull=False)
             ).values_list('transcript_requests__id', flat=True)
 
+            # DEBUG: 검색 결과 로깅
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"[SEARCH DEBUG RequestManagement] Search term: '{search_term}'")
+            logger.warning(f"[SEARCH DEBUG RequestManagement] file_matches (Request IDs): {list(file_matches)}")
+            logger.warning(f"[SEARCH DEBUG RequestManagement] transcript_file_matches (Request IDs): {list(transcript_file_matches)}")
+
             # 파일명 검색 결과를 기존 queryset에 추가 (is_temporary=False 필터 적용)
             if file_matches or transcript_file_matches:
                 file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
                 queryset = queryset | self.get_queryset(request).filter(file_q)
                 use_distinct = True
+
+                # DEBUG: 최종 queryset 로깅
+                logger.warning(f"[SEARCH DEBUG RequestManagement] Final queryset count: {queryset.count()}")
+                logger.warning(f"[SEARCH DEBUG RequestManagement] Final Request IDs: {list(queryset.values_list('request_id', flat=True))}")
 
         return queryset, use_distinct
 
