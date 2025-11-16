@@ -608,12 +608,12 @@ tbody tr.order-group-odd:hover {
 
 /* 1. 헤더 체크박스 (교차점 - 가장 위에 표시) */
 .excel-table thead th:first-child {
-    position: sticky;
-    left: 0;
-    z-index: 20; /* thead z-index(10)보다 높게 */
+    position: sticky !important; /* 인라인 스타일 덮어쓰기 */
+    left: 0 !important;
+    z-index: 20 !important; /* thead z-index(10)보다 높게 */
     background-color: #f9fafb !important; /* bg-gray-50 */
-    border-right: 2px solid #d1d5db; /* 구분선 강조 */
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08); /* 그림자 추가 */
+    border-right: 2px solid #d1d5db !important; /* 구분선 강조 */
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.08) !important; /* 그림자 추가 */
 }
 
 /* 2. 바디 체크박스 셀 - 일반 */
