@@ -57,7 +57,7 @@ class IntegratedViewAdmin(ModelAdmin):
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}'")
+        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
@@ -239,7 +239,7 @@ class OrderManagementAdmin(ModelAdmin):
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}'")
+        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
@@ -379,7 +379,7 @@ class RequestManagementAdmin(ModelAdmin):
         import logging
         logger = logging.getLogger(__name__)
 
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}'")
+        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
