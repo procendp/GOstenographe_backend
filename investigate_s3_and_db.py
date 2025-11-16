@@ -59,6 +59,21 @@ def check_is_temporary_status():
                 print(f"    - Order ID: {f.request.order_id}")
                 print()
 
+        # 직접 ID로 확인 (File ID 32, 35, 36)
+        print(f"\n직접 File ID로 확인:")
+        for file_id in [32, 35, 36]:
+            try:
+                f = File.objects.get(id=file_id)
+                print(f"\n  File ID {file_id}:")
+                print(f"    파일명: {f.original_name}")
+                print(f"    파일명 길이: {len(f.original_name)}")
+                print(f"    파일명 바이트: {f.original_name.encode('utf-8')[:50]}")
+                print(f"    '죠지' in 파일명: {'죠지' in f.original_name}")
+                if f.request:
+                    print(f"    Request ID: {f.request.id}")
+            except File.DoesNotExist:
+                print(f"  File ID {file_id}: 존재하지 않음")
+
         # 화자 이름에 '죠지' 포함된 Request
         print(f"\n화자 이름에 '죠지' 포함된 Request:")
         joji_requests = Request.objects.filter(speaker_names__icontains='죠지')
