@@ -373,6 +373,14 @@ class RequestManagementAdmin(ModelAdmin):
             joji_files = File.objects.filter(original_name__icontains='죠지')
             logger.warning(f"[SEARCH DEBUG RequestManagement] Files with '죠지': {[(f.id, f.original_name, f.request_id if f.request else None) for f in joji_files]}")
 
+            # DEBUG: Request pk 27, 28, 29의 상세 정보
+            for req_pk in [27, 28, 29]:
+                try:
+                    req = Request.objects.get(pk=req_pk)
+                    logger.warning(f"[SEARCH DEBUG RequestManagement] Request pk={req_pk}: request_id={req.request_id}, is_temporary={req.is_temporary}, files_count={req.files.count()}")
+                except Request.DoesNotExist:
+                    logger.warning(f"[SEARCH DEBUG RequestManagement] Request pk={req_pk}: NOT FOUND")
+
             logger.warning(f"[SEARCH DEBUG RequestManagement] file_matches (Request IDs): {list(file_matches)}")
             logger.warning(f"[SEARCH DEBUG RequestManagement] transcript_file_matches (Request IDs): {list(transcript_file_matches)}")
 
