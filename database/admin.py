@@ -54,14 +54,6 @@ class IntegratedViewAdmin(ModelAdmin):
 
     def get_search_results(self, request, queryset, search_term):
         """커스텀 검색: 파일명 검색 지원"""
-        # 기본 검색 실행 (파일명 필드 제외)
-        base_search_fields = [
-            'order_id', 'request_id',
-            'name', 'email', 'phone', 'address',
-            'recording_location', 'additional_info', 'speaker_names',
-            'price_change_reason', 'cancel_reason'
-        ]
-
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
@@ -69,7 +61,7 @@ class IntegratedViewAdmin(ModelAdmin):
             file_matches = File.objects.filter(
                 Q(original_name__icontains=search_term) &
                 Q(request__isnull=False)
-            ).values_list('request_id', flat=True)
+            ).values_list('request__id', flat=True)
 
             # 속기록 파일명으로 검색
             transcript_file_matches = File.objects.filter(
@@ -77,10 +69,10 @@ class IntegratedViewAdmin(ModelAdmin):
                 Q(transcript_requests__isnull=False)
             ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
+            # 파일명 검색 결과를 기존 queryset에 추가 (is_temporary=False 필터 적용)
             if file_matches or transcript_file_matches:
                 file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
-                queryset = queryset | self.model.objects.filter(file_q)
+                queryset = queryset | self.get_queryset(request).filter(file_q)
                 use_distinct = True
 
         return queryset, use_distinct
@@ -235,7 +227,7 @@ class OrderManagementAdmin(ModelAdmin):
             file_matches = File.objects.filter(
                 Q(original_name__icontains=search_term) &
                 Q(request__isnull=False)
-            ).values_list('request_id', flat=True)
+            ).values_list('request__id', flat=True)
 
             # 속기록 파일명으로 검색
             transcript_file_matches = File.objects.filter(
@@ -243,10 +235,10 @@ class OrderManagementAdmin(ModelAdmin):
                 Q(transcript_requests__isnull=False)
             ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
+            # 파일명 검색 결과를 기존 queryset에 추가 (is_temporary=False 필터 적용)
             if file_matches or transcript_file_matches:
                 file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
-                queryset = queryset | self.model.objects.filter(file_q)
+                queryset = queryset | self.get_queryset(request).filter(file_q)
                 use_distinct = True
 
         return queryset, use_distinct
@@ -359,7 +351,7 @@ class RequestManagementAdmin(ModelAdmin):
             file_matches = File.objects.filter(
                 Q(original_name__icontains=search_term) &
                 Q(request__isnull=False)
-            ).values_list('request_id', flat=True)
+            ).values_list('request__id', flat=True)
 
             # 속기록 파일명으로 검색
             transcript_file_matches = File.objects.filter(
@@ -367,10 +359,10 @@ class RequestManagementAdmin(ModelAdmin):
                 Q(transcript_requests__isnull=False)
             ).values_list('transcript_requests__id', flat=True)
 
-            # 파일명 검색 결과를 기존 queryset에 추가
+            # 파일명 검색 결과를 기존 queryset에 추가 (is_temporary=False 필터 적용)
             if file_matches or transcript_file_matches:
                 file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
-                queryset = queryset | self.model.objects.filter(file_q)
+                queryset = queryset | self.get_queryset(request).filter(file_q)
                 use_distinct = True
 
         return queryset, use_distinct
@@ -379,11 +371,11 @@ class RequestManagementAdmin(ModelAdmin):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
         if not obj.phone:
             return obj.phone
-        
+
         import re
         # 숫자만 추출
         digits = re.sub(r'\D', '', obj.phone)
-        
+
         # 010으로 시작하는 11자리 번호인 경우
         if len(digits) == 11 and digits.startswith('010'):
             return f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
