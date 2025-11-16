@@ -53,62 +53,38 @@ class IntegratedViewAdmin(ModelAdmin):
         return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
 
     def get_search_results(self, request, queryset, search_term):
-        """커스텀 검색: 파일명 검색 지원"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
+        """커스텀 검색: 파일명 검색 지원 (한글 자모 정규화 포함)"""
+        from unicodedata import normalize
+        from django.db.models import Q
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            try:
-                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
+            # 한글 정규화: NFC(완성형)와 NFD(자모분리) 모두 검색
+            search_nfc = normalize('NFC', search_term)  # 완성형 (죠지)
+            search_nfd = normalize('NFD', search_term)  # 자모분리 (ㅈㅛㅈㅣ)
 
-                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
-                all_files_sample = File.objects.filter(
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+            # 파일명으로 검색 (업로드 파일) - NFC와 NFD 모두 검색
+            file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                request__isnull=False,
+                request__is_temporary=False
+            ).values_list('request__id', flat=True)
 
-                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
-                matching_files_any = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
+            # 속기록 파일명으로 검색 - NFC와 NFD 모두 검색
+            transcript_file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                transcript_requests__isnull=False,
+                transcript_requests__is_temporary=False
+            ).values_list('transcript_requests__id', flat=True)
 
-                # 파일명으로 검색 (업로드 파일)
-                file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values_list('request__id', flat=True)
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
 
-                # 속기록 파일명으로 검색
-                transcript_file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    transcript_requests__isnull=False,
-                    transcript_requests__is_temporary=False
-                ).values_list('transcript_requests__id', flat=True)
-
-                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
-
-                # 파일명 검색 결과를 기존 queryset에 추가
-                if file_matches or transcript_file_matches:
-                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
-
-                    if matched_ids:
-                        before_count = queryset.count()
-                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                        after_count = queryset.count()
-                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                        use_distinct = True
-            except Exception as e:
-                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
@@ -254,62 +230,38 @@ class OrderManagementAdmin(ModelAdmin):
         return qs.filter(is_temporary=False).order_by('order_id', 'request_id')
 
     def get_search_results(self, request, queryset, search_term):
-        """커스텀 검색: 파일명 검색 지원"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
+        """커스텀 검색: 파일명 검색 지원 (한글 자모 정규화 포함)"""
+        from unicodedata import normalize
+        from django.db.models import Q
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            try:
-                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
+            # 한글 정규화: NFC(완성형)와 NFD(자모분리) 모두 검색
+            search_nfc = normalize('NFC', search_term)  # 완성형 (죠지)
+            search_nfd = normalize('NFD', search_term)  # 자모분리 (ㅈㅛㅈㅣ)
 
-                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
-                all_files_sample = File.objects.filter(
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+            # 파일명으로 검색 (업로드 파일) - NFC와 NFD 모두 검색
+            file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                request__isnull=False,
+                request__is_temporary=False
+            ).values_list('request__id', flat=True)
 
-                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
-                matching_files_any = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
+            # 속기록 파일명으로 검색 - NFC와 NFD 모두 검색
+            transcript_file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                transcript_requests__isnull=False,
+                transcript_requests__is_temporary=False
+            ).values_list('transcript_requests__id', flat=True)
 
-                # 파일명으로 검색 (업로드 파일)
-                file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values_list('request__id', flat=True)
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
 
-                # 속기록 파일명으로 검색
-                transcript_file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    transcript_requests__isnull=False,
-                    transcript_requests__is_temporary=False
-                ).values_list('transcript_requests__id', flat=True)
-
-                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
-
-                # 파일명 검색 결과를 기존 queryset에 추가
-                if file_matches or transcript_file_matches:
-                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
-
-                    if matched_ids:
-                        before_count = queryset.count()
-                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                        after_count = queryset.count()
-                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                        use_distinct = True
-            except Exception as e:
-                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
@@ -413,62 +365,38 @@ class RequestManagementAdmin(ModelAdmin):
         return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
 
     def get_search_results(self, request, queryset, search_term):
-        """커스텀 검색: 파일명 검색 지원"""
-        import logging
-        logger = logging.getLogger(__name__)
-
-        logger.warning(f"[SEARCH CALLED] Admin: {self.__class__.__name__}, Term: '{search_term}', Type: {type(search_term)}, Bool: {bool(search_term)}")
+        """커스텀 검색: 파일명 검색 지원 (한글 자모 정규화 포함)"""
+        from unicodedata import normalize
+        from django.db.models import Q
 
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
-            try:
-                logger.warning(f"[{self.__class__.__name__}] Entering file search block")
+            # 한글 정규화: NFC(완성형)와 NFD(자모분리) 모두 검색
+            search_nfc = normalize('NFC', search_term)  # 완성형 (죠지)
+            search_nfd = normalize('NFD', search_term)  # 자모분리 (ㅈㅛㅈㅣ)
 
-                # DB에 있는 모든 파일명 샘플 로깅 (처음 10개)
-                all_files_sample = File.objects.filter(
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] DB 파일 샘플: {list(all_files_sample)}")
+            # 파일명으로 검색 (업로드 파일) - NFC와 NFD 모두 검색
+            file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                request__isnull=False,
+                request__is_temporary=False
+            ).values_list('request__id', flat=True)
 
-                # 검색어가 포함된 파일들 (is_temporary 필터 없이)
-                matching_files_any = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False
-                ).values('id', 'original_name', 'request__id', 'request__is_temporary')[:10]
-                logger.warning(f"[{self.__class__.__name__}] '{search_term}' 포함 파일 (is_temporary 무시): {list(matching_files_any)}")
+            # 속기록 파일명으로 검색 - NFC와 NFD 모두 검색
+            transcript_file_matches = File.objects.filter(
+                (Q(original_name__icontains=search_nfc) | Q(original_name__icontains=search_nfd)),
+                transcript_requests__isnull=False,
+                transcript_requests__is_temporary=False
+            ).values_list('transcript_requests__id', flat=True)
 
-                # 파일명으로 검색 (업로드 파일)
-                file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    request__isnull=False,
-                    request__is_temporary=False
-                ).values_list('request__id', flat=True)
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                matched_ids = list(set(file_matches) | set(transcript_file_matches))
 
-                # 속기록 파일명으로 검색
-                transcript_file_matches = File.objects.filter(
-                    original_name__icontains=search_term,
-                    transcript_requests__isnull=False,
-                    transcript_requests__is_temporary=False
-                ).values_list('transcript_requests__id', flat=True)
-
-                logger.warning(f"[{self.__class__.__name__}] File matches: {list(file_matches)}")
-                logger.warning(f"[{self.__class__.__name__}] Transcript matches: {list(transcript_file_matches)}")
-
-                # 파일명 검색 결과를 기존 queryset에 추가
-                if file_matches or transcript_file_matches:
-                    matched_ids = list(set(file_matches) | set(transcript_file_matches))
-                    logger.warning(f"[{self.__class__.__name__}] Merged IDs: {matched_ids}")
-
-                    if matched_ids:
-                        before_count = queryset.count()
-                        queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
-                        after_count = queryset.count()
-                        logger.warning(f"[{self.__class__.__name__}] Before: {before_count}, After: {after_count}")
-                        use_distinct = True
-            except Exception as e:
-                logger.error(f"[{self.__class__.__name__}] ERROR in file search: {e}", exc_info=True)
+                if matched_ids:
+                    queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    use_distinct = True
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
 
