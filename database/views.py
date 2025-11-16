@@ -287,6 +287,7 @@ def create_db_order(request):
                 # 파일별 설정 데이터 추가
                 request_data.update({
                     'recording_type': file_data.get('recording_type', '전체'),
+                    'recording_location': file_data.get('recording_location', '통화'),
                     'partial_range': file_data.get('partial_range', ''),
                     'total_duration': file_data.get('total_duration', ''),
                     'speaker_count': file_data.get('speaker_count', 1),

@@ -3210,6 +3210,7 @@ function getFileSettingsData() {
         file_type: fileData.file.file_type,
         file_size: fileData.file.file_size,
         recording_type: fileData.recordingType,
+        recording_location: fileData.recordingLocation,
         total_duration: fileData.totalDuration,
         partial_range: fileData.partialRange,
         speaker_count: fileData.speakerCount,
