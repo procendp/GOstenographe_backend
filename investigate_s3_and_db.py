@@ -25,17 +25,32 @@ from requests.models import Request, File
 def check_is_temporary_status():
     """특정 Request들의 is_temporary 상태 확인"""
     print(f"\n{'='*80}")
-    print("Request is_temporary 상태 조사")
+    print("DB 파일 전체 조사")
     print(f"{'='*80}")
 
     try:
-        # '죠지 - 오래오래' 파일만 확인 (더 구체적으로)
-        problem_files = File.objects.filter(
+        # 전체 파일 개수 확인
+        total_files = File.objects.count()
+        print(f"\n전체 파일 개수: {total_files}개")
+
+        # 최근 파일 20개 확인
+        recent_files = File.objects.select_related('request').order_by('-id')[:20]
+        print(f"\n최근 파일 20개:")
+        for f in recent_files:
+            req_info = f"Request ID: {f.request.id}, Order: {f.request.order_id}" if f.request else "Request 없음"
+            print(f"  [{f.id}] {f.original_name[:50]}... - {req_info}")
+
+        print(f"\n{'='*80}")
+        print("'죠지' 검색 결과")
+        print(f"{'='*80}")
+
+        # '죠지'로 검색
+        joji_files = File.objects.filter(
             original_name__icontains='죠지'
         ).select_related('request')
 
-        print(f"\n'죠지' 포함 파일들 (총 {problem_files.count()}개):")
-        for f in problem_files:
+        print(f"\n파일명에 '죠지' 포함: {joji_files.count()}개")
+        for f in joji_files:
             if f.request:
                 print(f"  파일: {f.original_name}")
                 print(f"    - File ID: {f.id}")
@@ -44,7 +59,19 @@ def check_is_temporary_status():
                 print(f"    - Order ID: {f.request.order_id}")
                 print()
 
-        # is_temporary=False인 Request 통계
+        # 화자 이름에 '죠지' 포함된 Request
+        print(f"\n화자 이름에 '죠지' 포함된 Request:")
+        joji_requests = Request.objects.filter(speaker_names__icontains='죠지')
+        print(f"총 {joji_requests.count()}개")
+        for req in joji_requests[:5]:
+            print(f"  Request ID: {req.id}, Order: {req.order_id}")
+            print(f"    화자: {req.speaker_names}")
+            files = req.files.all()
+            for f in files:
+                print(f"    파일: {f.original_name[:60]}")
+            print()
+
+        # Request 통계
         total_requests = Request.objects.count()
         temp_requests = Request.objects.filter(is_temporary=True).count()
         non_temp_requests = Request.objects.filter(is_temporary=False).count()
