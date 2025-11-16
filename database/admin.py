@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from django.db.models import Q
 from unfold.admin import ModelAdmin
 from .models import IntegratedView, OrderManagement, RequestManagement
-from requests.models import Request
+from requests.models import Request, File
 
 @admin.register(IntegratedView)
 class IntegratedViewAdmin(ModelAdmin):
@@ -17,7 +18,6 @@ class IntegratedViewAdmin(ModelAdmin):
         'order_id', 'request_id',
         'name', 'email', 'phone', 'address',
         'recording_location', 'additional_info', 'speaker_names',
-        'files__original_name', 'transcript_file__original_name',
         'price_change_reason', 'cancel_reason'
     )
     list_per_page = 25  # 성능 향상을 위해 줄임
@@ -51,6 +51,39 @@ class IntegratedViewAdmin(ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
+
+    def get_search_results(self, request, queryset, search_term):
+        """커스텀 검색: 파일명 검색 지원"""
+        # 기본 검색 실행 (파일명 필드 제외)
+        base_search_fields = [
+            'order_id', 'request_id',
+            'name', 'email', 'phone', 'address',
+            'recording_location', 'additional_info', 'speaker_names',
+            'price_change_reason', 'cancel_reason'
+        ]
+
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        if search_term:
+            # 파일명으로 검색 (업로드 파일)
+            file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(request__isnull=False)
+            ).values_list('request_id', flat=True)
+
+            # 속기록 파일명으로 검색
+            transcript_file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(transcript_requests__isnull=False)
+            ).values_list('transcript_requests__id', flat=True)
+
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
+                queryset = queryset | self.model.objects.filter(file_q)
+                use_distinct = True
+
+        return queryset, use_distinct
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
@@ -148,7 +181,6 @@ class OrderManagementAdmin(ModelAdmin):
         'order_id', 'request_id',
         'name', 'email', 'phone', 'address',
         'recording_location', 'additional_info', 'speaker_names',
-        'files__original_name', 'transcript_file__original_name',
         'price_change_reason', 'cancel_reason'
     )
     list_per_page = 25  # 성능 향상을 위해 줄임
@@ -193,7 +225,32 @@ class OrderManagementAdmin(ModelAdmin):
         qs = super().get_queryset(request)
         # 모든 Request를 표시 (파일별로 행 생성)
         return qs.filter(is_temporary=False).order_by('order_id', 'request_id')
-    
+
+    def get_search_results(self, request, queryset, search_term):
+        """커스텀 검색: 파일명 검색 지원"""
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        if search_term:
+            # 파일명으로 검색 (업로드 파일)
+            file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(request__isnull=False)
+            ).values_list('request_id', flat=True)
+
+            # 속기록 파일명으로 검색
+            transcript_file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(transcript_requests__isnull=False)
+            ).values_list('transcript_requests__id', flat=True)
+
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
+                queryset = queryset | self.model.objects.filter(file_q)
+                use_distinct = True
+
+        return queryset, use_distinct
+
     def order_id_with_requests(self, obj):
         """Order ID만 표시 (Request ID는 숨김)"""
         return obj.order_id if obj.order_id else '-'
@@ -281,18 +338,42 @@ class RequestManagementAdmin(ModelAdmin):
         'order_id', 'request_id',
         'name', 'email', 'phone', 'address',
         'recording_location', 'additional_info', 'speaker_names',
-        'files__original_name', 'transcript_file__original_name',
         'price_change_reason', 'cancel_reason'
     )
     list_per_page = 25  # 성능 향상을 위해 줄임
     ordering = ['-order_id', '-created_at']  # 주문서 관리와 동일한 정렬 순서
-    
+
     change_list_template = 'admin/excel_database.html'
-    
+
     def get_queryset(self, request):
         """모든 Request ID 표시"""
         qs = super().get_queryset(request)
         return qs.filter(is_temporary=False).select_related('transcript_file').prefetch_related('files')
+
+    def get_search_results(self, request, queryset, search_term):
+        """커스텀 검색: 파일명 검색 지원"""
+        queryset, use_distinct = super().get_search_results(request, queryset, search_term)
+
+        if search_term:
+            # 파일명으로 검색 (업로드 파일)
+            file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(request__isnull=False)
+            ).values_list('request_id', flat=True)
+
+            # 속기록 파일명으로 검색
+            transcript_file_matches = File.objects.filter(
+                Q(original_name__icontains=search_term) &
+                Q(transcript_requests__isnull=False)
+            ).values_list('transcript_requests__id', flat=True)
+
+            # 파일명 검색 결과를 기존 queryset에 추가
+            if file_matches or transcript_file_matches:
+                file_q = Q(id__in=file_matches) | Q(id__in=transcript_file_matches)
+                queryset = queryset | self.model.objects.filter(file_q)
+                use_distinct = True
+
+        return queryset, use_distinct
 
     def phone_display(self, obj):
         """연락처 표시 형식 개선 (010-5590-7193 형태)"""
