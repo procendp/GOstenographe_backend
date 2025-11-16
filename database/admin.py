@@ -363,6 +363,16 @@ class RequestManagementAdmin(ModelAdmin):
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"[SEARCH DEBUG RequestManagement] Search term: '{search_term}'")
+
+            # DEBUG: File 테이블 전체 확인
+            all_files = File.objects.all()[:5]
+            logger.warning(f"[SEARCH DEBUG RequestManagement] Total files in DB: {File.objects.count()}")
+            logger.warning(f"[SEARCH DEBUG RequestManagement] Sample files: {[(f.id, f.original_name, f.request_id if f.request else None) for f in all_files]}")
+
+            # DEBUG: '죠지'가 포함된 파일 확인
+            joji_files = File.objects.filter(original_name__icontains='죠지')
+            logger.warning(f"[SEARCH DEBUG RequestManagement] Files with '죠지': {[(f.id, f.original_name, f.request_id if f.request else None) for f in joji_files]}")
+
             logger.warning(f"[SEARCH DEBUG RequestManagement] file_matches (Request IDs): {list(file_matches)}")
             logger.warning(f"[SEARCH DEBUG RequestManagement] transcript_file_matches (Request IDs): {list(transcript_file_matches)}")
 
