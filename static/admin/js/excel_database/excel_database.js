@@ -1643,6 +1643,11 @@ async function saveOrder() {
                 errors.push(`파일 ${fileNum}: 녹취 타입을 선택해주세요.`);
             }
 
+            // 녹음 종류 검증
+            if (!fileData.recordingLocation || (fileData.recordingLocation !== '통화' && fileData.recordingLocation !== '현장')) {
+                errors.push(`파일 ${fileNum}: 녹음 종류를 선택해주세요.`);
+            }
+
             // 부분 녹취 선택 시 구간 검증
             if (fileData.recordingType === '부분') {
                 const partialRange = fileData.partialRange?.trim();
@@ -2798,6 +2803,7 @@ async function createFileSettingsTabs(files) {
             file: file,
             requestId: requestId,
             recordingType: '전체',
+            recordingLocation: '통화',
             totalDuration: duration,
             partialRange: '',
             speakerCount: 1,
@@ -2940,12 +2946,19 @@ async function updateFileSettingsPanel(index) {
             <div style="font-size: 13px; color: #6b7280;">Request ID: ${fileData.requestId}</div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px;">
             <div>
                 <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹취 타입 <span style="color: #dc2626;">*</span></label>
                 <select id="recordingType${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingType', this.value); togglePartialRange(${index})">
                     <option value="전체">전체</option>
                     <option value="부분">부분</option>
+                </select>
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #374151;">녹음 종류 <span style="color: #dc2626;">*</span></label>
+                <select id="recordingLocation${index}" style="width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; box-sizing: border-box;" onchange="updateFileTabData(${index}, 'recordingLocation', this.value)">
+                    <option value="통화">통화</option>
+                    <option value="현장">현장</option>
                 </select>
             </div>
             <div>
