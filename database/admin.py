@@ -54,6 +54,9 @@ class IntegratedViewAdmin(ModelAdmin):
 
     def get_search_results(self, request, queryset, search_term):
         """커스텀 검색: 파일명 검색 지원"""
+        import logging
+        logger = logging.getLogger(__name__)
+
         queryset, use_distinct = super().get_search_results(request, queryset, search_term)
 
         if search_term:
@@ -71,11 +74,21 @@ class IntegratedViewAdmin(ModelAdmin):
                 transcript_requests__is_temporary=False
             ).values_list('transcript_requests__id', flat=True)
 
+            # DEBUG: 검색 결과 확인
+            logger.warning(f"[FILE SEARCH IntegratedView] Search: '{search_term}'")
+            logger.warning(f"[FILE SEARCH IntegratedView] File matches: {list(file_matches)}")
+            logger.warning(f"[FILE SEARCH IntegratedView] Transcript matches: {list(transcript_file_matches)}")
+
             # 파일명 검색 결과를 기존 queryset에 추가
             if file_matches or transcript_file_matches:
                 matched_ids = list(set(file_matches) | set(transcript_file_matches))
+                logger.warning(f"[FILE SEARCH IntegratedView] Merged IDs: {matched_ids}")
+
                 if matched_ids:
+                    before_count = queryset.count()
                     queryset = queryset | queryset.model.objects.filter(is_temporary=False, id__in=matched_ids)
+                    after_count = queryset.count()
+                    logger.warning(f"[FILE SEARCH IntegratedView] Before: {before_count}, After: {after_count}")
                     use_distinct = True
 
         return queryset.distinct() if use_distinct else queryset, use_distinct
