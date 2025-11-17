@@ -774,7 +774,7 @@ class S3DeleteView(APIView):
         return self._delete_file(request)
     
     def _delete_file(self, request):
-        """실제 파일 삭제 로직"""
+        """실제 파일 삭제 로직 - PostgreSQL + S3 함께 삭제"""
         try:
             # request.data와 request.body 모두 처리
             if hasattr(request, 'data') and request.data:
@@ -787,33 +787,50 @@ class S3DeleteView(APIView):
                     file_key = body_data.get('file_key')
                 except (json.JSONDecodeError, AttributeError):
                     file_key = None
-            
+
             if not file_key:
                 logger.error('[ERROR] file_key가 제공되지 않음')
                 return Response({'error': 'file_key is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-            logger.debug(f'[DEBUG] S3 파일 삭제 시도: {file_key}')
-            
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-                region_name=settings.AWS_S3_REGION_NAME
-            )
-            
-            try:
-                s3_client.delete_object(
-                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
-                    Key=file_key
+            logger.debug(f'[DEBUG] 파일 삭제 시도: {file_key}')
+
+            # 1. PostgreSQL에서 File 레코드 찾기
+            file_instance = File.objects.filter(file=file_key).first()
+
+            if file_instance:
+                # PostgreSQL 레코드가 있으면 File.delete() 사용
+                # (이 메서드가 S3 파일도 함께 삭제함)
+                try:
+                    logger.debug(f'[DEBUG] PostgreSQL 레코드 발견 (ID: {file_instance.id}), File.delete() 호출')
+                    file_instance.delete()  # PostgreSQL + S3 함께 삭제
+                    logger.debug(f'[DEBUG] 파일 삭제 성공 (PostgreSQL + S3): {file_key}')
+                    return Response({'message': 'File deleted successfully (DB + S3)'}, status=status.HTTP_200_OK)
+                except Exception as e:
+                    logger.error(f'[ERROR] File.delete() 실패: {str(e)}')
+                    return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            else:
+                # PostgreSQL 레코드가 없으면 S3만 삭제
+                logger.debug(f'[DEBUG] PostgreSQL 레코드 없음, S3만 삭제')
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                    region_name=settings.AWS_S3_REGION_NAME
                 )
-                logger.debug(f'[DEBUG] S3 파일 삭제 성공: {file_key}')
-                return Response({'message': 'File deleted successfully'}, status=status.HTTP_200_OK)
-            except Exception as e:
-                logger.error(f'[ERROR] S3 파일 삭제 실패: {str(e)}')
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+
+                try:
+                    s3_client.delete_object(
+                        Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                        Key=file_key
+                    )
+                    logger.debug(f'[DEBUG] S3 파일 삭제 성공: {file_key}')
+                    return Response({'message': 'File deleted successfully (S3 only)'}, status=status.HTTP_200_OK)
+                except Exception as e:
+                    logger.error(f'[ERROR] S3 파일 삭제 실패: {str(e)}')
+                    return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         except Exception as e:
-            logger.error(f'[ERROR] S3 파일 삭제 중 예외 발생: {str(e)}')
+            logger.error(f'[ERROR] 파일 삭제 중 예외 발생: {str(e)}')
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['get'])

@@ -411,6 +411,24 @@ class File(models.Model):
     def __str__(self):
         return f"{self.original_name} ({self.created_at})"
 
+    def is_orphan(self):
+        """
+        진짜 고아 파일인지 판단
+        - request와 연결되어 있으면: False (일반 첨부 파일)
+        - transcript_requests로 연결되어 있으면: False (속기록 완성 파일)
+        - 둘 다 없으면: True (진짜 고아 파일)
+        """
+        # 일반 첨부 파일로 연결되어 있는가?
+        if self.request is not None:
+            return False
+
+        # 속기록 완성 파일로 연결되어 있는가?
+        if self.transcript_requests.exists():
+            return False
+
+        # 둘 다 없으면 진짜 고아 파일
+        return True
+
     def delete(self, *args, **kwargs):
         # S3에서 파일 삭제
         s3_client = boto3.client('s3')
