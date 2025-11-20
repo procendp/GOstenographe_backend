@@ -7,9 +7,11 @@ import hmac
 import base64
 import time
 import json
-import requests
 from django.conf import settings
 import logging
+
+# HTTP requests 라이브러리 (Django 앱과 충돌 방지)
+import requests as http_lib
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +88,7 @@ class NaverCloudSMS:
             }
             
             # API 호출
-            response = requests.post(api_url, headers=headers, data=json.dumps(body))
+            response = http_lib.post(api_url, headers=headers, data=json.dumps(body))
             
             if response.status_code == 202:
                 result_data = response.json()
@@ -155,8 +157,8 @@ class NaverCloudSMS:
                 ]
             }
             
-            response = requests.post(api_url, headers=headers, data=json.dumps(body))
-            
+            response = http_lib.post(api_url, headers=headers, data=json.dumps(body))
+
             if response.status_code == 202:
                 result_data = response.json()
                 logger.info(f"LMS 발송 성공: {to_number}")

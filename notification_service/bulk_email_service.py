@@ -4,12 +4,11 @@
 import boto3
 from django.conf import settings
 from django.template.loader import render_to_string
-from .email_sender import ResendEmail
 import mimetypes
 import os
 import json
 
-# Django 앱 모델을 명시적으로 로드 (HTTP requests 라이브러리 충돌 방지)
+from .email_sender import ResendEmail
 from django.apps import apps
 Request = apps.get_model('requests', 'Request')
 

@@ -5,13 +5,10 @@ import os
 import logging
 import base64
 import json
-import sys
 from django.conf import settings
 
-# Django 앱 'requests'와 HTTP 라이브러리 'requests' 충돌 방지
-# HTTP requests 라이브러리를 먼저 import하여 sys.modules에 고정
-import requests as _http_requests
-sys.modules['_http_requests'] = _http_requests
+# HTTP requests 라이브러리 (Django 앱과 충돌 방지)
+import requests as http_lib
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +43,7 @@ class ResendEmail:
                 "Content-Type": "application/json"
             }
 
-            response = _http_requests.post(
+            response = http_lib.post(
                 self.RESEND_API_URL,
                 headers=headers,
                 data=json.dumps(payload),
