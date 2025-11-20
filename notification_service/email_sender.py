@@ -37,11 +37,11 @@ class ResendEmail:
             tuple: (success: bool, response_data: dict)
         """
         try:
-            logger.info(f"Resend API 요청 시작:")
-            logger.info(f"  - URL: {self.RESEND_API_URL}")
-            logger.info(f"  - To: {payload.get('to')}")
-            logger.info(f"  - Subject: {payload.get('subject')}")
-            logger.info(f"  - Has attachments: {len(payload.get('attachments', []))} files")
+            logger.info(f"[sokgimoo] Resend API 요청 시작:")
+            logger.info(f"[sokgimoo]   - URL: {self.RESEND_API_URL}")
+            logger.info(f"[sokgimoo]   - To: {payload.get('to')}")
+            logger.info(f"[sokgimoo]   - Subject: {payload.get('subject')}")
+            logger.info(f"[sokgimoo]   - Has attachments: {len(payload.get('attachments', []))} files")
 
             # urllib로 POST 요청
             data = json.dumps(payload).encode('utf-8')
@@ -58,7 +58,7 @@ class ResendEmail:
             response = urllib.request.urlopen(req, timeout=30)
             response_data = json.loads(response.read().decode('utf-8'))
 
-            logger.info(f"Resend API 성공: {response.status}")
+            logger.info(f"[sokgimoo] ✅ Resend API 성공: {response.status}")
             return True, response_data
 
         except urllib.error.HTTPError as e:
@@ -67,17 +67,17 @@ class ResendEmail:
                 error_detail = json.loads(error_detail)
             except:
                 pass
-            logger.error(f"Resend API 실패:")
-            logger.error(f"  - HTTP Status: {e.code}")
-            logger.error(f"  - Response: {error_detail}")
+            logger.error(f"[sokgimoo] ❌ Resend API 실패")
+            logger.error(f"[sokgimoo] HTTP_STATUS: {e.code}")
+            logger.error(f"[sokgimoo] ERROR_RESPONSE: {error_detail}")
             return False, {"status_code": e.code, "detail": error_detail}
 
         except Exception as e:
-            logger.error(f"Resend API 요청 중 예외 발생:")
-            logger.error(f"  - Exception Type: {type(e).__name__}")
-            logger.error(f"  - Exception Message: {str(e)}")
+            logger.error(f"[sokgimoo] 💥 Exception 발생")
+            logger.error(f"[sokgimoo] EXCEPTION_TYPE: {type(e).__name__}")
+            logger.error(f"[sokgimoo] EXCEPTION_MSG: {str(e)}")
             import traceback
-            logger.error(f"  - Traceback: {traceback.format_exc()}")
+            logger.error(f"[sokgimoo] TRACEBACK: {traceback.format_exc()}")
             return False, {"error": str(e), "exception_type": type(e).__name__}
 
     def send_email(self, to_email, subject, content, content_type='text/plain', attachments=None):
