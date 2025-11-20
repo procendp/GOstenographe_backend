@@ -1,7 +1,6 @@
 import os
 import requests
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import resend
 from django.template import Template as DjangoTemplate, Context
 from django.conf import settings
 
@@ -39,17 +38,23 @@ class MessageService:
 
     @staticmethod
     def send_email(to_email, subject, content):
-        """SendGrid를 사용하여 이메일 발송"""
+        """Resend를 사용하여 이메일 발송"""
         try:
-            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-            message = Mail(
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to_emails=to_email,
-                subject=subject,
-                html_content=content
-            )
-            response = sg.send(message)
-            return response.status_code == 202
+            resend.api_key = settings.RESEND_API_KEY
+
+            from_name = getattr(settings, 'RESEND_FROM_NAME', '속기사무소 정')
+            from_email = settings.DEFAULT_FROM_EMAIL
+            from_address = f"{from_name} <{from_email}>"
+
+            params = {
+                "from": from_address,
+                "to": [to_email],
+                "subject": subject,
+                "html": content
+            }
+
+            response = resend.Emails.send(params)
+            return response and response.get('id')
         except Exception as e:
             print(f"이메일 발송 실패: {str(e)}")
             return False 

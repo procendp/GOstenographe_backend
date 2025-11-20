@@ -4,7 +4,7 @@
 import boto3
 from django.conf import settings
 from django.template.loader import render_to_string
-from .email_sender import SendGridEmail
+from .email_sender import ResendEmail
 import mimetypes
 import os
 import json
@@ -12,9 +12,9 @@ from requests.models import Request
 
 class BulkEmailService:
     """같은 주문 건의 파일들을 묶어서 이메일 발송하는 서비스"""
-    
+
     def __init__(self):
-        self.email_sender = SendGridEmail()
+        self.email_sender = ResendEmail()
         self.s3_client = boto3.client(
             's3',
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
