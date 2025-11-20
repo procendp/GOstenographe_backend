@@ -6,13 +6,8 @@ import logging
 import base64
 import json
 from django.conf import settings
-import importlib.util
-import sys
-
-# HTTP requests 라이브러리 직접 로드 (Django 앱 충돌 완전 회피)
-spec = importlib.util.find_spec("requests")
-http_lib = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(http_lib)
+import urllib.request
+import urllib.error
 
 logger = logging.getLogger(__name__)
 
@@ -42,37 +37,40 @@ class ResendEmail:
             tuple: (success: bool, response_data: dict)
         """
         try:
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-
             logger.info(f"Resend API 요청 시작:")
             logger.info(f"  - URL: {self.RESEND_API_URL}")
             logger.info(f"  - To: {payload.get('to')}")
             logger.info(f"  - Subject: {payload.get('subject')}")
             logger.info(f"  - Has attachments: {len(payload.get('attachments', []))} files")
 
-            response = http_lib.post(
+            # urllib로 POST 요청
+            data = json.dumps(payload).encode('utf-8')
+            req = urllib.request.Request(
                 self.RESEND_API_URL,
-                headers=headers,
-                data=json.dumps(payload),
-                timeout=30
+                data=data,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                method='POST'
             )
 
-            if response.status_code in [200, 201]:
-                logger.info(f"Resend API 성공: {response.status_code}")
-                return True, response.json()
-            else:
-                error_detail = response.text
-                try:
-                    error_detail = response.json()
-                except:
-                    pass
-                logger.error(f"Resend API 실패:")
-                logger.error(f"  - HTTP Status: {response.status_code}")
-                logger.error(f"  - Response: {error_detail}")
-                return False, {"status_code": response.status_code, "detail": error_detail}
+            response = urllib.request.urlopen(req, timeout=30)
+            response_data = json.loads(response.read().decode('utf-8'))
+
+            logger.info(f"Resend API 성공: {response.status}")
+            return True, response_data
+
+        except urllib.error.HTTPError as e:
+            error_detail = e.read().decode('utf-8')
+            try:
+                error_detail = json.loads(error_detail)
+            except:
+                pass
+            logger.error(f"Resend API 실패:")
+            logger.error(f"  - HTTP Status: {e.code}")
+            logger.error(f"  - Response: {error_detail}")
+            return False, {"status_code": e.code, "detail": error_detail}
 
         except Exception as e:
             logger.error(f"Resend API 요청 중 예외 발생:")
