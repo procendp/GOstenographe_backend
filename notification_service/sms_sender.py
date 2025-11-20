@@ -20,13 +20,13 @@ class NaverCloudSMS:
     """네이버 클라우드 플랫폼 SMS 발송 클래스"""
     
     def __init__(self):
-        self.access_key = os.getenv('NCP_ACCESS_KEY')
-        self.secret_key = os.getenv('NCP_SECRET_KEY')
-        self.service_id = os.getenv('NCP_SMS_SERVICE_ID')
-        self.from_number = os.getenv('NCP_SMS_FROM_NUMBER')
-        
+        self.access_key = os.getenv('NAVER_ACCESS_KEY')
+        self.secret_key = os.getenv('NAVER_SECRET_KEY')
+        self.service_id = os.getenv('NAVER_SERVICE_ID')
+        self.from_number = os.getenv('SENDER_PHONE')
+
         if not all([self.access_key, self.secret_key, self.service_id, self.from_number]):
-            logger.warning("NCP SMS 설정이 완료되지 않았습니다. .env 파일을 확인하세요.")
+            logger.warning("Naver Cloud SMS 설정이 완료되지 않았습니다. .env 파일을 확인하세요.")
     
     def _make_signature(self, timestamp, uri, method="POST"):
         """NCP API 서명 생성"""
