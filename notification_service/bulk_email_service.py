@@ -562,11 +562,16 @@ class BulkEmailService:
                     success_count += 1
                     print(f"[BulkEmailService] 템플릿 이메일 발송 성공: {email}")
                 else:
+                    error_detail = result.get('detail', result.get('error', '알 수 없는 오류'))
                     failed_emails.append({
                         'email': email,
-                        'error': result.get('error', '알 수 없는 오류')
+                        'error': result.get('error', '알 수 없는 오류'),
+                        'detail': error_detail
                     })
-                    print(f"[BulkEmailService] 템플릿 이메일 발송 실패: {email}, 오류: {result.get('error')}")
+                    print(f"[BulkEmailService] 템플릿 이메일 발송 실패: {email}")
+                    print(f"  - 오류: {result.get('error')}")
+                    print(f"  - 상세: {error_detail}")
+                    print(f"  - 전체 응답: {result}")
                     
             except Exception as e:
                 failed_emails.append({

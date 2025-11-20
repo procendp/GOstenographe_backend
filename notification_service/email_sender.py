@@ -47,6 +47,12 @@ class ResendEmail:
                 "Content-Type": "application/json"
             }
 
+            logger.info(f"Resend API 요청 시작:")
+            logger.info(f"  - URL: {self.RESEND_API_URL}")
+            logger.info(f"  - To: {payload.get('to')}")
+            logger.info(f"  - Subject: {payload.get('subject')}")
+            logger.info(f"  - Has attachments: {len(payload.get('attachments', []))} files")
+
             response = http_lib.post(
                 self.RESEND_API_URL,
                 headers=headers,
@@ -55,6 +61,7 @@ class ResendEmail:
             )
 
             if response.status_code in [200, 201]:
+                logger.info(f"Resend API 성공: {response.status_code}")
                 return True, response.json()
             else:
                 error_detail = response.text
@@ -62,10 +69,18 @@ class ResendEmail:
                     error_detail = response.json()
                 except:
                     pass
+                logger.error(f"Resend API 실패:")
+                logger.error(f"  - HTTP Status: {response.status_code}")
+                logger.error(f"  - Response: {error_detail}")
                 return False, {"status_code": response.status_code, "detail": error_detail}
 
         except Exception as e:
-            return False, {"error": str(e)}
+            logger.error(f"Resend API 요청 중 예외 발생:")
+            logger.error(f"  - Exception Type: {type(e).__name__}")
+            logger.error(f"  - Exception Message: {str(e)}")
+            import traceback
+            logger.error(f"  - Traceback: {traceback.format_exc()}")
+            return False, {"error": str(e), "exception_type": type(e).__name__}
 
     def send_email(self, to_email, subject, content, content_type='text/plain', attachments=None):
         """
@@ -214,6 +229,8 @@ class ResendEmail:
                 }
             else:
                 logger.error(f"HTML email send failed: {response_data}")
+                logger.error(f"  - Status Code: {response_data.get('status_code')}")
+                logger.error(f"  - Detail: {response_data.get('detail')}")
                 return {
                     'success': False,
                     'error': 'Send failed',
