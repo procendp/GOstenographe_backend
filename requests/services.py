@@ -1,5 +1,5 @@
 import os
-import requests
+import requests as http_requests  # HTTP 라이브러리와 Django 앱 이름 충돌 방지
 import resend
 from django.template import Template as DjangoTemplate, Context
 from django.conf import settings
@@ -30,7 +30,7 @@ class MessageService:
         }
         
         try:
-            response = requests.post(url, headers=headers, json=data)
+            response = http_requests.post(url, headers=headers, json=data)
             return response.status_code == 202
         except Exception as e:
             print(f"SMS 발송 실패: {str(e)}")
