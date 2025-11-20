@@ -5,7 +5,13 @@ import os
 import logging
 import base64
 import json
+import sys
 from django.conf import settings
+
+# Django 앱 'requests'와 HTTP 라이브러리 'requests' 충돌 방지
+# HTTP requests 라이브러리를 먼저 import하여 sys.modules에 고정
+import requests as _http_requests
+sys.modules['_http_requests'] = _http_requests
 
 logger = logging.getLogger(__name__)
 
@@ -35,15 +41,12 @@ class ResendEmail:
             tuple: (success: bool, response_data: dict)
         """
         try:
-            # HTTP requests 라이브러리를 동적으로 import (Django 앱 충돌 회피)
-            import requests as http_requests
-
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json"
             }
 
-            response = http_requests.post(
+            response = _http_requests.post(
                 self.RESEND_API_URL,
                 headers=headers,
                 data=json.dumps(payload),
