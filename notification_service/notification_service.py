@@ -3,7 +3,7 @@
 """
 import logging
 from .sms_sender import NaverCloudSMS
-from .email_sender import SendGridEmail
+from .email_sender import ResendEmail
 from .template_engine import TemplateEngine
 from requests.models import SendLog, StatusChangeLog
 
@@ -15,7 +15,7 @@ class NotificationService:
     
     def __init__(self):
         self.sms_sender = NaverCloudSMS()
-        self.email_sender = SendGridEmail()
+        self.email_sender = ResendEmail()
         self.template_engine = TemplateEngine()
     
     def send_status_notification(self, request_obj, new_status, old_status=None, send_sms=True, send_email=True):

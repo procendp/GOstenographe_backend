@@ -287,11 +287,11 @@ NAVER_SECRET_KEY = os.getenv('NAVER_SECRET_KEY', '')
 NAVER_SERVICE_ID = os.getenv('NAVER_SERVICE_ID', '')
 SENDER_PHONE = os.getenv('SENDER_PHONE', '')
 
-# SendGrid 설정
-SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
-SENDGRID_FROM_EMAIL = os.getenv('SENDGRID_FROM_EMAIL', 'info@sokgijung.com')
-SENDGRID_REPLY_TO_EMAIL = os.getenv('SENDGRID_REPLY_TO_EMAIL', 'sokgijung@gmail.com')
-SENDGRID_FROM_NAME = os.getenv('SENDGRID_FROM_NAME', '속기사무소 정')
+# Resend 설정
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'info@sokgijung.com')
+RESEND_REPLY_TO_EMAIL = os.getenv('RESEND_REPLY_TO_EMAIL', 'sokgijung@gmail.com')
+RESEND_FROM_NAME = os.getenv('RESEND_FROM_NAME', '속기사무소 정')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'info@sokgijung.com')
 
 # 계좌 정보 (환경 변수에서 로드)
