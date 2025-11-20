@@ -6,9 +6,13 @@ import logging
 import base64
 import json
 from django.conf import settings
+import importlib.util
+import sys
 
-# HTTP requests 라이브러리 (Django 앱과 충돌 방지)
-import requests as http_lib
+# HTTP requests 라이브러리 직접 로드 (Django 앱 충돌 완전 회피)
+spec = importlib.util.find_spec("requests")
+http_lib = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(http_lib)
 
 logger = logging.getLogger(__name__)
 
