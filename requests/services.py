@@ -1,6 +1,5 @@
 import os
 import requests as http_requests  # HTTP 라이브러리와 Django 앱 이름 충돌 방지
-import resend
 from django.template import Template as DjangoTemplate, Context
 from django.conf import settings
 
@@ -38,23 +37,35 @@ class MessageService:
 
     @staticmethod
     def send_email(to_email, subject, content):
-        """Resend를 사용하여 이메일 발송"""
+        """Resend REST API를 사용하여 이메일 발송"""
         try:
-            resend.api_key = settings.RESEND_API_KEY
+            import json
 
+            api_key = settings.RESEND_API_KEY
             from_name = getattr(settings, 'RESEND_FROM_NAME', '속기사무소 정')
             from_email = settings.DEFAULT_FROM_EMAIL
             from_address = f"{from_name} <{from_email}>"
 
-            params = {
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
                 "from": from_address,
                 "to": [to_email],
                 "subject": subject,
                 "html": content
             }
 
-            response = resend.Emails.send(params)
-            return response and response.get('id')
+            response = http_requests.post(
+                "https://api.resend.com/emails",
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=30
+            )
+
+            return response.status_code in [200, 201]
         except Exception as e:
             print(f"이메일 발송 실패: {str(e)}")
             return False 

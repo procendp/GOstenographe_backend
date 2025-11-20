@@ -1,17 +1,19 @@
 """
-Resend Email Service
+Resend Email Service - Direct REST API Implementation
 """
 import os
 import logging
 import base64
-import resend
+import json
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
 class ResendEmail:
-    """Resend Email Service Class"""
+    """Resend Email Service Class using Direct REST API"""
+
+    RESEND_API_URL = "https://api.resend.com/emails"
 
     def __init__(self):
         self.api_key = getattr(settings, 'RESEND_API_KEY', os.getenv('RESEND_API_KEY'))
@@ -21,8 +23,45 @@ class ResendEmail:
 
         if not self.api_key:
             logger.warning("Resend API key is not configured. Check .env file.")
-        else:
-            resend.api_key = self.api_key
+
+    def _make_request(self, payload):
+        """
+        Make HTTP request to Resend API
+
+        Args:
+            payload: Request payload dictionary
+
+        Returns:
+            tuple: (success: bool, response_data: dict)
+        """
+        try:
+            # HTTP requests 라이브러리를 동적으로 import (Django 앱 충돌 회피)
+            import requests as http_requests
+
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            response = http_requests.post(
+                self.RESEND_API_URL,
+                headers=headers,
+                data=json.dumps(payload),
+                timeout=30
+            )
+
+            if response.status_code in [200, 201]:
+                return True, response.json()
+            else:
+                error_detail = response.text
+                try:
+                    error_detail = response.json()
+                except:
+                    pass
+                return False, {"status_code": response.status_code, "detail": error_detail}
+
+        except Exception as e:
+            return False, {"error": str(e)}
 
     def send_email(self, to_email, subject, content, content_type='text/plain', attachments=None):
         """
@@ -45,10 +84,10 @@ class ResendEmail:
                     'error': 'Resend is not configured.'
                 }
 
-            # Build email parameters
+            # Build email payload
             from_address = f"{self.from_name} <{self.from_email}>"
 
-            params = {
+            payload = {
                 "from": from_address,
                 "to": [to_email],
                 "subject": subject,
@@ -57,9 +96,9 @@ class ResendEmail:
 
             # Add content based on type
             if content_type == 'text/html':
-                params["html"] = content
+                payload["html"] = content
             else:
-                params["text"] = content
+                payload["text"] = content
 
             # Add attachments
             if attachments:
@@ -78,23 +117,23 @@ class ResendEmail:
                         })
 
                 if attachment_list:
-                    params["attachments"] = attachment_list
+                    payload["attachments"] = attachment_list
 
-            # Send email
-            response = resend.Emails.send(params)
+            # Send email via REST API
+            success, response_data = self._make_request(payload)
 
-            if response and response.get('id'):
+            if success:
                 logger.info(f"Email sent successfully: {to_email}, Subject: {subject}")
                 return {
                     'success': True,
-                    'message_id': response.get('id')
+                    'message_id': response_data.get('id')
                 }
             else:
-                logger.error(f"Email send failed: {response}")
+                logger.error(f"Email send failed: {response_data}")
                 return {
                     'success': False,
                     'error': 'Send failed',
-                    'detail': str(response)
+                    'detail': response_data
                 }
 
         except Exception as e:
@@ -122,10 +161,10 @@ class ResendEmail:
                     'error': 'Resend is not configured.'
                 }
 
-            # Build email parameters
+            # Build email payload
             from_address = f"{self.from_name} <{self.from_email}>"
 
-            params = {
+            payload = {
                 "from": from_address,
                 "to": [to_email],
                 "subject": subject,
@@ -135,11 +174,11 @@ class ResendEmail:
 
             # Add text version if provided
             if text_content:
-                params["text"] = text_content
+                payload["text"] = text_content
             else:
                 # Remove HTML tags for text version
                 import re
-                params["text"] = re.sub('<[^<]+?>', '', html_content)
+                payload["text"] = re.sub('<[^<]+?>', '', html_content)
 
             # Add attachments
             if attachments:
@@ -158,23 +197,23 @@ class ResendEmail:
                         })
 
                 if attachment_list:
-                    params["attachments"] = attachment_list
+                    payload["attachments"] = attachment_list
 
-            # Send email
-            response = resend.Emails.send(params)
+            # Send email via REST API
+            success, response_data = self._make_request(payload)
 
-            if response and response.get('id'):
+            if success:
                 logger.info(f"HTML email sent successfully: {to_email}")
                 return {
                     'success': True,
-                    'message_id': response.get('id')
+                    'message_id': response_data.get('id')
                 }
             else:
-                logger.error(f"HTML email send failed: {response}")
+                logger.error(f"HTML email send failed: {response_data}")
                 return {
                     'success': False,
                     'error': 'Send failed',
-                    'detail': str(response)
+                    'detail': response_data
                 }
 
         except Exception as e:
