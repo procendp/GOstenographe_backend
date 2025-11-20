@@ -331,7 +331,7 @@ class SendLog(models.Model):
     )
     order_id = models.CharField(
         verbose_name=_('Order ID'),
-        max_length=10,
+        max_length=20,
         null=True,
         blank=True,
         help_text='발송 시점의 Order ID'
