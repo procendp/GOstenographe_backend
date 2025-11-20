@@ -5,7 +5,11 @@ import logging
 from .sms_sender import NaverCloudSMS
 from .email_sender import ResendEmail
 from .template_engine import TemplateEngine
-from requests.models import SendLog, StatusChangeLog
+
+# Django 앱 모델을 명시적으로 로드 (HTTP requests 라이브러리 충돌 방지)
+from django.apps import apps
+SendLog = apps.get_model('requests', 'SendLog')
+StatusChangeLog = apps.get_model('requests', 'StatusChangeLog')
 
 logger = logging.getLogger(__name__)
 

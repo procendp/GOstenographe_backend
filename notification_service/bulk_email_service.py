@@ -8,7 +8,10 @@ from .email_sender import ResendEmail
 import mimetypes
 import os
 import json
-from requests.models import Request
+
+# Django 앱 모델을 명시적으로 로드 (HTTP requests 라이브러리 충돌 방지)
+from django.apps import apps
+Request = apps.get_model('requests', 'Request')
 
 class BulkEmailService:
     """같은 주문 건의 파일들을 묶어서 이메일 발송하는 서비스"""
