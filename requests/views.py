@@ -1314,6 +1314,32 @@ def send_quotation_guide(request):
                         recipient_email=request_obj.email,
                         success=True
                     )
+
+                    # SMS 발송
+                    try:
+                        from notification_service.sms_sender import NaverCloudSMS
+                        from notification_service.template_engine import TemplateEngine
+                        from requests.models import Template
+
+                        sms_template = Template.objects.filter(name='quotation_sent_sms', type='sms').first()
+
+                        if sms_template and request_obj.phone:
+                            engine = TemplateEngine()
+                            variables = engine.get_variables_from_request(request_obj)
+                            sms_content = engine.replace_variables(sms_template.content, variables)
+
+                            sms_sender = NaverCloudSMS()
+                            sms_result = sms_sender.send_sms(
+                                to_number=request_obj.phone,
+                                content=sms_content
+                            )
+
+                            if sms_result['success']:
+                                print(f'[SEND SMS] 견적 및 입금 안내 SMS 발송 성공 - Order ID: {order_id}, Phone: {request_obj.phone}')
+                            else:
+                                print(f'[SEND SMS] SMS 발송 실패 - Order ID: {order_id}, Error: {sms_result.get("error")}')
+                    except Exception as sms_error:
+                        print(f'[SEND SMS] SMS 발송 중 오류 - Order ID: {order_id}, Error: {str(sms_error)}')
                 else:
                     error_messages.append(f'Order ID {order_id}: 이메일 발송 실패')
             except Exception as e:
@@ -1442,6 +1468,32 @@ def send_payment_completion_guide(request):
                         recipient_email=request_obj.email,
                         success=True
                     )
+
+                    # SMS 발송
+                    try:
+                        from notification_service.sms_sender import NaverCloudSMS
+                        from notification_service.template_engine import TemplateEngine
+                        from requests.models import Template
+
+                        sms_template = Template.objects.filter(name='payment_completed_sms', type='sms').first()
+
+                        if sms_template and request_obj.phone:
+                            engine = TemplateEngine()
+                            variables = engine.get_variables_from_request(request_obj)
+                            sms_content = engine.replace_variables(sms_template.content, variables)
+
+                            sms_sender = NaverCloudSMS()
+                            sms_result = sms_sender.send_sms(
+                                to_number=request_obj.phone,
+                                content=sms_content
+                            )
+
+                            if sms_result['success']:
+                                print(f'[SEND SMS] 결제 완료 안내 SMS 발송 성공 - Order ID: {order_id}, Phone: {request_obj.phone}')
+                            else:
+                                print(f'[SEND SMS] SMS 발송 실패 - Order ID: {order_id}, Error: {sms_result.get("error")}')
+                    except Exception as sms_error:
+                        print(f'[SEND SMS] SMS 발송 중 오류 - Order ID: {order_id}, Error: {str(sms_error)}')
                 else:
                     error_messages.append(f'Order ID {order_id}: 이메일 발송 실패')
             except Exception as e:
@@ -1619,7 +1671,7 @@ def send_draft_guide(request):
                 for failed in result['failed_emails']:
                     error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
 
-            # 발송 성공한 Request에 대해 SendLog 저장
+            # 발송 성공한 Request에 대해 SendLog 저장 및 SMS 발송
             for request_obj in valid_requests:
                 try:
                     SendLog.objects.create(
@@ -1629,6 +1681,33 @@ def send_draft_guide(request):
                         recipient_email=request_obj.email,
                         success=True
                     )
+
+                    # SMS 발송
+                    try:
+                        from notification_service.sms_sender import NaverCloudSMS
+                        from notification_service.template_engine import TemplateEngine
+                        from requests.models import Template
+
+                        sms_template = Template.objects.filter(name='draft_sent_sms', type='sms').first()
+
+                        if sms_template and request_obj.phone:
+                            engine = TemplateEngine()
+                            variables = engine.get_variables_from_request(request_obj)
+                            sms_content = engine.replace_variables(sms_template.content, variables)
+
+                            sms_sender = NaverCloudSMS()
+                            sms_result = sms_sender.send_sms(
+                                to_number=request_obj.phone,
+                                content=sms_content
+                            )
+
+                            if sms_result['success']:
+                                print(f'[SEND SMS] 속기록 발송 안내 SMS 발송 성공 - Request ID: {request_obj.request_id}, Phone: {request_obj.phone}')
+                            else:
+                                print(f'[SEND SMS] SMS 발송 실패 - Request ID: {request_obj.request_id}, Error: {sms_result.get("error")}')
+                    except Exception as sms_error:
+                        print(f'[SEND SMS] SMS 발송 중 오류 - Request ID: {request_obj.request_id}, Error: {str(sms_error)}')
+
                 except Exception as log_error:
                     logger.error(f'[send_draft_guide] SendLog 저장 실패 - Request ID: {request_obj.request_id}, Error: {str(log_error)}')
 
@@ -1697,7 +1776,7 @@ def send_final_draft_guide(request):
                 for failed in result['failed_emails']:
                     error_messages.append(f"이메일 {failed['email']}: {failed['error']}")
 
-            # 발송 성공한 Request에 대해 SendLog 저장
+            # 발송 성공한 Request에 대해 SendLog 저장 및 SMS 발송
             for request_obj in valid_requests:
                 try:
                     SendLog.objects.create(
@@ -1707,6 +1786,33 @@ def send_final_draft_guide(request):
                         recipient_email=request_obj.email,
                         success=True
                     )
+
+                    # SMS 발송
+                    try:
+                        from notification_service.sms_sender import NaverCloudSMS
+                        from notification_service.template_engine import TemplateEngine
+                        from requests.models import Template
+
+                        sms_template = Template.objects.filter(name='final_sent_sms', type='sms').first()
+
+                        if sms_template and request_obj.phone:
+                            engine = TemplateEngine()
+                            variables = engine.get_variables_from_request(request_obj)
+                            sms_content = engine.replace_variables(sms_template.content, variables)
+
+                            sms_sender = NaverCloudSMS()
+                            sms_result = sms_sender.send_sms(
+                                to_number=request_obj.phone,
+                                content=sms_content
+                            )
+
+                            if sms_result['success']:
+                                print(f'[SEND SMS] 최종안 발송 안내 SMS 발송 성공 - Request ID: {request_obj.request_id}, Phone: {request_obj.phone}')
+                            else:
+                                print(f'[SEND SMS] SMS 발송 실패 - Request ID: {request_obj.request_id}, Error: {sms_result.get("error")}')
+                    except Exception as sms_error:
+                        print(f'[SEND SMS] SMS 발송 중 오류 - Request ID: {request_obj.request_id}, Error: {str(sms_error)}')
+
                 except Exception as log_error:
                     logger.error(f'[send_final_draft_guide] SendLog 저장 실패 - Request ID: {request_obj.request_id}, Error: {str(log_error)}')
 
