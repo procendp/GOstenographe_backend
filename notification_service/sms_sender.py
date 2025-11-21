@@ -37,12 +37,12 @@ class NaverCloudSMS:
     
     def send_sms(self, to_number, content):
         """
-        SMS 발송
-        
+        SMS 발송 (90자 초과 시 자동으로 LMS 발송)
+
         Args:
             to_number: 수신번호 (01012345678 형식)
             content: 메시지 내용
-        
+
         Returns:
             dict: 발송 결과
         """
@@ -53,9 +53,15 @@ class NaverCloudSMS:
                     'success': False,
                     'error': 'SMS 서비스가 설정되지 않았습니다.'
                 }
-            
+
             # 전화번호 포맷 정리 (하이픈 제거)
             to_number = to_number.replace('-', '').replace(' ', '')
+
+            # 글자 수 체크 - 90자 초과 시 LMS로 자동 전환
+            content_length = len(content)
+            if content_length > 90:
+                logger.info(f"메시지 길이 {content_length}자 - LMS로 자동 전환")
+                return self.send_lms(to_number, "속기사무소 정", content)
             
             # NCP SMS API 엔드포인트
             uri = f"/sms/v2/services/{self.service_id}/messages"
