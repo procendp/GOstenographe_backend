@@ -9,9 +9,8 @@ import time
 import json
 from django.conf import settings
 import logging
-
-# HTTP requests 라이브러리 (Django 앱과 충돌 방지)
-import requests as http_lib
+import urllib.request
+import urllib.error
 
 logger = logging.getLogger(__name__)
 
@@ -88,24 +87,37 @@ class NaverCloudSMS:
             }
             
             # API 호출
-            response = http_lib.post(api_url, headers=headers, data=json.dumps(body))
-            
-            if response.status_code == 202:
-                result_data = response.json()
-                logger.info(f"SMS 발송 성공: {to_number}, Request ID: {result_data.get('requestId')}")
-                return {
-                    'success': True,
-                    'request_id': result_data.get('requestId'),
-                    'request_time': result_data.get('requestTime')
-                }
-            else:
-                logger.error(f"SMS 발송 실패: {response.status_code}, {response.text}")
-                return {
-                    'success': False,
-                    'error': f"발송 실패 (상태코드: {response.status_code})",
-                    'detail': response.text
-                }
-                
+            data = json.dumps(body).encode('utf-8')
+            req = urllib.request.Request(
+                api_url,
+                data=data,
+                headers=headers,
+                method='POST'
+            )
+
+            response = urllib.request.urlopen(req, timeout=30)
+            result_data = json.loads(response.read().decode('utf-8'))
+
+            logger.info(f"SMS 발송 성공: {to_number}, Request ID: {result_data.get('requestId')}")
+            return {
+                'success': True,
+                'request_id': result_data.get('requestId'),
+                'request_time': result_data.get('requestTime')
+            }
+
+        except urllib.error.HTTPError as e:
+            error_detail = e.read().decode('utf-8')
+            try:
+                error_detail = json.loads(error_detail)
+            except:
+                pass
+            logger.error(f"SMS 발송 실패: {e.code}, {error_detail}")
+            return {
+                'success': False,
+                'error': f"발송 실패 (상태코드: {e.code})",
+                'detail': error_detail
+            }
+
         except Exception as e:
             logger.error(f"SMS 발송 중 오류: {str(e)}")
             return {
@@ -157,24 +169,37 @@ class NaverCloudSMS:
                 ]
             }
             
-            response = http_lib.post(api_url, headers=headers, data=json.dumps(body))
+            data = json.dumps(body).encode('utf-8')
+            req = urllib.request.Request(
+                api_url,
+                data=data,
+                headers=headers,
+                method='POST'
+            )
 
-            if response.status_code == 202:
-                result_data = response.json()
-                logger.info(f"LMS 발송 성공: {to_number}")
-                return {
-                    'success': True,
-                    'request_id': result_data.get('requestId'),
-                    'request_time': result_data.get('requestTime')
-                }
-            else:
-                logger.error(f"LMS 발송 실패: {response.status_code}, {response.text}")
-                return {
-                    'success': False,
-                    'error': f"발송 실패 (상태코드: {response.status_code})",
-                    'detail': response.text
-                }
-                
+            response = urllib.request.urlopen(req, timeout=30)
+            result_data = json.loads(response.read().decode('utf-8'))
+
+            logger.info(f"LMS 발송 성공: {to_number}")
+            return {
+                'success': True,
+                'request_id': result_data.get('requestId'),
+                'request_time': result_data.get('requestTime')
+            }
+
+        except urllib.error.HTTPError as e:
+            error_detail = e.read().decode('utf-8')
+            try:
+                error_detail = json.loads(error_detail)
+            except:
+                pass
+            logger.error(f"LMS 발송 실패: {e.code}, {error_detail}")
+            return {
+                'success': False,
+                'error': f"발송 실패 (상태코드: {e.code})",
+                'detail': error_detail
+            }
+
         except Exception as e:
             logger.error(f"LMS 발송 중 오류: {str(e)}")
             return {
