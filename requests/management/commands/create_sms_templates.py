@@ -29,7 +29,7 @@ class Command(BaseCommand):
 입금 확인 후 작업이 시작됩니다. (입금순으로 작업 진행)
 
 <결제 안내>
-- 입금액: {estimated_price}원
+- 입금액: {payment_amount}원
 - 입금 계좌: 신한은행 110-597-729308 고민정
 *신청자명과 입금자명이 다를 경우 고객센터로 연락 부탁드립니다.
 
@@ -58,7 +58,7 @@ class Command(BaseCommand):
                 'content': '''[속기사무소 정 입금 확인]
 {name} 고객님, 속기사무소 정입니다.
 입금이 확인되어 곧 작업이 시작됩니다. 감사합니다.
-- 입금액: {estimated_price}원'''
+- 입금액: {payment_amount}원'''
             },
 
             # 3. 초안/수정안 발송
