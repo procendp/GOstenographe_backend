@@ -7,7 +7,7 @@ from requests.models import Template
 
 
 class Command(BaseCommand):
-    help = 'SMS 템플릿 4개 생성 (기존 SMS 템플릿 전부 삭제 후 재생성)'
+    help = 'SMS 템플릿 5개 생성 (기존 SMS 템플릿 전부 삭제 후 재생성)'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('🚀 SMS 템플릿 생성 시작'))
@@ -17,7 +17,17 @@ class Command(BaseCommand):
         self.stdout.write(f'기존 SMS 템플릿 {deleted_count}개 삭제 완료')
 
         templates = [
-            # 1. 입금 안내 (견적 발송)
+            # 1. 신청 완료
+            {
+                'name': 'application_completion_sms',
+                'type': 'sms',
+                'content': '''[속기사무소 정 신청 완료]
+
+{name} 고객님, '속기사무소 정'입니다.
+서비스 신청이 정상적으로 접수되었습니다. 서비스 가능 여부 확인 후 후속 안내 드리겠습니다. 감사합니다.'''
+            },
+
+            # 2. 입금 안내 (견적 발송)
             {
                 'name': 'quotation_sent_sms',
                 'type': 'sms',
@@ -51,7 +61,7 @@ class Command(BaseCommand):
 - 카톡채널: @속기사무소 정'''
             },
 
-            # 2. 입금 확인 (결제 완료)
+            # 3. 입금 확인 (결제 완료)
             {
                 'name': 'payment_completed_sms',
                 'type': 'sms',
@@ -61,7 +71,7 @@ class Command(BaseCommand):
 - 입금액: {payment_amount}원'''
             },
 
-            # 3. 초안/수정안 발송
+            # 4. 초안/수정안 발송
             {
                 'name': 'draft_sent_sms',
                 'type': 'sms',
@@ -70,7 +80,7 @@ class Command(BaseCommand):
 고객님의 메일로 완성된 속기록을 발송했습니다. 확인 부탁드립니다. 감사합니다.'''
             },
 
-            # 4. 최종안 발송
+            # 5. 최종안 발송
             {
                 'name': 'final_sent_sms',
                 'type': 'sms',

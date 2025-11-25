@@ -284,10 +284,35 @@ class Request(models.Model):
             )
             
             if result['success_count'] > 0:
-                logger.info(f'서비스 신청 완료 안내 발송 성공 - Order ID: {self.order_id}, Email: {self.email}')
+                logger.info(f'서비스 신청 완료 안내 이메일 발송 성공 - Order ID: {self.order_id}, Email: {self.email}')
+
+                # SMS 발송
+                try:
+                    from notification_service.sms_sender import NaverCloudSMS
+                    from notification_service.template_engine import TemplateEngine
+
+                    sms_template = Template.objects.filter(name='application_completion_sms', type='sms').first()
+
+                    if sms_template and self.phone:
+                        engine = TemplateEngine()
+                        variables = engine.get_variables_from_request(self)
+                        sms_content = engine.replace_variables(sms_template.content, variables)
+
+                        sms_sender = NaverCloudSMS()
+                        sms_result = sms_sender.send_sms(
+                            to_number=self.phone,
+                            content=sms_content
+                        )
+
+                        if sms_result['success']:
+                            logger.info(f'서비스 신청 완료 안내 SMS 발송 성공 - Order ID: {self.order_id}, Phone: {self.phone}')
+                        else:
+                            logger.error(f'서비스 신청 완료 안내 SMS 발송 실패 - Order ID: {self.order_id}, Error: {sms_result.get("error")}')
+                except Exception as sms_error:
+                    logger.error(f'서비스 신청 완료 안내 SMS 발송 중 오류 - Order ID: {self.order_id}, Error: {str(sms_error)}')
             else:
-                logger.error(f'서비스 신청 완료 안내 발송 실패 - Order ID: {self.order_id}, Errors: {result["failed_emails"]}')
-                
+                logger.error(f'서비스 신청 완료 안내 이메일 발송 실패 - Order ID: {self.order_id}, Errors: {result["failed_emails"]}')
+
         except Exception as e:
             logger.error(f'서비스 신청 완료 안내 발송 실패 - Request ID: {self.request_id}, Error: {str(e)}')
 
