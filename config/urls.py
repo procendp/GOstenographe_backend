@@ -29,6 +29,8 @@ from django.shortcuts import redirect
 from django.conf import settings
 from django.http import JsonResponse
 from django.conf.urls.static import static
+from django.http import HttpResponsePermanentRedirect
+
 
 def custom_logout(request):
     logout(request)
@@ -57,6 +59,14 @@ def check_admin(request):
     return JsonResponse({'status': 'unauthorized'}, status=401)
 
 urlpatterns = [
+    path(
+        'service',
+        lambda request: HttpResponsePermanentRedirect('https://sokgijung.com/')
+    ),
+    path(
+        'service/',
+        lambda request: HttpResponsePermanentRedirect('https://sokgijung.com/')
+    ),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('admin/logout/', custom_logout, name='admin_logout'),
     path('dashboard/', statistics_dashboard_view, name='statistics-dashboard'),
