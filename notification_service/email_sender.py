@@ -50,7 +50,8 @@ class ResendEmail:
                 data=data,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "User-Agent": "GOstenographe-Backend/1.0"
                 },
                 method='POST'
             )
