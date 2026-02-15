@@ -57,10 +57,16 @@ class NaverCloudSMS:
             # 전화번호 포맷 정리 (하이픈 제거)
             to_number = to_number.replace('-', '').replace(' ', '')
 
-            # 글자 수 체크 - 90자 초과 시 LMS로 자동 전환
-            content_length = len(content)
-            if content_length > 90:
-                logger.info(f"메시지 길이 {content_length}자 - LMS로 자동 전환")
+            # 바이트 수 체크 - 90바이트 초과 시 LMS로 자동 전환
+            # SMS는 EUC-KR 기준 90바이트 제한 (한글 2바이트, 영문/숫자 1바이트)
+            try:
+                content_bytes = len(content.encode('euc-kr'))
+            except UnicodeEncodeError:
+                # EUC-KR로 인코딩 불가한 문자가 있으면 UTF-8 기준으로 계산
+                content_bytes = len(content.encode('utf-8'))
+            
+            if content_bytes > 90:
+                logger.info(f"메시지 길이 {content_bytes}바이트 ({len(content)}자) - LMS로 자동 전환")
                 return self.send_lms(to_number, "속기사무소 정", content)
             
             # NCP SMS API 엔드포인트
