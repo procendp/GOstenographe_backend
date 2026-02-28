@@ -947,6 +947,7 @@ function toggleAllCheckboxes() {
     });
     
     updateSelectAllState();
+    updateDetailViewButtonVisibility();
 }
 
 // 개별 체크박스 토글 함수
@@ -954,6 +955,149 @@ function toggleCheckbox(cell) {
     const checkbox = cell.querySelector('.row-checkbox');
     checkbox.checked = !checkbox.checked;
     updateSelectAllState();
+    updateDetailViewButtonVisibility();
+}
+
+// 상세 보기 버튼 표시/숨김
+function updateDetailViewButtonVisibility() {
+    const btn = document.getElementById('detailViewBtn');
+    if (!btn) return;
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+}
+
+// 선택된 request_id 목록 수집
+function getSelectedRequestIds() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const requestIds = [];
+    checked.forEach(cb => {
+        const reqIds = cb.getAttribute('data-request-ids');
+        const rid = cb.getAttribute('data-request-id');
+        if (reqIds) reqIds.split(',').forEach(id => { if (id.trim()) requestIds.push(id.trim()); });
+        else if (rid) requestIds.push(rid);
+    });
+    return requestIds;
+}
+
+// 상세 보기 모달 열기
+async function openDetailModal() {
+    const requestIds = getSelectedRequestIds();
+    if (!requestIds || requestIds.length === 0) {
+        showNotification('선택된 항목이 없습니다.', 'error');
+        return;
+    }
+    const config = window.DETAIL_VIEW_CONFIG || {};
+    const hideRequestId = config.hide_request_id || false;
+    const hideOrderId = config.hide_order_id || false;
+
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const orderSet = new Set();
+    checked.forEach(cb => {
+        let oid = cb.getAttribute('data-order-id');
+        if (!oid) {
+            const row = cb.closest('tr');
+            oid = row ? row.getAttribute('data-order-id') : null;
+        }
+        if (oid) orderSet.add(oid);
+    });
+    if (orderSet.size > 10) {
+        showNotification('최대 10개 주문까지 확인할 수 있습니다.', 'error');
+        return;
+    }
+
+    const contentEl = document.getElementById('detailViewContent');
+    const modalEl = document.getElementById('detailViewModal');
+    contentEl.innerHTML = '<p style="color:#6b7280;">불러오는 중...</p>';
+    modalEl.style.display = 'flex';
+
+    try {
+        const res = await fetch('/api/requests/bulk_detail/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ request_ids: requestIds })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || '조회 실패');
+        }
+        if (data.truncated) {
+            showNotification('10개 주문까지만 표시됩니다.', 'info');
+        }
+        contentEl.innerHTML = renderDetailViewContent(data.requests || [], hideRequestId, hideOrderId);
+    } catch (err) {
+        contentEl.innerHTML = '<p style="color:#dc2626;">' + (err.message || '조회 중 오류가 발생했습니다.') + '</p>';
+    }
+}
+
+function closeDetailModal() {
+    document.getElementById('detailViewModal').style.display = 'none';
+}
+
+function formatDate(val) {
+    if (!val) return '-';
+    if (typeof val === 'string' && val.length >= 19) return val.substr(0, 19).replace('T', ' ');
+    return val;
+}
+
+function escapeHtml(str) {
+    if (str == null || str === '') return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML.replace(/\n/g, '<br>');
+}
+
+function renderDetailViewContent(requests, hideRequestId, hideOrderId) {
+    const cols = [];
+    if (!hideOrderId) cols.push({ key: 'order_id', label: 'Order ID' });
+    if (!hideRequestId) cols.push({ key: 'request_id', label: 'Request ID' });
+    const statusMap = { received: '접수됨', in_progress: '작업중', work_completed: '작업완료', sent: '발송완료', impossible: '작업불가', cancelled: '취소됨' };
+    const orderStatusMap = { received: '접수됨', payment_completed: '결제완료', sent: '발송완료', impossible: '작업불가', cancelled: '취소됨', refunded: '환불완료' };
+    cols.push(
+        { key: 'status', label: '상태 (Request)', fn: r => r.status ? (statusMap[r.status] || r.status) : '-' },
+        { key: 'order_status', label: 'Order 상태', fn: r => r.order_status ? (orderStatusMap[r.order_status] || r.order_status) : '-' },
+        { key: 'files', label: '첨부 파일', fn: r => (r.files && r.files.length) ? r.files.map(f => f.original_name || f.file).join(', ') : '-' },
+        { key: 'recording_type', label: '녹취 타입' },
+        { key: 'partial_range', label: '부분 녹취 구간' },
+        { key: 'total_duration', label: '총 길이' },
+        { key: 'speaker_count', label: '화자수' },
+        { key: 'speaker_names', label: '화자 이름' },
+        { key: 'recording_location', label: '녹음 종류' },
+        { key: 'recording_date', label: '녹음 일시', fn: formatDate },
+        { key: 'additional_info', label: '상세 정보 (고객)' },
+        { key: 'draft_format', label: '열람파일 형식' },
+        { key: 'final_option', label: '최종본 옵션', fn: r => ({ file: '파일', file_usb: '파일+등기우편', file_usb_cd: '파일+등기우편+CD', file_usb_post: '파일+등기우편+USB' }[r.final_option] || r.final_option || '-') },
+        { key: 'name', label: '주문자' },
+        { key: 'phone', label: '연락처' },
+        { key: 'email', label: '이메일' },
+        { key: 'address', label: '주소' },
+        { key: 'estimated_price', label: '예상 견적', fn: r => r.estimated_price != null ? Number(r.estimated_price).toLocaleString() + '원' : '-' },
+        { key: 'payment_status', label: '결제 여부', fn: r => r.payment_status ? 'Y' : 'N' },
+        { key: 'payment_amount', label: '결제 금액', fn: r => r.payment_amount != null ? Number(r.payment_amount).toLocaleString() + '원' : '-' },
+        { key: 'price_change_reason', label: '결제금액 변동 사유' },
+        { key: 'refund_amount', label: '환불 금액', fn: r => r.refund_amount != null ? Number(r.refund_amount).toLocaleString() + '원' : '-' },
+        { key: 'cancel_reason', label: '취소 사유' },
+        { key: 'transcript_file', label: '속기록', fn: r => r.transcript_file_name || (r.transcript_file && r.transcript_file.original_name ? r.transcript_file.original_name : null) || '-' },
+        { key: 'notes', label: '메모 (관리자)' }
+    );
+
+    let html = '';
+    requests.forEach((r, idx) => {
+        html += '<div style="border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; overflow: hidden;">';
+        html += '<div style="background: #f9fafb; padding: 12px 16px; font-weight: 600; color: #374151;">';
+        html += '요청 ' + (idx + 1) + (r.request_id ? ' - ' + r.request_id : '');
+        html += '</div><div style="padding: 16px;">';
+        cols.forEach(c => {
+            let val = '-';
+            if (c.fn) val = c.fn(r);
+            else if (r[c.key] !== undefined && r[c.key] !== null && r[c.key] !== '') val = String(r[c.key]);
+            const valStr = (val === '-' || val === null || val === undefined) ? '-' : escapeHtml(String(val));
+            html += '<div style="display: flex; margin-bottom: 10px; font-size: 13px;">';
+            html += '<span style="min-width: 160px; color:#6b7280;">' + escapeHtml(c.label) + ':</span>';
+            html += '<span style="flex:1; word-break: break-all; white-space: pre-wrap;">' + valStr + '</span></div>';
+        });
+        html += '</div></div>';
+    });
+    return html || '<p style="color:#6b7280;">표시할 데이터가 없습니다.</p>';
 }
 
 // 전체 선택 체크박스 상태 업데이트
@@ -980,11 +1124,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('row-checkbox')) {
             updateSelectAllState();
+            updateDetailViewButtonVisibility();
         }
     });
     
     // 초기 상태 설정
     updateSelectAllState();
+    updateDetailViewButtonVisibility();
 });
 
 // 견적 및 입금 안내 발송

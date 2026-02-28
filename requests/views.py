@@ -126,6 +126,37 @@ class RequestViewSet(viewsets.ModelViewSet):
             print("신청접수알림 템플릿이 없습니다.")
     
     @action(detail=False, methods=['post'])
+    def bulk_detail(self, request):
+        """
+        선택된 주문/요청의 상세 정보를 일괄 조회 (최대 10개 Order 기준, 조회 전용)
+        POST body: { "request_ids": ["id1", "id2", ...] }
+        """
+        request_ids = request.data.get('request_ids', [])
+        if not request_ids:
+            return Response(
+                {'error': 'request_ids가 필요합니다.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        MAX_ORDERS = 10
+        queryset = Request.objects.filter(
+            request_id__in=request_ids,
+            is_temporary=False
+        ).select_related('transcript_file').prefetch_related('files').order_by('order_id', 'request_id')
+        requests_list = list(queryset)
+        order_ids_ordered = []
+        for req in requests_list:
+            oid = req.order_id or ''
+            if oid and oid not in order_ids_ordered:
+                order_ids_ordered.append(oid)
+        allowed_orders = set(order_ids_ordered[:MAX_ORDERS])
+        filtered_requests = [r for r in requests_list if (r.order_id or '') in allowed_orders]
+        serializer = RequestSerializer(filtered_requests, many=True)
+        return Response({
+            'requests': serializer.data,
+            'truncated': len(requests_list) > len(filtered_requests)
+        })
+
+    @action(detail=False, methods=['post'])
     def create_order_with_files(self, request):
         """
         파일별로 Request를 생성하는 새로운 API

@@ -35,10 +35,17 @@ class FileSerializer(serializers.ModelSerializer):
 
 class RequestSerializer(serializers.ModelSerializer):
     files = FileSerializer(many=True, read_only=True)
+    transcript_file_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Request
         fields = '__all__'
         read_only_fields = ('created_at', 'updated_at')
+
+    def get_transcript_file_name(self, obj):
+        if obj.transcript_file and obj.transcript_file.original_name:
+            return obj.transcript_file.original_name
+        return None
 
     def create(self, validated_data):
         # skip_auto_email 플래그를 context에서 가져옴
