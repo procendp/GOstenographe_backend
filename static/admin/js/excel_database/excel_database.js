@@ -1062,7 +1062,7 @@ function renderDetailViewContent(requests, hideRequestId, hideOrderId) {
         { key: 'speaker_count', label: '화자수' },
         { key: 'speaker_names', label: '화자 이름' },
         { key: 'recording_location', label: '녹음 종류' },
-        { key: 'recording_date', label: '녹음 일시', fn: formatDate },
+        { key: 'recording_date', label: '녹음 일시', fn: r => formatDate(r.recording_date) },
         { key: 'additional_info', label: '상세 정보 (고객)' },
         { key: 'draft_format', label: '열람파일 형식' },
         { key: 'final_option', label: '최종본 옵션', fn: r => ({ file: '파일', file_usb: '파일+등기우편', file_usb_cd: '파일+등기우편+CD', file_usb_post: '파일+등기우편+USB' }[r.final_option] || r.final_option || '-') },
