@@ -390,7 +390,7 @@ class RequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def change_payment(self, request, request_id=None):
-        """결제 상태 변경 API"""
+        """결제 상태 변경 API - Order 단위로 동일 order_id를 가진 모든 Request에 반영"""
         try:
             request_instance = self.get_object()
             payment_status = request.data.get('payment_status')
@@ -399,14 +399,24 @@ class RequestViewSet(viewsets.ModelViewSet):
                 return Response({'error': '결제 상태가 필요합니다.'}, status=status.HTTP_400_BAD_REQUEST)
             
             old_payment_status = request_instance.payment_status
-            request_instance.payment_status = payment_status
-            request_instance.save()
+            
+            # 동일 order_id를 가진 모든 Request에 결제 여부 반영 (Order 단위 일괄 업데이트)
+            if request_instance.order_id:
+                updated_count = Request.objects.filter(
+                    order_id=request_instance.order_id,
+                    is_temporary=False
+                ).update(payment_status=payment_status)
+            else:
+                request_instance.payment_status = payment_status
+                request_instance.save()
+                updated_count = 1
             
             return Response({
                 'success': True,
                 'message': '결제 상태가 변경되었습니다.',
                 'old_payment_status': old_payment_status,
-                'new_payment_status': payment_status
+                'new_payment_status': payment_status,
+                'updated_count': updated_count
             })
             
         except Exception as e:
