@@ -1080,22 +1080,41 @@ function renderDetailViewContent(requests, hideRequestId, hideOrderId) {
         { key: 'notes', label: '메모 (관리자)' }
     );
 
+    const orderColors = ['#e0f2fe', '#f0fdf4', '#fef3c7', '#fce7f3', '#ede9fe', '#e5e7eb'];
+    const orderGroups = {};
+    requests.forEach(r => {
+        const oid = r.order_id || '(미지정)';
+        if (!orderGroups[oid]) orderGroups[oid] = [];
+        orderGroups[oid].push(r);
+    });
+
     let html = '';
-    requests.forEach((r, idx) => {
-        html += '<div style="border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 16px; overflow: hidden;">';
-        html += '<div style="background: #f9fafb; padding: 12px 16px; font-weight: 600; color: #374151;">';
-        html += '요청 ' + (idx + 1) + (r.request_id ? ' - ' + r.request_id : '');
-        html += '</div><div style="padding: 16px;">';
-        cols.forEach(c => {
-            let val = '-';
-            if (c.fn) val = c.fn(r);
-            else if (r[c.key] !== undefined && r[c.key] !== null && r[c.key] !== '') val = String(r[c.key]);
-            const valStr = (val === '-' || val === null || val === undefined) ? '-' : escapeHtml(String(val));
-            html += '<div style="display: flex; margin-bottom: 10px; font-size: 13px;">';
-            html += '<span style="min-width: 160px; color:#6b7280;">' + escapeHtml(c.label) + ':</span>';
-            html += '<span style="flex:1; word-break: break-all; white-space: pre-wrap;">' + valStr + '</span></div>';
+    let colorIdx = 0;
+    Object.keys(orderGroups).forEach(orderId => {
+        const group = orderGroups[orderId];
+        const bgColor = orderColors[colorIdx % orderColors.length];
+        colorIdx++;
+        html += '<div style="margin-bottom: 24px; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">';
+        html += '<div style="background: ' + bgColor + '; padding: 12px 16px; font-weight: 700; color: #1e293b; font-size: 14px; border-bottom: 2px solid #94a3b8;">';
+        html += '📦 Order ID: ' + escapeHtml(orderId) + ' <span style="font-weight: 500; color: #64748b;">(' + group.length + '건)</span>';
+        html += '</div>';
+        group.forEach((r, idx) => {
+            html += '<div style="background: white; border-bottom: ' + (idx < group.length - 1 ? '1px solid #e5e7eb' : 'none') + ';">';
+            html += '<div style="padding: 10px 16px; background: #f8fafc; font-weight: 600; color: #475569; font-size: 12px;">';
+            html += 'Request ' + (r.request_id || '-');
+            html += '</div><div style="padding: 16px;">';
+            cols.forEach(c => {
+                let val = '-';
+                if (c.fn) val = c.fn(r);
+                else if (r[c.key] !== undefined && r[c.key] !== null && r[c.key] !== '') val = String(r[c.key]);
+                const valStr = (val === '-' || val === null || val === undefined) ? '-' : escapeHtml(String(val));
+                html += '<div style="display: flex; margin-bottom: 10px; font-size: 13px;">';
+                html += '<span style="min-width: 160px; color:#6b7280;">' + escapeHtml(c.label) + ':</span>';
+                html += '<span style="flex:1; word-break: break-all; white-space: pre-wrap;">' + valStr + '</span></div>';
+            });
+            html += '</div></div>';
         });
-        html += '</div></div>';
+        html += '</div>';
     });
     return html || '<p style="color:#6b7280;">표시할 데이터가 없습니다.</p>';
 }
